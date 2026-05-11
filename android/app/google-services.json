@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "610164037393",
+    "project_id": "planea-a0179",
+    "storage_bucket": "planea-a0179.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610164037393:android:a01cdb483320cb6b889eb0",
+        "android_client_info": {
+          "package_name": "com.planea.planea"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABzg7pL3aQI1KjmbwH-Zrk0wRVxWAZbo4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

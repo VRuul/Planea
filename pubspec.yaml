@@ -1,0 +1,45 @@
+name: planea
+description: "Planea – Premium Event Management Platform"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI & Responsive
+  cupertino_icons: ^1.0.8
+  responsive_framework: ^1.5.1
+  google_fonts: ^6.2.1
+  flex_color_picker: ^3.6.0
+
+  # State Management
+  provider: ^6.1.2
+
+  # Firebase
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+
+  go_router: ^14.6.3
+
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+  shared_preferences: ^2.3.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true

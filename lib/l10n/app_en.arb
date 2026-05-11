@@ -1,0 +1,141 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Planea",
+
+  "navDashboard": "Dashboard",
+  "navGuests": "Guests",
+  "navEvents": "Events",
+  "navSettings": "Settings",
+
+  "premiumBadge": "Premium",
+
+  "loginSubtitle": "Premium event management",
+  "loginSignIn": "Sign In",
+  "loginCreateAccount": "Create Account",
+  "loginEmail": "Email address",
+  "loginPassword": "Password",
+  "loginInvalidEmail": "Invalid email",
+  "loginMinPassword": "Minimum 6 characters",
+  "loginNoAccount": "No account? Sign up",
+  "loginHasAccount": "Already have an account? Sign in",
+
+  "celebrationProgress": "🎉 Celebration Progress",
+  "confirmedOfTotal": "{confirmed} of {total} confirmed",
+  "@confirmedOfTotal": {
+    "placeholders": {
+      "confirmed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "guestSummary": "Guest Summary",
+  "myEvents": "My Events",
+  "recentActivity": "Recent Activity",
+  "noEventsYet": "No events yet",
+  "noEventsYetSubtitle": "Create your first event to get started.",
+  "startPlanning": "Start planning!",
+  "startPlanningSubtitle": "Create your first event and start managing guests.",
+
+  "statConfirmed": "Confirmed",
+  "statPending": "Pending",
+  "statDeclined": "Declined",
+
+  "guestConfirmed": "Confirmed",
+  "guestPending": "Pending",
+  "guestDeclined": "Declined",
+
+  "rolePadrino": "✨ Padrino",
+  "roleVip": "⭐ VIP",
+  "roleRegular": "Regular",
+
+  "guestsTitle": "Guests",
+  "addGuest": "Add Guest",
+  "searchGuest": "Search guest…",
+  "noGuests": "No guests",
+  "selectEventFirst": "Select an event first.",
+  "filterGuests": "Filter Guests",
+  "filterStatus": "Status",
+  "filterRole": "Role",
+  "applyFilters": "Apply Filters",
+  "tableLabel": "Table {table}",
+  "@tableLabel": {
+    "placeholders": { "table": { "type": "String" } }
+  },
+  "companionsLabel": "+{count}",
+  "@companionsLabel": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addGuestTitle": "Add Guest",
+  "fullNameLabel": "Full name",
+  "roleLabel": "Role",
+  "tableOptional": "Table (optional)",
+  "companionsCount": "Companions: {count}",
+  "@companionsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "saveButton": "Save",
+  "cancelButton": "Cancel",
+
+  "eventsTitle": "Events",
+  "newEvent": "New Event",
+  "createEvent": "Create Event",
+  "eventNameLabel": "Event name",
+  "eventTypeLabel": "Event type",
+  "eventDateLabel": "Date: {date}",
+  "@eventDateLabel": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "venueOptional": "Venue (optional)",
+
+  "typeWedding": "Wedding",
+  "typeQuinceanera": "Quinceañera",
+  "typeBirthday": "Birthday",
+  "typeCorporate": "Corporate",
+  "typeGraduation": "Graduation",
+  "typeOther": "Other",
+
+  "colorPaletteSection": "Color Palette",
+  "budgetSection": "Budget",
+  "eventDetailsSection": "Event Details",
+  "primaryColorLabel": "Primary Color",
+  "accentColorLabel": "Secondary Color",
+  "previewLabel": "Preview",
+  "totalBudgetLabel": "Total Budget",
+  "remainingLabel": "Remaining",
+  "budgetSpentLabel": "Spent: {amount}",
+  "@budgetSpentLabel": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "typeLabelDetail": "Type",
+  "dateLabelDetail": "Date",
+  "venueLabelDetail": "Venue",
+  "chooseColorTitle": "Choose a Color",
+  "selectColorHeading": "Select Color",
+  "adjustToneSubheading": "Adjust tone",
+  "applyButton": "Apply",
+  "chooseColorFor": "Choose: {label}",
+  "@chooseColorFor": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "settingsTitle": "Settings",
+  "appearanceSection": "Appearance",
+  "darkModeLabel": "Dark Mode",
+  "globalPaletteSection": "Global Palette",
+  "primaryColorSetting": "Primary Color",
+  "accentColorSetting": "Accent Color",
+  "restorePaletteButton": "Restore Premium Palette",
+  "themePreviewSection": "Theme Preview",
+  "buttonPreviewLabel": "Button",
+  "outlinePreviewLabel": "Outline",
+  "accountSection": "Account",
+  "signOutLabel": "Sign Out",
+  "versionLabel": "Planea v1.0.0 · Premium",
+  "organizerLabel": "Organizer",
+
+  "languageSection": "Language",
+  "languageLabel": "App Language",
+  "langAuto": "Auto (System)",
+  "langEnglish": "English",
+  "langSpanish": "Spanish"
+}

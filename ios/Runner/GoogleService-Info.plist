@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDdD2xe52cuuh0DNik1CB2Vi6JmIw7vb-E</string>
+	<key>GCM_SENDER_ID</key>
+	<string>610164037393</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.planea.planea</string>
+	<key>PROJECT_ID</key>
+	<string>planea-a0179</string>
+	<key>STORAGE_BUCKET</key>
+	<string>planea-a0179.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:610164037393:ios:980a8371e2ca07a0889eb0</string>
+</dict>
+</plist>

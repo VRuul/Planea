@@ -1,0 +1,325 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Spanish Castilian (`es`).
+class AppLocalizationsEs extends AppLocalizations {
+  AppLocalizationsEs([String locale = 'es']) : super(locale);
+
+  @override
+  String get appTitle => 'Planea';
+
+  @override
+  String get navDashboard => 'Dashboard';
+
+  @override
+  String get navGuests => 'Invitados';
+
+  @override
+  String get navEvents => 'Eventos';
+
+  @override
+  String get navSettings => 'Ajustes';
+
+  @override
+  String get premiumBadge => 'Premium';
+
+  @override
+  String get loginSubtitle => 'Gestión premium de eventos';
+
+  @override
+  String get loginSignIn => 'Iniciar Sesión';
+
+  @override
+  String get loginCreateAccount => 'Crear Cuenta';
+
+  @override
+  String get loginEmail => 'Correo electrónico';
+
+  @override
+  String get loginPassword => 'Contraseña';
+
+  @override
+  String get loginInvalidEmail => 'Correo inválido';
+
+  @override
+  String get loginMinPassword => 'Mínimo 6 caracteres';
+
+  @override
+  String get loginNoAccount => '¿Sin cuenta? Regístrate';
+
+  @override
+  String get loginHasAccount => '¿Ya tienes cuenta? Inicia sesión';
+
+  @override
+  String get celebrationProgress => '🎉 Progreso de Celebración';
+
+  @override
+  String confirmedOfTotal(int confirmed, int total) {
+    return '$confirmed de $total confirmados';
+  }
+
+  @override
+  String get guestSummary => 'Resumen de Invitados';
+
+  @override
+  String get myEvents => 'Mis Eventos';
+
+  @override
+  String get recentActivity => 'Actividad Reciente';
+
+  @override
+  String get noEventsYet => 'Sin eventos aún';
+
+  @override
+  String get noEventsYetSubtitle => 'Crea tu primer evento para comenzar.';
+
+  @override
+  String get startPlanning => '¡Empieza a planear!';
+
+  @override
+  String get startPlanningSubtitle =>
+      'Crea tu primer evento y empieza a gestionar invitados.';
+
+  @override
+  String get statConfirmed => 'Confirmados';
+
+  @override
+  String get statPending => 'Pendientes';
+
+  @override
+  String get statDeclined => 'Declinados';
+
+  @override
+  String get guestConfirmed => 'Confirmado';
+
+  @override
+  String get guestPending => 'Pendiente';
+
+  @override
+  String get guestDeclined => 'Declinado';
+
+  @override
+  String get rolePadrino => '✨ Padrino';
+
+  @override
+  String get roleVip => '⭐ VIP';
+
+  @override
+  String get roleRegular => 'Regular';
+
+  @override
+  String get guestsTitle => 'Invitados';
+
+  @override
+  String get addGuest => 'Agregar Invitado';
+
+  @override
+  String get searchGuest => 'Buscar invitado…';
+
+  @override
+  String get noGuests => 'Sin invitados';
+
+  @override
+  String get selectEventFirst => 'Selecciona un evento primero.';
+
+  @override
+  String get filterGuests => 'Filtrar Invitados';
+
+  @override
+  String get filterStatus => 'Estado';
+
+  @override
+  String get filterRole => 'Rol';
+
+  @override
+  String get applyFilters => 'Aplicar Filtros';
+
+  @override
+  String tableLabel(String table) {
+    return 'Mesa $table';
+  }
+
+  @override
+  String companionsLabel(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get addGuestTitle => 'Agregar Invitado';
+
+  @override
+  String get fullNameLabel => 'Nombre completo';
+
+  @override
+  String get roleLabel => 'Rol';
+
+  @override
+  String get tableOptional => 'Mesa (opcional)';
+
+  @override
+  String companionsCount(int count) {
+    return 'Acompañantes: $count';
+  }
+
+  @override
+  String get saveButton => 'Guardar';
+
+  @override
+  String get cancelButton => 'Cancelar';
+
+  @override
+  String get eventsTitle => 'Eventos';
+
+  @override
+  String get newEvent => 'Nuevo Evento';
+
+  @override
+  String get createEvent => 'Crear Evento';
+
+  @override
+  String get eventNameLabel => 'Nombre del evento';
+
+  @override
+  String get eventTypeLabel => 'Tipo de evento';
+
+  @override
+  String eventDateLabel(String date) {
+    return 'Fecha: $date';
+  }
+
+  @override
+  String get venueOptional => 'Venue (opcional)';
+
+  @override
+  String get typeWedding => 'Boda';
+
+  @override
+  String get typeQuinceanera => 'Quinceañera';
+
+  @override
+  String get typeBirthday => 'Cumpleaños';
+
+  @override
+  String get typeCorporate => 'Corporativo';
+
+  @override
+  String get typeGraduation => 'Graduación';
+
+  @override
+  String get typeOther => 'Otro';
+
+  @override
+  String get colorPaletteSection => 'Paleta de Colores';
+
+  @override
+  String get budgetSection => 'Presupuesto';
+
+  @override
+  String get eventDetailsSection => 'Detalles del Evento';
+
+  @override
+  String get primaryColorLabel => 'Color Primario';
+
+  @override
+  String get accentColorLabel => 'Color Secundario';
+
+  @override
+  String get previewLabel => 'Vista Previa';
+
+  @override
+  String get totalBudgetLabel => 'Presupuesto Total';
+
+  @override
+  String get remainingLabel => 'Restante';
+
+  @override
+  String budgetSpentLabel(String amount) {
+    return 'Gastado: $amount';
+  }
+
+  @override
+  String get typeLabelDetail => 'Tipo';
+
+  @override
+  String get dateLabelDetail => 'Fecha';
+
+  @override
+  String get venueLabelDetail => 'Venue';
+
+  @override
+  String get chooseColorTitle => 'Elige un Color';
+
+  @override
+  String get selectColorHeading => 'Seleccionar Color';
+
+  @override
+  String get adjustToneSubheading => 'Ajustar tono';
+
+  @override
+  String get applyButton => 'Aplicar';
+
+  @override
+  String chooseColorFor(String label) {
+    return 'Elige: $label';
+  }
+
+  @override
+  String get settingsTitle => 'Ajustes';
+
+  @override
+  String get appearanceSection => 'Apariencia';
+
+  @override
+  String get darkModeLabel => 'Modo Oscuro';
+
+  @override
+  String get globalPaletteSection => 'Paleta Global';
+
+  @override
+  String get primaryColorSetting => 'Color Principal';
+
+  @override
+  String get accentColorSetting => 'Color de Acento';
+
+  @override
+  String get restorePaletteButton => 'Restaurar Paleta Premium';
+
+  @override
+  String get themePreviewSection => 'Vista Previa del Tema';
+
+  @override
+  String get buttonPreviewLabel => 'Botón';
+
+  @override
+  String get outlinePreviewLabel => 'Outline';
+
+  @override
+  String get accountSection => 'Cuenta';
+
+  @override
+  String get signOutLabel => 'Cerrar Sesión';
+
+  @override
+  String get versionLabel => 'Planea v1.0.0 · Premium';
+
+  @override
+  String get organizerLabel => 'Organizador';
+
+  @override
+  String get languageSection => 'Idioma';
+
+  @override
+  String get languageLabel => 'Idioma de la App';
+
+  @override
+  String get langAuto => 'Auto (Sistema)';
+
+  @override
+  String get langEnglish => 'Inglés';
+
+  @override
+  String get langSpanish => 'Español';
+}
