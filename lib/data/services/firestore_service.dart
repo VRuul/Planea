@@ -3,6 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/guest_model.dart';
 import '../models/event_model.dart';
 import '../models/collaborator_model.dart';
+import '../models/table_model.dart';
+import '../models/seating_assignment_model.dart';
+import '../models/seating_data_model.dart';
+import '../models/venue_element_model.dart';
+import 'package:rxdart/rxdart.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -13,6 +18,12 @@ class FirestoreService {
       _db.collection('events').doc(eventId).collection('guests');
   CollectionReference _collaborators(String eventId) =>
       _db.collection('events').doc(eventId).collection('collaborators');
+  CollectionReference _tables(String eventId) =>
+      _db.collection('events').doc(eventId).collection('tables');
+  CollectionReference _assignments(String eventId) =>
+      _db.collection('events').doc(eventId).collection('assignments');
+  CollectionReference _venueElements(String eventId) =>
+      _db.collection('events').doc(eventId).collection('venueElements');
 
   // ─── Event CRUD ──────────────────────────────────────────────
   Future<String> createEvent(EventModel event) async {
@@ -35,6 +46,24 @@ class FirestoreService {
     // Delete collaborators subcollection
     final collabSnap = await _collaborators(eventId).get();
     for (final doc in collabSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete tables subcollection
+    final tablesSnap = await _tables(eventId).get();
+    for (final doc in tablesSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete assignments subcollection
+    final assignSnap = await _assignments(eventId).get();
+    for (final doc in assignSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete venue elements subcollection
+    final venueSnap = await _venueElements(eventId).get();
+    for (final doc in venueSnap.docs) {
       batch.delete(doc.reference);
     }
 
@@ -116,6 +145,52 @@ class FirestoreService {
       'status': GuestStatus.confirmed.name,
     });
   }
+
+  // ─── Table CRUD ──────────────────────────────────────────────
+  Future<String> addTable(String eventId, TableModel table) async {
+    final ref = await _tables(eventId).add(table.toMap());
+    return ref.id;
+  }
+
+  Future<void> updateTable(String eventId, TableModel table) =>
+      _tables(eventId).doc(table.id).update(table.toMap());
+
+  Future<void> updateTablePosition(String eventId, String tableId, double x, double y) =>
+      _tables(eventId).doc(tableId).update({'posX': x, 'posY': y});
+
+  Future<void> deleteTable(String eventId, String tableId) =>
+      _tables(eventId).doc(tableId).delete();
+
+  Stream<List<TableModel>> watchTables(String eventId) =>
+      _tables(eventId).snapshots().map((snap) => snap.docs
+          .map((d) => TableModel.fromMap(
+                d.id,
+                d.data() as Map<String, dynamic>,
+              ))
+          .toList());
+
+  // ─── Venue Element CRUD ──────────────────────────────────────
+  Future<String> addVenueElement(String eventId, VenueElementModel element) async {
+    final ref = await _venueElements(eventId).add(element.toMap());
+    return ref.id;
+  }
+
+  Future<void> updateVenueElement(String eventId, VenueElementModel element) =>
+      _venueElements(eventId).doc(element.id).update(element.toMap());
+
+  Future<void> updateVenueElementPosition(String eventId, String elementId, double x, double y) =>
+      _venueElements(eventId).doc(elementId).update({'posX': x, 'posY': y});
+
+  Future<void> deleteVenueElement(String eventId, String elementId) =>
+      _venueElements(eventId).doc(elementId).delete();
+
+  Stream<List<VenueElementModel>> watchVenueElements(String eventId) =>
+      _venueElements(eventId).snapshots().map((snap) => snap.docs
+          .map((d) => VenueElementModel.fromMap(
+                d.id,
+                d.data() as Map<String, dynamic>,
+              ))
+          .toList());
 
   // ─── Collaboration ───────────────────────────────────────────
 
@@ -267,5 +342,52 @@ class FirestoreService {
       doc.data() as Map<String, dynamic>,
       doc.id,
     );
+  }
+
+  // ─── Seating Assignment Operations ──────────────────────────
+  Stream<List<SeatingAssignment>> watchAssignments(String eventId) {
+    return _assignments(eventId).snapshots().map((snap) =>
+        snap.docs.map((doc) => SeatingAssignment.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList());
+  }
+
+  Future<void> addAssignment(String eventId, SeatingAssignment assignment) {
+    return _assignments(eventId).add(assignment.toFirestore());
+  }
+
+  Future<void> updateAssignment(String eventId, String assignmentId, Map<String, dynamic> data) {
+    return _assignments(eventId).doc(assignmentId).update(data);
+  }
+
+  Future<void> deleteAssignment(String eventId, String assignmentId) {
+    return _assignments(eventId).doc(assignmentId).delete();
+  }
+
+  Future<void> deleteGuestAssignments(String eventId, String guestId) async {
+    final snap = await _assignments(eventId).where('guestId', isEqualTo: guestId).get();
+    final batch = _db.batch();
+    for (var doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    return batch.commit();
+  }
+
+  // ─── Consolidated Seating Stream ─────────────────────────────
+  Stream<SeatingData> watchSeatingData(String eventId) {
+    if (eventId.isEmpty) {
+      return Stream.value(SeatingData(tables: [], guests: [], assignments: [], venueElements: []));
+    }
+    
+    return CombineLatestStream.combine4(
+      watchTables(eventId).onErrorReturn([]),
+      watchGuests(eventId).onErrorReturn([]),
+      watchAssignments(eventId).onErrorReturn([]),
+      watchVenueElements(eventId).onErrorReturn([]),
+      (tables, guests, assignments, venueElements) => SeatingData(
+        tables: tables,
+        guests: guests,
+        assignments: assignments,
+        venueElements: venueElements,
+      ),
+    ).distinct();
   }
 }
