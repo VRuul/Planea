@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../data/models/event_model.dart';
@@ -21,12 +22,27 @@ class EventDetailScreen extends StatelessWidget {
     return StreamBuilder<EventModel?>(
       stream: FirestoreService().watchEvent(eventId),
       builder: (context, snap) {
-        if (!snap.hasData) {
+        if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
           return const Scaffold(
             body: Center(
                 child:
                     CircularProgressIndicator(color: AppColors.brushedGold)));
         }
+
+        if (snap.data == null) {
+          // Si el evento fue borrado (ya sea por nosotros o por otro), 
+          // nos aseguramos de limpiar cualquier diálogo y regresar a la lista.
+          Future.microtask(() {
+            if (context.mounted) {
+              // Intentamos cerrar cualquier diálogo abierto (como el de carga)
+              // antes de navegar a la lista principal.
+              Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst || route is! DialogRoute);
+              context.go('/events');
+            }
+          });
+          return const Scaffold();
+        }
+
         return _EventDetailView(event: snap.data!);
       },
     );
@@ -36,6 +52,59 @@ class EventDetailScreen extends StatelessWidget {
 class _EventDetailView extends StatelessWidget {
   final EventModel event;
   const _EventDetailView({required this.event});
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final l = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('¿Eliminar evento?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Esta acción borrará toda la información del evento, incluyendo invitados y colaboradores. No se puede deshacer.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l.cancelButton, style: const TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar permanentemente'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.brushedGold)),
+      );
+
+      try {
+        await FirestoreService().deleteEvent(event.id);
+        // No cerramos el diálogo aquí manualmente; el StreamBuilder en la parte superior
+        // detectará que el documento desapareció, cerrará todos los diálogos y navegará a /events.
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop(); // Cerrar diálogo de carga en caso de error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +138,12 @@ class _EventDetailView extends StatelessWidget {
                   );
                 },
               ),
+              if (context.read<AuthProvider>().currentUser?.uid == event.organizerId)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                  tooltip: 'Eliminar Evento',
+                  onPressed: () => _confirmDelete(context),
+                ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(event.name,

@@ -5,7 +5,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  
+  // We use a getter to initialize GoogleSignIn only when needed and only on mobile.
+  // On Web, we use Firebase's native signInWithPopup which doesn't need this plugin.
+  GoogleSignIn? __googleSignIn;
+  GoogleSignIn get _googleSignIn {
+    if (kIsWeb) throw UnsupportedError('GoogleSignIn plugin is not used on Web. Use signInWithPopup.');
+    return __googleSignIn ??= GoogleSignIn();
+  }
 
   User? get currentUser => _auth.currentUser;
   bool get isAuthenticated => currentUser != null;
@@ -73,10 +80,14 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    if (kIsWeb) {
+      await _auth.signOut();
+    } else {
+      await Future.wait([
+        _auth.signOut(),
+        _googleSignIn.signOut(),
+      ]);
+    }
     notifyListeners();
   }
 

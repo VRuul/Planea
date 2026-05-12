@@ -23,6 +23,27 @@ class FirestoreService {
   Future<void> updateEvent(EventModel event) =>
       _events.doc(event.id).update(event.toFirestore());
 
+  Future<void> deleteEvent(String eventId) async {
+    final batch = _db.batch();
+
+    // Delete guests subcollection
+    final guestsSnap = await _guests(eventId).get();
+    for (final doc in guestsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete collaborators subcollection
+    final collabSnap = await _collaborators(eventId).get();
+    for (final doc in collabSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete event document
+    batch.delete(_events.doc(eventId));
+
+    await batch.commit();
+  }
+
   Stream<EventModel?> watchEvent(String eventId) =>
       _events.doc(eventId).snapshots().map((snap) {
         if (!snap.exists) return null;

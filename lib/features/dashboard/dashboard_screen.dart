@@ -52,8 +52,11 @@ class DashboardScreen extends StatelessWidget {
         stream: FirestoreService().watchUserEvents(userId),
         builder: (context, eventSnap) {
           final events = eventSnap.data ?? [];
-          final currentEventId = eventProvider.currentEventId ??
-              (events.isNotEmpty ? events.first.id : null);
+          // Aseguramos que el ID actual sea válido y exista en la lista actual.
+          // Si el ID del provider ya no existe (fue borrado), tomamos el primero de la lista o null.
+          final currentEventId = events.any((e) => e.id == eventProvider.currentEventId)
+              ? eventProvider.currentEventId
+              : (events.isNotEmpty ? events.first.id : null);
 
           if (currentEventId == null) return _EmptyDashboard();
 
@@ -61,6 +64,8 @@ class DashboardScreen extends StatelessWidget {
             stream: FirestoreService().watchGuests(currentEventId),
             builder: (context, guestSnap) {
               final guests = guestSnap.data ?? [];
+              
+              // ... (cálculos de invitados) ...
               final confirmedGroups = guests.where((g) => g.status == GuestStatus.confirmed).length;
               final pendingGroups = guests.where((g) => g.status == GuestStatus.pending).length;
               final declinedGroups = guests.where((g) => g.status == GuestStatus.declined).length;
@@ -75,6 +80,7 @@ class DashboardScreen extends StatelessWidget {
               final totalExpected = guests.fold<int>(0, (sum, g) => sum + g.totalSeats);
               final progress = totalExpected > 0 ? totalPeopleConfirmed / totalExpected : 0.0;
 
+              // Buscamos el evento actual de forma segura
               final currentEvent = events.firstWhere(
                 (e) => e.id == currentEventId,
                 orElse: () => events.first,
