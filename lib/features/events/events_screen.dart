@@ -30,7 +30,7 @@ class EventsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l.eventsTitle)),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateEventSheet(context, userId),
+        onPressed: () => _showEventDialog(context, userId),
         backgroundColor: AppColors.brushedGold,
         foregroundColor: AppColors.charcoal,
         icon: const Icon(Icons.add_rounded),
@@ -56,13 +56,10 @@ class EventsScreen extends StatelessWidget {
     );
   }
 
-  void _showCreateEventSheet(BuildContext context, String userId) {
-    showModalBottomSheet(
+  void _showEventDialog(BuildContext context, String userId) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => _CreateEventSheet(userId: userId),
+      builder: (_) => _EventDialog(userId: userId),
     );
   }
 }
@@ -178,20 +175,21 @@ class _EmptyEvents extends StatelessWidget {
   }
 }
 
-class _CreateEventSheet extends StatefulWidget {
+class _EventDialog extends StatefulWidget {
   final String userId;
-  const _CreateEventSheet({required this.userId});
+  const _EventDialog({required this.userId});
 
   @override
-  State<_CreateEventSheet> createState() => _CreateEventSheetState();
+  State<_EventDialog> createState() => _EventDialogState();
 }
 
-class _CreateEventSheetState extends State<_CreateEventSheet> {
+class _EventDialogState extends State<_EventDialog> {
   final _nameController = TextEditingController();
   final _venueController = TextEditingController();
   EventType _type = EventType.wedding;
   DateTime _date = DateTime.now().add(const Duration(days: 30));
   bool _saving = false;
+  bool _isAdvancedExpanded = false;
 
   @override
   void dispose() {
@@ -246,78 +244,82 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24, right: 24, top: 24,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Text(l.newEvent,
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const Spacer(),
-            IconButton(
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () => Navigator.pop(context)),
-          ]),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: l.eventNameLabel,
-              prefixIcon: const Icon(Icons.celebration_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<EventType>(
-            initialValue: _type,
-            decoration: InputDecoration(
-              labelText: l.eventTypeLabel,
-              prefixIcon: const Icon(Icons.category_outlined),
-            ),
-            items: EventType.values
-                .map((t) => DropdownMenuItem(
-                    value: t, child: Text(_localizedEventType(l, t))))
-                .toList(),
-            onChanged: (v) => setState(() => _type = v!),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _pickDate,
-            child: AbsorbPointer(
-              child: TextField(
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Text(l.newEvent, 
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 450,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── CAMPOS BÁSICOS ──────────────────────────────────────────
+              TextField(
+                controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: l.eventDateLabel(
-                      '${_date.day}/${_date.month}/${_date.year}'),
-                  prefixIcon: const Icon(Icons.calendar_today_outlined),
+                  labelText: l.eventNameLabel,
+                  prefixIcon: const Icon(Icons.celebration_outlined),
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<EventType>(
+                value: _type,
+                decoration: InputDecoration(
+                  labelText: l.eventTypeLabel,
+                  prefixIcon: const Icon(Icons.category_outlined),
+                ),
+                items: EventType.values
+                    .map((t) => DropdownMenuItem(
+                        value: t, child: Text(_localizedEventType(l, t))))
+                    .toList(),
+                onChanged: (v) => setState(() => _type = v!),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _pickDate,
+                child: AbsorbPointer(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: l.eventDateLabel(
+                          '${_date.day}/${_date.month}/${_date.year}'),
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // ── SECCIÓN AVANZADA ────────────────────────────────────────
+              const SizedBox(height: 12),
+              Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  title: Text("Más información", style: theme.textTheme.labelMedium?.copyWith(color: AppColors.brushedGold)),
+                  trailing: Icon(_isAdvancedExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.brushedGold),
+                  onExpansionChanged: (v) => setState(() => _isAdvancedExpanded = v),
+                  childrenPadding: const EdgeInsets.only(top: 8),
+                  children: [
+                    TextField(
+                      controller: _venueController,
+                      decoration: InputDecoration(
+                        labelText: l.venueOptional,
+                        prefixIcon: const Icon(Icons.location_on_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _venueController,
-            decoration: InputDecoration(
-              labelText: l.venueOptional,
-              prefixIcon: const Icon(Icons.location_on_outlined),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity, height: 52,
-            child: ElevatedButton(
-              onPressed: _saving ? null : () => _save(l),
-              child: _saving
-                  ? const CircularProgressIndicator(strokeWidth: 2)
-                  : Text(l.createEvent),
-            ),
-          ),
-        ],
+        ),
       ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
+        ElevatedButton(
+          onPressed: _saving ? null : () => _save(l),
+          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.createEvent),
+        ),
+      ],
     );
   }
 }
