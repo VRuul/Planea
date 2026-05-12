@@ -218,6 +218,15 @@ class _CreateEventSheetState extends State<_CreateEventSheet> {
       );
       await FirestoreService().createEvent(event);
       if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
