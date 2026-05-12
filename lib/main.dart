@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/extensions/l10n_extension.dart';
 import 'firebase_options.dart';
@@ -34,15 +35,19 @@ class PlaneaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => EventProvider()),
         ChangeNotifierProvider.value(value: localeProvider),
+        // Creamos el router una sola vez, pero le pasamos el AuthProvider para que reaccione
+        ProxyProvider<AuthProvider, GoRouter>(
+          update: (context, auth, previous) => previous ?? AppRouter.createRouter(auth),
+        ),
       ],
-      child: Consumer2<ThemeProvider, LocaleProvider>(
-        builder: (context, themeProvider, locProvider, _) {
+      child: Consumer3<ThemeProvider, LocaleProvider, GoRouter>(
+        builder: (context, themeProvider, locProvider, router, _) {
           return MaterialApp.router(
             title: 'Planea',
             debugShowCheckedModeBanner: false,
 
-            // ── Localizations ──────────────────────────────────
-            locale: locProvider.locale, // null = system auto-detect
+            // ... (Localizations config) ...
+            locale: locProvider.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: const [
               AppLocalizations.delegate,
@@ -51,15 +56,13 @@ class PlaneaApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             localeResolutionCallback: (deviceLocale, supportedLocales) {
-              // If the user picked a specific locale, use it
               if (locProvider.locale != null) return locProvider.locale;
-              // Otherwise find best match from device locale
               for (final supported in supportedLocales) {
                 if (deviceLocale?.languageCode == supported.languageCode) {
                   return supported;
                 }
               }
-              return supportedLocales.first; // fallback to English
+              return supportedLocales.first;
             },
 
             // ── Theme ──────────────────────────────────────────
@@ -68,7 +71,7 @@ class PlaneaApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
 
             // ── Router ─────────────────────────────────────────
-            routerConfig: AppRouter.router,
+            routerConfig: router,
             builder: (context, child) => ResponsiveBreakpoints.builder(
               child: child!,
               breakpoints: const [
