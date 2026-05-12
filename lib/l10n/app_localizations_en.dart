@@ -171,6 +171,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelButton => 'Cancel';
 
   @override
+  String get guestDisplayName => 'Display Name (Family or Individual)';
+
+  @override
+  String get guestFirstName => 'First Name(s)';
+
+  @override
+  String get guestLastName => 'Last Name(s)';
+
+  @override
+  String get countAdults => 'Adults';
+
+  @override
+  String get countChildren => 'Children';
+
+  @override
+  String get countTeenagers => 'Teenagers';
+
+  @override
+  String get countDisabled => 'People with disabilities';
+
+  @override
+  String get contactInfoSection => 'Contact Information';
+
+  @override
+  String get contactPhone => 'Phone Number';
+
+  @override
+  String get contactEmail => 'Email Address';
+
+  @override
+  String get contactSocial => 'Social Media / Link';
+
+  @override
+  String get notesLabel => 'Notes / Observations';
+
+  @override
+  String get dietaryLabel => 'Dietary Restrictions / Allergies';
+
+  @override
   String get eventsTitle => 'Events';
 
   @override

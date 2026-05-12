@@ -61,14 +61,19 @@ class DashboardScreen extends StatelessWidget {
             stream: FirestoreService().watchGuests(currentEventId),
             builder: (context, guestSnap) {
               final guests = guestSnap.data ?? [];
-              final confirmed =
-                  guests.where((g) => g.status == GuestStatus.confirmed).length;
-              final pending =
-                  guests.where((g) => g.status == GuestStatus.pending).length;
-              final declined =
-                  guests.where((g) => g.status == GuestStatus.declined).length;
-              final total = guests.length;
-              final progress = total > 0 ? confirmed / total : 0.0;
+              final confirmedGroups = guests.where((g) => g.status == GuestStatus.confirmed).length;
+              final pendingGroups = guests.where((g) => g.status == GuestStatus.pending).length;
+              final declinedGroups = guests.where((g) => g.status == GuestStatus.declined).length;
+
+              final totalPeopleConfirmed = guests
+                  .where((g) => g.status == GuestStatus.confirmed)
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+              final totalPeoplePending = guests
+                  .where((g) => g.status == GuestStatus.pending)
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+              
+              final totalExpected = guests.fold<int>(0, (sum, g) => sum + g.totalSeats);
+              final progress = totalExpected > 0 ? totalPeopleConfirmed / totalExpected : 0.0;
 
               final currentEvent = events.firstWhere(
                 (e) => e.id == currentEventId,
@@ -86,8 +91,8 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           CelebrationProgressBar(
                             progress: progress,
-                            confirmed: confirmed,
-                            total: total,
+                            confirmed: totalPeopleConfirmed,
+                            total: totalExpected,
                           ),
                           const SizedBox(height: 24),
                           Text(l.guestSummary,
@@ -95,9 +100,9 @@ class DashboardScreen extends StatelessWidget {
                                   ?.copyWith(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 16),
                           _StatsRow(
-                            confirmed: confirmed,
-                            pending: pending,
-                            declined: declined,
+                            confirmed: confirmedGroups,
+                            pending: pendingGroups,
+                            declined: declinedGroups,
                           ),
                           const SizedBox(height: 24),
                           if (events.length > 1) ...[
@@ -266,7 +271,7 @@ class _GuestTile extends StatelessWidget {
             radius: 22,
             backgroundColor: statusColor.withValues(alpha: 0.15),
             child: Text(
-              guest.name.isNotEmpty ? guest.name[0].toUpperCase() : '?',
+              guest.displayName.isNotEmpty ? guest.displayName[0].toUpperCase() : '?',
               style: TextStyle(color: statusColor, fontWeight: FontWeight.w700),
             ),
           ),
@@ -275,11 +280,19 @@ class _GuestTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(guest.name,
+                Text(guest.displayName,
                     style: theme.textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                GuestRoleChip(role: guest.role),
+                Row(
+                  children: [
+                    GuestRoleChip(role: guest.role),
+                    if (guest.totalSeats > 1) ...[
+                      const SizedBox(width: 8),
+                      Text('• ${guest.totalSeats} pers.', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white54)),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),

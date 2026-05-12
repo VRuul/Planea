@@ -93,7 +93,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 }
                 final filtered = (snap.data ?? []).where((g) {
                   final matchSearch = _search.isEmpty ||
-                      g.name.toLowerCase().contains(_search.toLowerCase());
+                      g.displayName.toLowerCase().contains(_search.toLowerCase());
                   final matchStatus =
                       _filterStatus == null || g.status == _filterStatus;
                   final matchRole =
@@ -197,57 +197,149 @@ class _GuestCard extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12, offset: const Offset(0, 2))],
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: statusColor.withValues(alpha: 0.15),
           child: Text(
-            guest.name.isNotEmpty ? guest.name[0].toUpperCase() : '?',
-            style: TextStyle(
-                color: statusColor, fontWeight: FontWeight.w700, fontSize: 18),
+            guest.displayName.isNotEmpty ? guest.displayName[0].toUpperCase() : '?',
+            style: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 18),
           ),
         ),
-        title: Text(guest.name,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        title: Text(guest.displayName,
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Wrap(
           spacing: 6, runSpacing: 4,
           children: [
             GuestRoleChip(role: guest.role),
             if (guest.tableId != null)
-              _SmallTag(
-                  label: l.tableLabel(guest.tableId!),
-                  color: Colors.blue.shade300),
-            if (guest.plusOnes > 0)
-              _SmallTag(
-                  label: l.companionsLabel(guest.plusOnes),
-                  color: Colors.purple.shade300),
+              _SmallTag(label: l.tableLabel(guest.tableId!), color: Colors.blue.shade300),
+            _SmallTag(label: 'Total: ${guest.totalSeats}', color: Colors.purple.shade300),
           ],
         ),
-        trailing: PopupMenuButton<GuestStatus>(
-          icon: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(_statusLabel(l, guest.status),
-                style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: (s) =>
-              _service.updateGuestStatus(eventId, guest.id, s),
-          itemBuilder: (_) => GuestStatus.values
-              .map((s) => PopupMenuItem(
-                  value: s, child: Text(_statusLabel(l, s))))
-              .toList(),
+          child: Text(_statusLabel(l, guest.status),
+              style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
         ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _CountIndicator(label: l.countAdults, count: guest.adults, icon: Icons.person),
+                    _CountIndicator(label: l.countChildren, count: guest.children, icon: Icons.child_care),
+                    _CountIndicator(label: l.countTeenagers, count: guest.teenagers, icon: Icons.face),
+                    _CountIndicator(label: l.countDisabled, count: guest.disabled, icon: Icons.accessible),
+                  ],
+                ),
+                const Divider(height: 32),
+                if (guest.phone != null || guest.email != null || guest.socialMedia != null) ...[
+                  Text(l.contactInfoSection, style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  if (guest.phone != null) _ContactRow(icon: Icons.phone_outlined, value: guest.phone!),
+                  if (guest.email != null) _ContactRow(icon: Icons.email_outlined, value: guest.email!),
+                  if (guest.socialMedia != null) _ContactRow(icon: Icons.link_rounded, value: guest.socialMedia!),
+                  const SizedBox(height: 16),
+                ],
+                if (guest.notes != null && guest.notes!.isNotEmpty) ...[
+                  Text(l.notesLabel, style: theme.textTheme.labelLarge),
+                  Text(guest.notes!, style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 12),
+                ],
+                if (guest.dietaryRestrictions != null && guest.dietaryRestrictions!.isNotEmpty) ...[
+                  Text(l.dietaryLabel, style: theme.textTheme.labelLarge?.copyWith(color: Colors.orange.shade700)),
+                  Text(guest.dietaryRestrictions!, style: theme.textTheme.bodySmall),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _service.deleteGuest(eventId, guest.id),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                      label: Text(l.cancelButton, style: const TextStyle(color: Colors.red)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        _showStatusPicker(context, l);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: statusColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(l.applyFilters),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  void _showStatusPicker(BuildContext context, AppLocalizations l) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: GuestStatus.values.map((s) => ListTile(
+          title: Text(_statusLabel(l, s)),
+          onTap: () {
+            _service.updateGuestStatus(eventId, guest.id, s);
+            Navigator.pop(context);
+          },
+        )).toList(),
+      ),
+    );
+  }
+}
+
+class _CountIndicator extends StatelessWidget {
+  final String label;
+  final int count;
+  final IconData icon;
+  const _CountIndicator({required this.label, required this.count, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: count > 0 ? AppColors.brushedGold : Colors.grey.shade400),
+        const SizedBox(height: 4),
+        Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  const _ContactRow({required this.icon, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(children: [
+        Icon(icon, size: 14, color: Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+      ]),
     );
   }
 }
@@ -379,34 +471,58 @@ class _AddGuestDialog extends StatefulWidget {
 }
 
 class _AddGuestDialogState extends State<_AddGuestDialog> {
-  final _nameController = TextEditingController();
+  final _displayController = TextEditingController();
+  final _firstController = TextEditingController();
+  final _lastController = TextEditingController();
   final _tableController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _socialController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _dietController = TextEditingController();
+
   GuestRole _role = GuestRole.regular;
-  int _plusOnes = 0;
+  int _adults = 1, _children = 0, _teenagers = 0, _disabled = 0;
   bool _saving = false;
+  bool _showSplitName = false;
   final _service = FirestoreService();
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _displayController.dispose();
+    _firstController.dispose();
+    _lastController.dispose();
     _tableController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _socialController.dispose();
+    _notesController.dispose();
+    _dietController.dispose();
     super.dispose();
   }
 
   Future<void> _save(AppLocalizations l) async {
-    if (_nameController.text.trim().isEmpty) return;
+    if (_displayController.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
       final guest = GuestModel(
         id: const Uuid().v4(),
-        name: _nameController.text.trim(),
+        eventId: widget.eventId,
+        displayName: _displayController.text.trim(),
+        firstName: _showSplitName ? _firstController.text.trim() : null,
+        lastName: _showSplitName ? _lastController.text.trim() : null,
         role: _role,
         status: GuestStatus.pending,
-        tableId: _tableController.text.trim().isEmpty
-            ? null
-            : _tableController.text.trim(),
-        plusOnes: _plusOnes,
-        eventId: widget.eventId,
+        tableId: _tableController.text.trim().isEmpty ? null : _tableController.text.trim(),
+        adults: _adults,
+        children: _children,
+        teenagers: _teenagers,
+        disabled: _disabled,
+        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        socialMedia: _socialController.text.trim().isEmpty ? null : _socialController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        dietaryRestrictions: _dietController.text.trim().isEmpty ? null : _dietController.text.trim(),
       );
       await _service.addGuest(widget.eventId, guest);
       if (mounted) Navigator.pop(context);
@@ -420,74 +536,88 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
     final theme = Theme.of(context);
     final l = context.l10n;
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Text(l.addGuestTitle,
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: l.fullNameLabel,
-                prefixIcon: const Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<GuestRole>(
-              initialValue: _role,
-              decoration: InputDecoration(
-                labelText: l.roleLabel,
-                prefixIcon: const Icon(Icons.star_outline),
-              ),
-              items: GuestRole.values
-                  .map((r) => DropdownMenuItem(
-                      value: r, child: Text(_roleLabel(l, r))))
-                  .toList(),
-              onChanged: (v) => setState(() => _role = v!),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tableController,
-              decoration: InputDecoration(
-                labelText: l.tableOptional,
-                prefixIcon: const Icon(Icons.table_restaurant_outlined),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: Text(l.companionsCount(_plusOnes),
-                        style: theme.textTheme.bodyMedium)),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: _plusOnes > 0
-                      ? () => setState(() => _plusOnes--)
-                      : null,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Text(l.addGuestTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      content: SizedBox(
+        width: 450,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _displayController,
+                decoration: InputDecoration(
+                  labelText: l.guestDisplayName,
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                  hintText: "Ej: Familia García o Juan Pérez",
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () => setState(() => _plusOnes++),
-                ),
+              ),
+              const SizedBox(height: 8),
+              Row(children: [
+                Checkbox(value: _showSplitName, onChanged: (v) => setState(() => _showSplitName = v!)),
+                Text("Separar nombre y apellido", style: theme.textTheme.bodySmall),
+              ]),
+              if (_showSplitName) ...[
+                TextField(controller: _firstController, decoration: InputDecoration(labelText: l.guestFirstName)),
+                const SizedBox(height: 12),
+                TextField(controller: _lastController, decoration: InputDecoration(labelText: l.guestLastName)),
+                const SizedBox(height: 16),
               ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              DropdownButtonFormField<GuestRole>(
+                value: _role,
+                decoration: InputDecoration(labelText: l.roleLabel, prefixIcon: const Icon(Icons.star_outline)),
+                items: GuestRole.values.map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(l, r)))).toList(),
+                onChanged: (v) => setState(() => _role = v!),
+              ),
+              const SizedBox(height: 16),
+              _CounterRow(label: l.countAdults, count: _adults, onChanged: (v) => setState(() => _adults = v)),
+              _CounterRow(label: l.countChildren, count: _children, onChanged: (v) => setState(() => _children = v)),
+              _CounterRow(label: l.countTeenagers, count: _teenagers, onChanged: (v) => setState(() => _teenagers = v)),
+              _CounterRow(label: l.countDisabled, count: _disabled, onChanged: (v) => setState(() => _disabled = v)),
+              const Divider(height: 32),
+              Text(l.contactInfoSection, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 8),
+              TextField(controller: _phoneController, decoration: InputDecoration(labelText: l.contactPhone, prefixIcon: const Icon(Icons.phone_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: _emailController, decoration: InputDecoration(labelText: l.contactEmail, prefixIcon: const Icon(Icons.email_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: _socialController, decoration: InputDecoration(labelText: l.contactSocial, prefixIcon: const Icon(Icons.link_rounded))),
+              const Divider(height: 32),
+              TextField(controller: _tableController, decoration: InputDecoration(labelText: l.tableOptional, prefixIcon: const Icon(Icons.table_restaurant_outlined))),
+              const SizedBox(height: 12),
+              TextField(controller: _notesController, maxLines: 2, decoration: InputDecoration(labelText: l.notesLabel, prefixIcon: const Icon(Icons.notes_rounded))),
+              const SizedBox(height: 12),
+              TextField(controller: _dietController, decoration: InputDecoration(labelText: l.dietaryLabel, prefixIcon: const Icon(Icons.no_food_outlined))),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l.cancelButton)),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
         ElevatedButton(
           onPressed: _saving ? null : () => _save(l),
-          child: _saving
-              ? const SizedBox(
-                  width: 18, height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(l.saveButton),
+          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.saveButton),
         ),
+      ],
+    );
+  }
+}
+
+class _CounterRow extends StatelessWidget {
+  final String label;
+  final int count;
+  final ValueChanged<int> onChanged;
+  const _CounterRow({required this.label, required this.count, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: count > 0 ? () => onChanged(count - 1) : null),
+        Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+        IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => onChanged(count + 1)),
       ],
     );
   }

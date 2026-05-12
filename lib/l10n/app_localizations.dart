@@ -404,6 +404,84 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancelButton;
 
+  /// No description provided for @guestDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display Name (Family or Individual)'**
+  String get guestDisplayName;
+
+  /// No description provided for @guestFirstName.
+  ///
+  /// In en, this message translates to:
+  /// **'First Name(s)'**
+  String get guestFirstName;
+
+  /// No description provided for @guestLastName.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Name(s)'**
+  String get guestLastName;
+
+  /// No description provided for @countAdults.
+  ///
+  /// In en, this message translates to:
+  /// **'Adults'**
+  String get countAdults;
+
+  /// No description provided for @countChildren.
+  ///
+  /// In en, this message translates to:
+  /// **'Children'**
+  String get countChildren;
+
+  /// No description provided for @countTeenagers.
+  ///
+  /// In en, this message translates to:
+  /// **'Teenagers'**
+  String get countTeenagers;
+
+  /// No description provided for @countDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'People with disabilities'**
+  String get countDisabled;
+
+  /// No description provided for @contactInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Information'**
+  String get contactInfoSection;
+
+  /// No description provided for @contactPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get contactPhone;
+
+  /// No description provided for @contactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get contactEmail;
+
+  /// No description provided for @contactSocial.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Media / Link'**
+  String get contactSocial;
+
+  /// No description provided for @notesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes / Observations'**
+  String get notesLabel;
+
+  /// No description provided for @dietaryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dietary Restrictions / Allergies'**
+  String get dietaryLabel;
+
   /// No description provided for @eventsTitle.
   ///
   /// In en, this message translates to:

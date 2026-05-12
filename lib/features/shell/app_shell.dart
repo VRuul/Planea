@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/event_provider.dart';
+import '../../data/models/event_model.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -46,7 +50,9 @@ class _DesktopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isDesktop = ResponsiveBreakpoints.of(context).largerThan(TABLET);
+    
     return Scaffold(
       body: Row(
         children: [
@@ -55,8 +61,17 @@ class _DesktopShell extends StatelessWidget {
             selectedIndex: selectedIndex,
             onDestinationSelected: (i) => context.go(items[i].path),
             leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: _PlaneaLogo(compact: !isDesktop),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _PlaneaLogo(compact: !isDesktop),
+                  const SizedBox(height: 24),
+                  if (isDesktop) _EventSwitcher(),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                ],
+              ),
             ),
             destinations: items
                 .map((item) => NavigationRailDestination(
@@ -70,6 +85,90 @@ class _DesktopShell extends StatelessWidget {
           Expanded(child: child),
         ],
       ),
+    );
+  }
+}
+
+class _EventSwitcher extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final auth = context.watch<AuthProvider>();
+    final eventProvider = context.watch<EventProvider>();
+    final userId = auth.currentUser?.uid ?? '';
+
+    return StreamBuilder<List<EventModel>>(
+      stream: eventProvider.watchUserEvents(userId),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        if (events.isEmpty) return const SizedBox.shrink();
+
+        if (eventProvider.currentEventId == null && events.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            eventProvider.setCurrentEventId(events.first.id);
+          });
+        }
+
+        final currentEvent = events.firstWhere(
+          (e) => e.id == eventProvider.currentEventId,
+          orElse: () => events.first,
+        );
+
+        return Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+          ),
+          child: PopupMenuButton<String>(
+            tooltip: "Cambiar evento",
+            offset: const Offset(0, 45),
+            onSelected: (id) => eventProvider.setCurrentEventId(id),
+            itemBuilder: (context) => events.map((e) => PopupMenuItem<String>(
+              value: e.id,
+              child: Row(
+                children: [
+                  Icon(Icons.circle, size: 8, color: e.primaryColor),
+                  const SizedBox(width: 12),
+                  Text(e.name, style: theme.textTheme.bodyMedium),
+                ],
+              ),
+            )).toList(),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: currentEvent.primaryColor,
+                  child: const Icon(Icons.star, size: 14, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        currentEvent.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Evento activo",
+                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ),
+                if (events.length > 1)
+                  const Icon(Icons.unfold_more_rounded, size: 18, color: Colors.white54),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

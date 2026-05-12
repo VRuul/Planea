@@ -12,6 +12,7 @@ class EventProvider extends ChangeNotifier {
   String? get currentEventId => _currentEventId;
 
   void setCurrentEventId(String eventId) {
+    if (_currentEventId == eventId) return;
     _currentEventId = eventId;
     notifyListeners();
   }
