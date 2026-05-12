@@ -171,6 +171,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelButton => 'Cancel';
 
   @override
+  String get deleteButton => 'Delete';
+
+  @override
+  String get editButton => 'Edit';
+
+  @override
+  String get deleteConfirmTitle => 'Delete Guest';
+
+  @override
+  String get deleteConfirmMessage =>
+      'Are you sure you want to delete this guest? This action cannot be undone.';
+
+  @override
   String get guestDisplayName => 'Display Name (Family or Individual)';
 
   @override

@@ -45,7 +45,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddGuestDialog(context, eventId),
+        onPressed: () => _showGuestDialog(context, eventId),
         backgroundColor: AppColors.brushedGold,
         foregroundColor: AppColors.charcoal,
         icon: const Icon(Icons.person_add_rounded),
@@ -145,10 +145,10 @@ class _GuestsScreenState extends State<GuestsScreen> {
     );
   }
 
-  Future<void> _showAddGuestDialog(BuildContext context, String eventId) async {
+  Future<void> _showGuestDialog(BuildContext context, String eventId, [GuestModel? guest]) async {
     await showDialog(
       context: context,
-      builder: (_) => _AddGuestDialog(eventId: eventId),
+      builder: (_) => _GuestDialog(eventId: eventId, guest: guest),
     );
   }
 }
@@ -236,10 +236,10 @@ class _GuestCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _CountIndicator(label: l.countAdults, count: guest.adults, icon: Icons.person),
-                    _CountIndicator(label: l.countChildren, count: guest.children, icon: Icons.child_care),
-                    _CountIndicator(label: l.countTeenagers, count: guest.teenagers, icon: Icons.face),
-                    _CountIndicator(label: l.countDisabled, count: guest.disabled, icon: Icons.accessible),
+                    if (guest.adults > 0) _CountIndicator(label: l.countAdults, count: guest.adults, icon: Icons.person),
+                    if (guest.children > 0) _CountIndicator(label: l.countChildren, count: guest.children, icon: Icons.child_care),
+                    if (guest.teenagers > 0) _CountIndicator(label: l.countTeenagers, count: guest.teenagers, icon: Icons.face),
+                    if (guest.disabled > 0) _CountIndicator(label: l.countDisabled, count: guest.disabled, icon: Icons.accessible),
                   ],
                 ),
                 const Divider(height: 32),
@@ -265,9 +265,22 @@ class _GuestCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton.icon(
-                      onPressed: () => _service.deleteGuest(eventId, guest.id),
+                      onPressed: () => _showDeleteDialog(context, l),
                       icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                      label: Text(l.cancelButton, style: const TextStyle(color: Colors.red)),
+                      label: Text(l.deleteButton, style: const TextStyle(color: Colors.red)),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        // Using a private method from the parent state is tricky, 
+                        // so we'll trigger it via a callback or find another way.
+                        // Actually, since _GuestCard is inside _GuestsScreenState's build, 
+                        // we can pass the function.
+                        final state = context.findAncestorStateOfType<_GuestsScreenState>();
+                        state?._showGuestDialog(context, eventId, guest);
+                      },
+                      icon: const Icon(Icons.edit_outlined, color: AppColors.brushedGold, size: 18),
+                      label: Text(l.editButton, style: const TextStyle(color: AppColors.brushedGold)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
@@ -302,6 +315,26 @@ class _GuestCard extends StatelessWidget {
             Navigator.pop(context);
           },
         )).toList(),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.deleteConfirmTitle),
+        content: Text(l.deleteConfirmMessage),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
+          TextButton(
+            onPressed: () {
+              _service.deleteGuest(eventId, guest.id);
+              Navigator.pop(context);
+            },
+            child: Text(l.deleteButton, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -462,15 +495,16 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 }
 
-class _AddGuestDialog extends StatefulWidget {
+class _GuestDialog extends StatefulWidget {
   final String eventId;
-  const _AddGuestDialog({required this.eventId});
+  final GuestModel? guest;
+  const _GuestDialog({required this.eventId, this.guest});
 
   @override
-  State<_AddGuestDialog> createState() => _AddGuestDialogState();
+  State<_GuestDialog> createState() => _GuestDialogState();
 }
 
-class _AddGuestDialogState extends State<_AddGuestDialog> {
+class _GuestDialogState extends State<_GuestDialog> {
   final _displayController = TextEditingController();
   final _firstController = TextEditingController();
   final _lastController = TextEditingController();
@@ -487,6 +521,29 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
   bool _showSplitName = false;
   bool _isAdvancedExpanded = false;
   final _service = FirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.guest != null) {
+      final g = widget.guest!;
+      _displayController.text = g.displayName;
+      _firstController.text = g.firstName ?? '';
+      _lastController.text = g.lastName ?? '';
+      _tableController.text = g.tableId ?? '';
+      _phoneController.text = g.phone ?? '';
+      _emailController.text = g.email ?? '';
+      _socialController.text = g.socialMedia ?? '';
+      _notesController.text = g.notes ?? '';
+      _dietController.text = g.dietaryRestrictions ?? '';
+      _role = g.role;
+      _adults = g.adults;
+      _children = g.children;
+      _teenagers = g.teenagers;
+      _disabled = g.disabled;
+      _showSplitName = g.firstName != null || g.lastName != null;
+    }
+  }
 
   @override
   void dispose() {
@@ -506,14 +563,15 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
     if (_displayController.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
+      final isEdit = widget.guest != null;
       final guest = GuestModel(
-        id: const Uuid().v4(),
+        id: isEdit ? widget.guest!.id : const Uuid().v4(),
         eventId: widget.eventId,
         displayName: _displayController.text.trim(),
         firstName: _showSplitName ? _firstController.text.trim() : null,
         lastName: _showSplitName ? _lastController.text.trim() : null,
         role: _role,
-        status: GuestStatus.pending,
+        status: isEdit ? widget.guest!.status : GuestStatus.pending,
         tableId: _tableController.text.trim().isEmpty ? null : _tableController.text.trim(),
         adults: _adults,
         children: _children,
@@ -525,7 +583,12 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         dietaryRestrictions: _dietController.text.trim().isEmpty ? null : _dietController.text.trim(),
       );
-      await _service.addGuest(widget.eventId, guest);
+      
+      if (isEdit) {
+        await _service.updateGuest(widget.eventId, guest);
+      } else {
+        await _service.addGuest(widget.eventId, guest);
+      }
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -538,7 +601,8 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
     final l = context.l10n;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(l.addGuestTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      title: Text(widget.guest == null ? l.addGuestTitle : "Editar Invitado", 
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
       content: SizedBox(
         width: 450,
         child: SingleChildScrollView(

@@ -75,6 +75,10 @@
   },
   "saveButton": "Save",
   "cancelButton": "Cancel",
+  "deleteButton": "Delete",
+  "editButton": "Edit",
+  "deleteConfirmTitle": "Delete Guest",
+  "deleteConfirmMessage": "Are you sure you want to delete this guest? This action cannot be undone.",
 
   "guestDisplayName": "Display Name (Family or Individual)",
   "guestFirstName": "First Name(s)",

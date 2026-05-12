@@ -60,6 +60,10 @@
   "companionsCount": "Acompañantes: {count}",
   "saveButton": "Guardar",
   "cancelButton": "Cancelar",
+  "deleteButton": "Eliminar",
+  "editButton": "Editar",
+  "deleteConfirmTitle": "Eliminar Invitado",
+  "deleteConfirmMessage": "¿Estás seguro de que deseas eliminar a este invitado? Esta acción no se puede deshacer.",
 
   "guestDisplayName": "Nombre para mostrar (Familia o Persona)",
   "guestFirstName": "Nombre(s)",

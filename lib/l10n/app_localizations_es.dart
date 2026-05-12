@@ -171,6 +171,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancelButton => 'Cancelar';
 
   @override
+  String get deleteButton => 'Eliminar';
+
+  @override
+  String get editButton => 'Editar';
+
+  @override
+  String get deleteConfirmTitle => 'Eliminar Invitado';
+
+  @override
+  String get deleteConfirmMessage =>
+      '¿Estás seguro de que deseas eliminar a este invitado? Esta acción no se puede deshacer.';
+
+  @override
   String get guestDisplayName => 'Nombre para mostrar (Familia o Persona)';
 
   @override
