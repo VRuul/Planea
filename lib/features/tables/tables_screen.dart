@@ -619,38 +619,71 @@ class _AssignmentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unassignedGuests = guests.where((g) => !assignments.any((a) => a.guestId == g.id)).toList();
+    final totalSeats = tables.fold(0, (sum, t) => sum + t.capacity);
+    final occupiedSeats = assignments.length;
+    final occupancyPercent = totalSeats > 0 ? (occupiedSeats / totalSeats) : 0.0;
 
     return Column(
       children: [
+        // Premium Header Summary
         Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.black26,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          ),
           child: Row(
             children: [
-              const Icon(Icons.people_outline, color: AppColors.brushedGold),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Invitados sin asignar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  Text('${unassignedGuests.length} personas pendientes', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                ],
+              _CircularProgress(
+                percent: occupancyPercent,
+                size: 50,
+                color: AppColors.brushedGold,
+                child: Center(
+                  child: Text(
+                    '${(occupancyPercent * 100).toInt()}%',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Estado de Asignación',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      '${unassignedGuests.length} personas sin mesa de ${guests.length} totales',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
               if (unassignedGuests.isNotEmpty)
-                TextButton(
+                ElevatedButton.icon(
                   onPressed: () => _autoAssign(context),
-                  child: const Text('Asignación Automática', style: TextStyle(color: AppColors.brushedGold)),
+                  icon: const Icon(Icons.bolt, size: 16),
+                  label: const Text('Auto', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brushedGold,
+                    foregroundColor: AppColors.charcoal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
                 ),
             ],
           ),
         ),
+
+        // Grid of Tables
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.85,
+              childAspectRatio: 0.75,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -658,89 +691,94 @@ class _AssignmentView extends StatelessWidget {
             itemBuilder: (context, index) {
               final table = tables[index];
               final tableAssignments = assignments.where((a) => a.tableId == table.id).toList();
-              final occupiedSeats = tableAssignments.length;
-              
-              return GestureDetector(
-                onTap: () => _showAssignGuestPicker(context, table, unassignedGuests),
-                child: Card(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: occupiedSeats >= table.capacity ? Colors.red.withValues(alpha: 0.3) : Colors.white10,
-                    ),
+              final count = tableAssignments.length;
+              final isFull = count >= table.capacity;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isFull 
+                        ? Colors.redAccent.withValues(alpha: 0.3) 
+                        : AppColors.brushedGold.withValues(alpha: 0.1),
+                    width: 1,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                table.name,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: occupiedSeats >= table.capacity ? Colors.red.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$occupiedSeats/${table.capacity}',
-                                style: TextStyle(
-                                  color: occupiedSeats >= table.capacity ? Colors.redAccent : Colors.greenAccent,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    // Table Header
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  table.name,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: tableAssignments.isEmpty
-                              ? const Center(
-                                  child: Text('Vacía', style: TextStyle(color: Colors.white24, fontSize: 12)),
-                                )
-                              : ListView.builder(
-                                  itemCount: tableAssignments.length,
-                                  itemBuilder: (context, i) {
-                                    final guest = guests.firstWhere((g) => g.id == tableAssignments[i].guestId);
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 2),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.person, size: 10, color: Colors.white38),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              guest.displayName,
-                                              style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () => service.deleteAssignment(eventId, tableAssignments[i].id),
-                                            child: const Icon(Icons.close, size: 10, color: Colors.redAccent),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
+                                Text(
+                                  '$count / ${table.capacity}',
+                                  style: TextStyle(
+                                    color: isFull ? Colors.redAccent : Colors.white54,
+                                    fontSize: 11,
+                                  ),
                                 ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Center(child: Icon(Icons.add_circle_outline, size: 16, color: AppColors.brushedGold)),
-                      ],
+                              ],
+                            ),
+                          ),
+                          _TableIndicator(percent: count / table.capacity, isFull: isFull),
+                        ],
+                      ),
                     ),
-                  ),
+                    
+                    // Guest Pills List
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: tableAssignments.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'Sin invitados',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.1), fontSize: 12),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                itemCount: tableAssignments.length,
+                                itemBuilder: (context, i) {
+                                  final guest = guests.firstWhere((g) => g.id == tableAssignments[i].guestId);
+                                  return _GuestPill(
+                                    name: guest.displayName,
+                                    onDelete: () => service.deleteAssignment(eventId, tableAssignments[i].id),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+
+                    // Add Button Area
+                    GestureDetector(
+                      onTap: () => _showAssignGuestPicker(context, table, unassignedGuests),
+                      child: Container(
+                        height: 40,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.05),
+                        ),
+                        child: Icon(
+                          Icons.add_circle_outline, 
+                          size: 20, 
+                          color: isFull ? Colors.white10 : AppColors.brushedGold.withValues(alpha: 0.5)
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -764,7 +802,7 @@ class _AssignmentView extends StatelessWidget {
     );
   }
 
-  void _autoAssign(BuildContext context) {
+  Future<void> _autoAssign(BuildContext context) async {
     final unassigned = guests.where((g) => !assignments.any((a) => a.guestId == g.id)).toList();
     if (unassigned.isEmpty) return;
 
@@ -772,7 +810,8 @@ class _AssignmentView extends StatelessWidget {
       for (var table in tables) {
         final tableCount = assignments.where((a) => a.tableId == table.id).length;
         if (tableCount < table.capacity) {
-          service.addAssignment(eventId, SeatingAssignment(
+          // Usamos await para no saturar el motor de renderizado con actualizaciones de stream
+          await service.addAssignment(eventId, SeatingAssignment(
             id: '', 
             tableId: table.id, 
             guestId: guest.id,
@@ -788,7 +827,126 @@ class _AssignmentView extends StatelessWidget {
         }
       }
     }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitados asignados automáticamente')));
+
+    if (!context.mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Invitados asignados automáticamente'),
+        backgroundColor: AppColors.brushedGold,
+      )
+    );
+  }
+}
+
+class _CircularProgress extends StatelessWidget {
+  final double percent;
+  final double size;
+  final Color color;
+  final Widget child;
+
+  const _CircularProgress({
+    required this.percent,
+    required this.size,
+    required this.color,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CircularProgressIndicator(
+              value: 1.0,
+              strokeWidth: 4,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.05)),
+            ),
+          ),
+          Positioned.fill(
+            child: CircularProgressIndicator(
+              value: percent,
+              strokeWidth: 4,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              strokeCap: StrokeCap.round,
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _TableIndicator extends StatelessWidget {
+  final double percent;
+  final bool isFull;
+
+  const _TableIndicator({required this.percent, required this.isFull});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isFull ? Colors.redAccent : AppColors.brushedGold.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 14 * percent,
+          height: 14 * percent,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFull ? Colors.redAccent : AppColors.brushedGold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuestPill extends StatelessWidget {
+  final String name;
+  final VoidCallback onDelete;
+
+  const _GuestPill({required this.name, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.person, size: 12, color: Colors.white38),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: onDelete,
+            child: Icon(Icons.close, size: 12, color: Colors.white.withValues(alpha: 0.2)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
