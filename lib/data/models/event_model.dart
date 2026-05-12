@@ -14,6 +14,10 @@ class EventModel extends Equatable {
   final String organizerId;
   final double budget;
   final double budgetSpent;
+  final String? customType;
+  final int? customTypeIcon;
+  final int guestGoal;
+  final String? celebrantNames;
 
   const EventModel({
     required this.id,
@@ -26,6 +30,10 @@ class EventModel extends Equatable {
     required this.organizerId,
     this.budget = 0,
     this.budgetSpent = 0,
+    this.customType,
+    this.customTypeIcon,
+    this.guestGoal = 0,
+    this.celebrantNames,
   });
 
   factory EventModel.fromFirestore(Map<String, dynamic> data, String id) {
@@ -43,6 +51,10 @@ class EventModel extends Equatable {
       organizerId: data['organizerId'] ?? '',
       budget: (data['budget'] ?? 0).toDouble(),
       budgetSpent: (data['budgetSpent'] ?? 0).toDouble(),
+      customType: data['customType'],
+      customTypeIcon: data['customTypeIcon'],
+      guestGoal: data['guestGoal'] ?? 0,
+      celebrantNames: data['celebrantNames'],
     );
   }
 
@@ -56,6 +68,10 @@ class EventModel extends Equatable {
     'organizerId': organizerId,
     'budget': budget,
     'budgetSpent': budgetSpent,
+    'customType': customType,
+    'customTypeIcon': customTypeIcon,
+    'guestGoal': guestGoal,
+    'celebrantNames': celebrantNames,
   };
 
   EventModel copyWith({
@@ -69,6 +85,10 @@ class EventModel extends Equatable {
     String? organizerId,
     double? budget,
     double? budgetSpent,
+    String? customType,
+    int? customTypeIcon,
+    int? guestGoal,
+    String? celebrantNames,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -81,11 +101,18 @@ class EventModel extends Equatable {
       organizerId: organizerId ?? this.organizerId,
       budget: budget ?? this.budget,
       budgetSpent: budgetSpent ?? this.budgetSpent,
+      customType: customType ?? this.customType,
+      customTypeIcon: customTypeIcon ?? this.customTypeIcon,
+      guestGoal: guestGoal ?? this.guestGoal,
+      celebrantNames: celebrantNames ?? this.celebrantNames,
     );
   }
 
   double get budgetProgress => budget > 0 ? (budgetSpent / budget).clamp(0, 1) : 0;
 
   @override
-  List<Object?> get props => [id, name, type, date, primaryColor, secondaryColor, venue, organizerId, budget, budgetSpent];
+  List<Object?> get props => [
+        id, name, type, date, primaryColor, secondaryColor, venue, organizerId,
+        budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames
+      ];
 }
