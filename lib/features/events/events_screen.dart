@@ -238,6 +238,13 @@ class _EventDialogState extends State<EventDialog> {
     setState(() => _saving = true);
     try {
       final isEdit = widget.event != null;
+      final typeInfo = getEventTypeInfo(context, _type);
+      final typeName = _selectedCustomType ?? typeInfo.label;
+      final protagonists = _celebrantController.text.trim();
+      
+      // Construimos el nombre automáticamente: "Boda de Ana y Luis" o solo "Boda" si está vacío
+      final autoName = protagonists.isEmpty ? typeName : "$typeName de $protagonists";
+
       final event = (widget.event ?? EventModel(
         id: const Uuid().v4(),
         name: "",
@@ -247,7 +254,7 @@ class _EventDialogState extends State<EventDialog> {
         secondaryColor: Colors.white,
         organizerId: widget.userId,
       )).copyWith(
-        name: _nameController.text.trim(),
+        name: autoName,
         type: _type,
         customType: _selectedCustomType,
         customTypeIcon: _selectedCustomTypeIcon,
@@ -257,7 +264,7 @@ class _EventDialogState extends State<EventDialog> {
         venue: _venueController.text.trim().isEmpty ? null : _venueController.text.trim(),
         budget: double.tryParse(_budgetController.text) ?? 0,
         guestGoal: int.tryParse(_goalController.text) ?? 0,
-        celebrantNames: _celebrantController.text.trim().isEmpty ? null : _celebrantController.text.trim(),
+        celebrantNames: protagonists.isEmpty ? null : protagonists,
       );
 
       if (isEdit) {
@@ -305,16 +312,21 @@ class _EventDialogState extends State<EventDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── CAMPOS BÁSICOS ──────────────────────────────────────────
+              // ── TIPO DE EVENTO (Primero para definir los labels de abajo) ────────
+              _buildTypeSelector(l, theme),
+              const SizedBox(height: 16),
+
+              // ── PROTAGONISTAS (Ahora el campo principal de identificación) ───────
               TextField(
-                controller: _nameController,
+                controller: _celebrantController,
                 decoration: InputDecoration(
-                  labelText: l.eventNameLabel,
-                  prefixIcon: const Icon(Icons.celebration_outlined),
+                  labelText: getEventTypeInfo(context, _type).protagonistLabel,
+                  prefixIcon: const Icon(Icons.people_outline_rounded),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildTypeSelector(l, theme),
-              const SizedBox(height: 16),
+
+              // ── FECHA ────────────────────────────────────────────────────────
               GestureDetector(
                 onTap: _pickDate,
                 child: AbsorbPointer(
@@ -325,14 +337,6 @@ class _EventDialogState extends State<EventDialog> {
                       prefixIcon: const Icon(Icons.calendar_today_outlined),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _celebrantController,
-                decoration: const InputDecoration(
-                  labelText: "Nombres de los protagonistas (ej: Ana y Luis)",
-                  prefixIcon: Icon(Icons.people_outline_rounded),
                 ),
               ),
               

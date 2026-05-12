@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @typeQuinceanera.
   ///
   /// In en, this message translates to:
-  /// **'Quinceañera'**
+  /// **'XV años'**
   String get typeQuinceanera;
 
   /// No description provided for @typeBirthday.

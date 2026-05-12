@@ -249,7 +249,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeWedding => 'Wedding';
 
   @override
-  String get typeQuinceanera => 'Quinceañera';
+  String get typeQuinceanera => 'XV años';
 
   @override
   String get typeBirthday => 'Birthday';
