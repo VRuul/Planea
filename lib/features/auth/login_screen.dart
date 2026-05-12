@@ -63,6 +63,21 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final auth = context.read<AuthProvider>();
+      final credential = await auth.signInWithGoogle();
+      if (credential != null && mounted) {
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -84,12 +99,28 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Logotipo Principal
                       Container(
-                        width: 72, height: 72,
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.goldGradient, shape: BoxShape.circle),
-                        child: const Icon(Icons.celebration_rounded,
-                            color: AppColors.charcoal, size: 36),
+                        width: 140, height: 140,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4), // Minimal padding for a cleaner look
+                            child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Text('Planea',
@@ -100,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen>
                           )),
                       Text(l.loginSubtitle,
                           style: theme.textTheme.bodyMedium
-                              ?.copyWith(color: Colors.white54)),
+                               ?.copyWith(color: Colors.white54)),
                       const SizedBox(height: 40),
                       Container(
                         padding: const EdgeInsets.all(32),
@@ -184,6 +215,38 @@ class _LoginScreenState extends State<LoginScreen>
                                             ? l.loginSignIn
                                             : l.loginCreateAccount),
                                       ),
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text('o continúa con',
+                                        style: TextStyle(color: Colors.white38, fontSize: 12)),
+                                  ),
+                                  Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              OutlinedButton(
+                                onPressed: _loading ? null : _signInWithGoogle,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/google_logo.png',
+                                      height: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text('Google', style: TextStyle(color: Colors.white)),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 16),
                               TextButton(
