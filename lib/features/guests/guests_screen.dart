@@ -16,6 +16,7 @@ class GuestsScreen extends StatefulWidget {
 }
 
 class _GuestsScreenState extends State<GuestsScreen> {
+  final _service = FirestoreService();
   GuestStatus? _filterStatus;
   GuestRole? _filterRole;
   String? _filterCustomRole;
@@ -96,7 +97,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 return Scaffold(
                   backgroundColor: Colors.transparent,
                   floatingActionButton: FloatingActionButton.extended(
-                    onPressed: () => _showGuestDialog(context, eventId, null, allGuests),
+                    onPressed: () => _showGuestDialog(context, eventId, null, _allGuestsCached),
                     backgroundColor: AppColors.brushedGold,
                     foregroundColor: AppColors.charcoal,
                     icon: const Icon(Icons.person_add_rounded),
