@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGuests => 'Guests';
 
   @override
+  String get navTables => 'Tables';
+
+  @override
   String get navEvents => 'Events';
 
   @override
@@ -127,6 +130,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterGuests => 'Filter Guests';
+
+  @override
+  String get tablesTitle => 'Table Management';
+
+  @override
+  String get addTable => 'Add Table';
+
+  @override
+  String get tableName => 'Table Name (e.g., Table 1)';
+
+  @override
+  String get tableCapacity => 'Capacity (People)';
+
+  @override
+  String get noTables => 'No tables registered';
+
+  @override
+  String get tableShape => 'Shape';
+
+  @override
+  String get shapeCircular => 'Circular';
+
+  @override
+  String get shapeSquare => 'Square';
+
+  @override
+  String get shapeRectangular => 'Rectangular';
+
+  @override
+  String get venueElementDanceFloor => 'Dance Floor';
+
+  @override
+  String get venueElementDJ => 'DJ / Audio';
+
+  @override
+  String get venueElementCandyBar => 'Candy Bar';
+
+  @override
+  String get venueElementEntrance => 'Entrance';
+
+  @override
+  String get venueElementReception => 'Reception';
+
+  @override
+  String get venueElementBar => 'Bar / Drinks';
+
+  @override
+  String get venueElementBathrooms => 'Bathrooms';
+
+  @override
+  String get venueElementKitchen => 'Kitchen';
+
+  @override
+  String get venueElementOther => 'Other';
+
+  @override
+  String spotsLeft(int count) {
+    return '$count left';
+  }
+
+  @override
+  String get tableFull => 'Full';
 
   @override
   String get filterStatus => 'Status';

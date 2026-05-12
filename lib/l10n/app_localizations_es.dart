@@ -18,6 +18,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navGuests => 'Invitados';
 
   @override
+  String get navTables => 'Mesas';
+
+  @override
   String get navEvents => 'Eventos';
 
   @override
@@ -127,6 +130,68 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get filterGuests => 'Filtrar Invitados';
+
+  @override
+  String get tablesTitle => 'Gestión de Mesas';
+
+  @override
+  String get addTable => 'Agregar Mesa';
+
+  @override
+  String get tableName => 'Nombre de la mesa (Ej: Mesa 1)';
+
+  @override
+  String get tableCapacity => 'Capacidad (Personas)';
+
+  @override
+  String get noTables => 'Sin mesas registradas';
+
+  @override
+  String get tableShape => 'Forma';
+
+  @override
+  String get shapeCircular => 'Circular';
+
+  @override
+  String get shapeSquare => 'Cuadrada';
+
+  @override
+  String get shapeRectangular => 'Rectangular';
+
+  @override
+  String get venueElementDanceFloor => 'Pista de baile';
+
+  @override
+  String get venueElementDJ => 'DJ / Audio';
+
+  @override
+  String get venueElementCandyBar => 'Mesa de dulces';
+
+  @override
+  String get venueElementEntrance => 'Entrada';
+
+  @override
+  String get venueElementReception => 'Recepción';
+
+  @override
+  String get venueElementBar => 'Bar / Bebidas';
+
+  @override
+  String get venueElementBathrooms => 'Baños';
+
+  @override
+  String get venueElementKitchen => 'Cocina';
+
+  @override
+  String get venueElementOther => 'Otro';
+
+  @override
+  String spotsLeft(int count) {
+    return '$count libres';
+  }
+
+  @override
+  String get tableFull => 'Llena';
 
   @override
   String get filterStatus => 'Estado';

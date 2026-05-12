@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'Guests'**
   String get navGuests;
 
+  /// No description provided for @navTables.
+  ///
+  /// In en, this message translates to:
+  /// **'Tables'**
+  String get navTables;
+
   /// No description provided for @navEvents.
   ///
   /// In en, this message translates to:
@@ -331,6 +337,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter Guests'**
   String get filterGuests;
+
+  /// No description provided for @tablesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Table Management'**
+  String get tablesTitle;
+
+  /// No description provided for @addTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Table'**
+  String get addTable;
+
+  /// No description provided for @tableName.
+  ///
+  /// In en, this message translates to:
+  /// **'Table Name (e.g., Table 1)'**
+  String get tableName;
+
+  /// No description provided for @tableCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity (People)'**
+  String get tableCapacity;
+
+  /// No description provided for @noTables.
+  ///
+  /// In en, this message translates to:
+  /// **'No tables registered'**
+  String get noTables;
+
+  /// No description provided for @tableShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get tableShape;
+
+  /// No description provided for @shapeCircular.
+  ///
+  /// In en, this message translates to:
+  /// **'Circular'**
+  String get shapeCircular;
+
+  /// No description provided for @shapeSquare.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get shapeSquare;
+
+  /// No description provided for @shapeRectangular.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangular'**
+  String get shapeRectangular;
+
+  /// No description provided for @venueElementDanceFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance Floor'**
+  String get venueElementDanceFloor;
+
+  /// No description provided for @venueElementDJ.
+  ///
+  /// In en, this message translates to:
+  /// **'DJ / Audio'**
+  String get venueElementDJ;
+
+  /// No description provided for @venueElementCandyBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Candy Bar'**
+  String get venueElementCandyBar;
+
+  /// No description provided for @venueElementEntrance.
+  ///
+  /// In en, this message translates to:
+  /// **'Entrance'**
+  String get venueElementEntrance;
+
+  /// No description provided for @venueElementReception.
+  ///
+  /// In en, this message translates to:
+  /// **'Reception'**
+  String get venueElementReception;
+
+  /// No description provided for @venueElementBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar / Drinks'**
+  String get venueElementBar;
+
+  /// No description provided for @venueElementBathrooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Bathrooms'**
+  String get venueElementBathrooms;
+
+  /// No description provided for @venueElementKitchen.
+  ///
+  /// In en, this message translates to:
+  /// **'Kitchen'**
+  String get venueElementKitchen;
+
+  /// No description provided for @venueElementOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get venueElementOther;
+
+  /// No description provided for @spotsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String spotsLeft(int count);
+
+  /// No description provided for @tableFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get tableFull;
 
   /// No description provided for @filterStatus.
   ///
