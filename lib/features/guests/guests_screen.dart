@@ -266,14 +266,19 @@ class _GuestCard extends StatelessWidget {
             _SmallTag(label: 'Total: ${guest.totalSeats}', color: Colors.purple.shade300),
           ],
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
+        trailing: InkWell(
+          onTap: () => _showStatusDialog(context, l),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+            ),
+            child: Text(_statusLabel(l, guest.status),
+                style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
           ),
-          child: Text(_statusLabel(l, guest.status),
-              style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
         ),
         children: [
           Padding(
@@ -337,13 +342,13 @@ class _GuestCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        _showStatusPicker(context, l);
+                        _showStatusDialog(context, l);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: statusColor,
                         foregroundColor: Colors.white,
                       ),
-                      child: Text(l.applyFilters),
+                      child: const Text("Estatus"),
                     ),
                   ],
                 ),
@@ -355,18 +360,64 @@ class _GuestCard extends StatelessWidget {
     );
   }
 
-  void _showStatusPicker(BuildContext context, AppLocalizations l) {
-    showModalBottomSheet(
+  void _showStatusDialog(BuildContext context, AppLocalizations l) {
+    showDialog(
       context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: GuestStatus.values.map((s) => ListTile(
-          title: Text(_statusLabel(l, s)),
-          onTap: () {
-            _service.updateGuestStatus(eventId, guest.id, s);
-            Navigator.pop(context);
-          },
-        )).toList(),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: Text(l.filterStatus, textAlign: TextAlign.center, 
+            style: const TextStyle(fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: GuestStatus.values.map((s) {
+            final color = s == GuestStatus.confirmed
+                ? AppColors.confirmed
+                : s == GuestStatus.pending
+                    ? AppColors.pending
+                    : AppColors.declined;
+            final icon = s == GuestStatus.confirmed
+                ? Icons.check_circle_outline_rounded
+                : s == GuestStatus.pending
+                    ? Icons.hourglass_empty_rounded
+                    : Icons.cancel_outlined;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: () {
+                  _service.updateGuestStatus(eventId, guest.id, s);
+                  Navigator.pop(context);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: color),
+                      const SizedBox(width: 16),
+                      Text(_statusLabel(l, s), 
+                          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Spacer(),
+                      if (guest.status == s)
+                        Icon(Icons.check_rounded, color: color, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l.cancelButton),
+          ),
+        ],
       ),
     );
   }
