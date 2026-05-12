@@ -63,6 +63,19 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               StreamBuilder<List<CollaboratorModel>>(
                 stream: _service.watchPendingRequests(widget.event.id),
                 builder: (context, snap) {
+                  if (snap.hasError) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.cardTheme.color,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Text('Error al cargar solicitudes. Verifica las reglas de Firestore.',
+                            style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                    );
+                  }
                   final pending = snap.data ?? [];
                   if (pending.isEmpty) {
                     return Container(
@@ -99,6 +112,19 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
             StreamBuilder<List<CollaboratorModel>>(
               stream: _service.watchCollaborators(widget.event.id),
               builder: (context, snap) {
+                if (snap.hasError) {
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: theme.cardTheme.color,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(
+                      child: Text('Error al cargar colaboradores. Verifica las reglas de Firestore.',
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    ),
+                  );
+                }
                 final all = (snap.data ?? [])
                     .where((c) => c.isApproved)
                     .toList();
@@ -134,6 +160,15 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
     setState(() => _codeLoading = true);
     try {
       await _service.generateInviteCode(widget.event.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al generar código: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _codeLoading = false);
     }
