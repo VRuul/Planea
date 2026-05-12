@@ -33,7 +33,7 @@ class FirestoreService {
       });
 
   Stream<List<EventModel>> watchUserEvents(String userId) {
-    final ownedStream = _events
+    return _events
         .where('organizerId', isEqualTo: userId)
         .orderBy('dateMs', descending: false)
         .snapshots()
@@ -43,30 +43,6 @@ class FirestoreService {
                   d.id,
                 ))
             .toList());
-
-    final collaborativeStream = _events
-        .where('collaboratorIds', arrayContains: userId)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => EventModel.fromFirestore(
-                  d.data() as Map<String, dynamic>,
-                  d.id,
-                ))
-            .toList());
-
-    // Merge both streams into a single combined list
-    return ownedStream.asyncExpand((ownedEvents) {
-      return collaborativeStream.map((collabEvents) {
-        final allEvents = [...ownedEvents];
-        for (final ce in collabEvents) {
-          if (!allEvents.any((e) => e.id == ce.id)) {
-            allEvents.add(ce);
-          }
-        }
-        allEvents.sort((a, b) => a.date.compareTo(b.date));
-        return allEvents;
-      });
-    });
   }
 
   // ─── Guest CRUD ──────────────────────────────────────────────
