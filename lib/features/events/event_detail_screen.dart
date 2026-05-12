@@ -4,19 +4,11 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../data/models/event_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
+import './events_screen.dart';
 
-String _localizedEventType(AppLocalizations l, EventType t) {
-  switch (t) {
-    case EventType.wedding: return l.typeWedding;
-    case EventType.quinceanera: return l.typeQuinceanera;
-    case EventType.birthday: return l.typeBirthday;
-    case EventType.corporate: return l.typeCorporate;
-    case EventType.graduation: return l.typeGraduation;
-    case EventType.other: return l.typeOther;
-  }
-}
 
 class EventDetailScreen extends StatelessWidget {
   final String eventId;
@@ -50,8 +42,20 @@ class _EventDetailView extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 220,
             pinned: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                onPressed: () {
+                  final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
+                  showDialog(
+                    context: context,
+                    builder: (_) => EventDialog(userId: userId, event: event),
+                  );
+                },
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(event.name,
                   style: const TextStyle(
@@ -64,9 +68,22 @@ class _EventDetailView extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.celebration_rounded,
-                      size: 64, color: Colors.white30),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        event.customTypeIcon != null 
+                          ? IconData(event.customTypeIcon!, fontFamily: 'MaterialIcons') 
+                          : getEventTypeInfo(context, event.type).icon,
+                        size: 64, color: Colors.white30),
+                      if (event.celebrantNames != null) ...[
+                        const SizedBox(height: 8),
+                        Text(event.celebrantNames!, 
+                          style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
+                      ]
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -86,10 +103,16 @@ class _EventDetailView extends StatelessWidget {
               const SizedBox(height: 16),
               _DetailRow(icon: Icons.category_outlined,
                   label: l.typeLabelDetail,
-                  value: _localizedEventType(l, event.type)),
+                  value: event.customType ?? getEventTypeInfo(context, event.type).label),
               _DetailRow(icon: Icons.calendar_today_outlined,
                   label: l.dateLabelDetail,
                   value: '${event.date.day}/${event.date.month}/${event.date.year}'),
+              if (event.celebrantNames != null)
+                _DetailRow(icon: Icons.people_outline_rounded,
+                    label: "Protagonistas", value: event.celebrantNames!),
+              if (event.guestGoal > 0)
+                _DetailRow(icon: Icons.group_outlined,
+                    label: "Meta de invitados", value: "${event.guestGoal}"),
               if (event.venue != null)
                 _DetailRow(icon: Icons.location_on_outlined,
                     label: l.venueLabelDetail, value: event.venue!),

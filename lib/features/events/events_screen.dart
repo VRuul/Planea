@@ -8,22 +8,6 @@ import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 
-class EventTypeInfo {
-  final String label;
-  final IconData icon;
-  const EventTypeInfo(this.label, this.icon);
-}
-
-EventTypeInfo _getEventTypeInfo(AppLocalizations l, EventType t) {
-  switch (t) {
-    case EventType.wedding: return EventTypeInfo(l.typeWedding, Icons.favorite_rounded);
-    case EventType.quinceanera: return EventTypeInfo(l.typeQuinceanera, Icons.auto_awesome_rounded);
-    case EventType.birthday: return EventTypeInfo(l.typeBirthday, Icons.cake_rounded);
-    case EventType.corporate: return EventTypeInfo(l.typeCorporate, Icons.business_center_rounded);
-    case EventType.graduation: return EventTypeInfo(l.typeGraduation, Icons.school_rounded);
-    case EventType.other: return EventTypeInfo(l.typeOther, Icons.celebration_rounded);
-  }
-}
 
 class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});
@@ -65,7 +49,7 @@ class EventsScreen extends StatelessWidget {
   void _showEventDialog(BuildContext context, String userId) {
     showDialog(
       context: context,
-      builder: (_) => _EventDialog(userId: userId),
+      builder: (_) => EventDialog(userId: userId),
     );
   }
 }
@@ -123,7 +107,7 @@ class _EventCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _getEventTypeInfo(l, event.type).label.toUpperCase(),
+                        getEventTypeInfo(context, event.type).label.toUpperCase(),
                         style: theme.textTheme.labelSmall
                             ?.copyWith(color: Colors.white),
                       ),
@@ -181,15 +165,16 @@ class _EmptyEvents extends StatelessWidget {
   }
 }
 
-class _EventDialog extends StatefulWidget {
+class EventDialog extends StatefulWidget {
   final String userId;
-  const _EventDialog({required this.userId});
+  final EventModel? event;
+  const EventDialog({required this.userId, this.event});
 
   @override
-  State<_EventDialog> createState() => _EventDialogState();
+  State<EventDialog> createState() => _EventDialogState();
 }
 
-class _EventDialogState extends State<_EventDialog> {
+class _EventDialogState extends State<EventDialog> {
   final _nameController = TextEditingController();
   final _venueController = TextEditingController();
   final _budgetController = TextEditingController();
@@ -209,8 +194,20 @@ class _EventDialogState extends State<_EventDialog> {
   @override
   void initState() {
     super.initState();
-    // Default names based on type
-    _celebrantController.text = "";
+    if (widget.event != null) {
+      final e = widget.event!;
+      _nameController.text = e.name;
+      _venueController.text = e.venue ?? "";
+      _budgetController.text = e.budget.toStringAsFixed(0);
+      _goalController.text = e.guestGoal.toString();
+      _celebrantController.text = e.celebrantNames ?? "";
+      _type = e.type;
+      _selectedCustomType = e.customType;
+      _selectedCustomTypeIcon = e.customTypeIcon;
+      _primaryColor = e.primaryColor;
+      _secondaryColor = e.secondaryColor;
+      _date = e.date;
+    }
   }
 
   @override
@@ -224,11 +221,18 @@ class _EventDialogState extends State<_EventDialog> {
   }
 
   Future<void> _save(AppLocalizations l) async {
-    if (_nameController.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
-      final event = EventModel(
+      final isEdit = widget.event != null;
+      final event = (widget.event ?? EventModel(
         id: const Uuid().v4(),
+        name: "",
+        type: EventType.other,
+        date: DateTime.now(),
+        primaryColor: Colors.black,
+        secondaryColor: Colors.white,
+        organizerId: widget.userId,
+      )).copyWith(
         name: _nameController.text.trim(),
         type: _type,
         customType: _selectedCustomType,
@@ -237,12 +241,16 @@ class _EventDialogState extends State<_EventDialog> {
         primaryColor: _primaryColor,
         secondaryColor: _secondaryColor,
         venue: _venueController.text.trim().isEmpty ? null : _venueController.text.trim(),
-        organizerId: widget.userId,
         budget: double.tryParse(_budgetController.text) ?? 0,
         guestGoal: int.tryParse(_goalController.text) ?? 0,
         celebrantNames: _celebrantController.text.trim().isEmpty ? null : _celebrantController.text.trim(),
       );
-      await FirestoreService().createEvent(event);
+
+      if (isEdit) {
+        await FirestoreService().updateEvent(event);
+      } else {
+        await FirestoreService().createEvent(event);
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -274,7 +282,7 @@ class _EventDialogState extends State<_EventDialog> {
     final l = context.l10n;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(l.newEvent, 
+      title: Text(widget.event == null ? l.newEvent : "Editar Evento", 
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
       content: SizedBox(
         width: 450,
@@ -400,12 +408,12 @@ class _EventDialogState extends State<_EventDialog> {
         prefixIcon: Icon(
           _selectedCustomType != null 
             ? (_selectedCustomTypeIcon != null ? IconData(_selectedCustomTypeIcon!, fontFamily: 'MaterialIcons') : Icons.celebration)
-            : _getEventTypeInfo(l, _type).icon,
+            : getEventTypeInfo(context, _type).icon,
         ),
       ),
       items: [
         ...EventType.values.map((t) {
-          final info = _getEventTypeInfo(l, t);
+          final info = getEventTypeInfo(context, t);
           return DropdownMenuItem(
             value: t.name,
             child: Row(
