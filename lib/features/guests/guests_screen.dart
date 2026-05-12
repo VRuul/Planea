@@ -16,10 +16,12 @@ class GuestsScreen extends StatefulWidget {
 }
 
 class _GuestsScreenState extends State<GuestsScreen> {
-  final _service = FirestoreService();
   GuestStatus? _filterStatus;
   GuestRole? _filterRole;
+  String? _filterCustomRole;
+  String? _filterGuestType;
   String _search = '';
+  List<GuestModel> _allGuestsCached = [];
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +74,16 @@ class _GuestsScreenState extends State<GuestsScreen> {
                       label: _roleLabel(l, _filterRole!),
                       onRemove: () => setState(() => _filterRole = null),
                     ),
+                  if (_filterCustomRole != null)
+                    _FilterChip(
+                      label: _filterCustomRole!,
+                      onRemove: () => setState(() => _filterCustomRole = null),
+                    ),
+                  if (_filterGuestType != null)
+                    _FilterChip(
+                      label: _filterGuestType!,
+                      onRemove: () => setState(() => _filterGuestType = null),
+                    ),
                 ],
               ),
             ),
@@ -79,7 +91,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
             child: StreamBuilder<List<GuestModel>>(
               stream: _service.watchGuests(eventId),
               builder: (context, snap) {
-                final allGuests = snap.data ?? [];
+                _allGuestsCached = snap.data ?? [];
                 // Update FAB or other elements that need this list
                 return Scaffold(
                   backgroundColor: Colors.transparent,
@@ -90,7 +102,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                     icon: const Icon(Icons.person_add_rounded),
                     label: Text(l.addGuest),
                   ),
-                  body: _buildGuestList(context, allGuests, eventId, l, theme),
+                  body: _buildGuestList(context, _allGuestsCached, eventId, l, theme),
                 );
               },
             ),
@@ -103,13 +115,20 @@ class _GuestsScreenState extends State<GuestsScreen> {
   void _showFilterSheet(BuildContext context, AppLocalizations l) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _FilterSheet(
+        allGuests: _allGuestsCached,
         currentStatus: _filterStatus,
         currentRole: _filterRole,
-        onApply: (status, role) =>
-            setState(() { _filterStatus = status; _filterRole = role; }),
+        currentCustomRole: _filterCustomRole,
+        currentGuestType: _filterGuestType,
+        onApply: (status, role, customRole, type) => setState(() {
+          _filterStatus = status;
+          _filterRole = role;
+          _filterCustomRole = customRole;
+          _filterGuestType = type;
+        }),
       ),
     );
   }
@@ -120,9 +139,29 @@ class _GuestsScreenState extends State<GuestsScreen> {
           g.displayName.toLowerCase().contains(_search.toLowerCase());
       final matchStatus =
           _filterStatus == null || g.status == _filterStatus;
-      final matchRole =
-          _filterRole == null || g.role == _filterRole;
-      return matchSearch && matchStatus && matchRole;
+      
+      bool matchRole = true;
+      if (_filterRole != null) {
+        matchRole = g.role == _filterRole && g.customRole == null;
+      } else if (_filterCustomRole != null) {
+        matchRole = g.customRole == _filterCustomRole;
+      }
+
+      bool matchType = true;
+      if (_filterGuestType != null) {
+        if (_filterGuestType == l.countAdults) {
+          matchType = g.adults > 0;
+        } else if (_filterGuestType == l.countChildren) {
+          matchType = g.children > 0;
+        } else if (_filterGuestType == l.countDisabled) {
+          matchType = g.disabled > 0;
+        } else {
+          // Custom type
+          matchType = (g.customCounts[_filterGuestType!] ?? 0) > 0;
+        }
+      }
+
+      return matchSearch && matchStatus && matchRole && matchType;
     }).toList();
 
     if (filtered.isEmpty) {
@@ -427,12 +466,21 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _FilterSheet extends StatefulWidget {
+  final List<GuestModel> allGuests;
   final GuestStatus? currentStatus;
   final GuestRole? currentRole;
-  final Function(GuestStatus?, GuestRole?) onApply;
+  final String? currentCustomRole;
+  final String? currentGuestType;
+  final Function(GuestStatus?, GuestRole?, String?, String?) onApply;
 
-  const _FilterSheet(
-      {this.currentStatus, this.currentRole, required this.onApply});
+  const _FilterSheet({
+    required this.allGuests,
+    this.currentStatus,
+    this.currentRole,
+    this.currentCustomRole,
+    this.currentGuestType,
+    required this.onApply,
+  });
 
   @override
   State<_FilterSheet> createState() => _FilterSheetState();
@@ -441,67 +489,159 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   GuestStatus? _status;
   GuestRole? _role;
+  String? _customRole;
+  String? _guestType;
 
   @override
   void initState() {
     super.initState();
     _status = widget.currentStatus;
     _role = widget.currentRole;
+    _customRole = widget.currentCustomRole;
+    _guestType = widget.currentGuestType;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+
+    final customRoles = widget.allGuests
+        .where((g) => g.customRole != null)
+        .map((g) => g.customRole!)
+        .toSet()
+        .toList();
+    
+    final customTypes = widget.allGuests
+        .expand((g) => g.customCounts.keys)
+        .toSet()
+        .toList();
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.filterGuests,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700)),
+          Text(l.filterGuests, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 20),
+          
           Text(l.filterStatus, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: GuestStatus.values
-                .map((s) => ChoiceChip(
-                      label: Text(_statusLabel(l, s)),
-                      selected: _status == s,
-                      onSelected: (v) =>
-                          setState(() => _status = v ? s : null),
-                    ))
-                .toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: GuestStatus.values.map((s) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(_statusLabel(l, s)),
+                  selected: _status == s,
+                  onSelected: (v) => setState(() => _status = v ? s : null),
+                ),
+              )).toList(),
+            ),
           ),
+          
           const SizedBox(height: 16),
           Text(l.filterRole, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: GuestRole.values
-                .map((r) => ChoiceChip(
-                      label: Text(_roleLabel(l, r)),
-                      selected: _role == r,
-                      onSelected: (v) =>
-                          setState(() => _role = v ? r : null),
-                    ))
-                .toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ...GuestRole.values.map((r) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(_roleLabel(l, r)),
+                    selected: _role == r && _customRole == null,
+                    onSelected: (v) => setState(() {
+                      _role = v ? r : null;
+                      _customRole = null;
+                    }),
+                  ),
+                )),
+                ...customRoles.map((cr) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(cr),
+                    selected: _customRole == cr,
+                    onSelected: (v) => setState(() {
+                      _customRole = v ? cr : null;
+                      _role = null;
+                    }),
+                  ),
+                )),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 16),
+          Text("Categoría de Invitado", style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _TypeChip(
+                  label: l.countAdults,
+                  selected: _guestType == l.countAdults,
+                  onSelected: (v) => setState(() => _guestType = v ? l.countAdults : null),
+                ),
+                _TypeChip(
+                  label: l.countChildren,
+                  selected: _guestType == l.countChildren,
+                  onSelected: (v) => setState(() => _guestType = v ? l.countChildren : null),
+                ),
+                _TypeChip(
+                  label: l.countDisabled,
+                  selected: _guestType == l.countDisabled,
+                  onSelected: (v) => setState(() => _guestType = v ? l.countDisabled : null),
+                ),
+                ...customTypes.map((ct) => _TypeChip(
+                  label: ct,
+                  selected: _guestType == ct,
+                  onSelected: (v) => setState(() => _guestType = v ? ct : null),
+                )),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                widget.onApply(_status, _role);
+                widget.onApply(_status, _role, _customRole, _guestType);
                 Navigator.pop(context);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: AppColors.charcoal,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
               child: Text(l.applyFilters),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+  const _TypeChip({required this.label, required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: onSelected,
       ),
     );
   }
