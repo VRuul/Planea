@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import './events_screen.dart';
 import './widgets/event_utils.dart';
+import './collaborators_panel.dart';
 
 
 class EventDetailScreen extends StatelessWidget {
@@ -46,6 +47,18 @@ class _EventDetailView extends StatelessWidget {
             expandedHeight: 220,
             pinned: true,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.group_rounded, color: Colors.white),
+                tooltip: 'Equipo',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CollaboratorsPanel(event: event),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.edit_rounded, color: Colors.white),
                 onPressed: () {

@@ -8,6 +8,7 @@ import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import './widgets/event_utils.dart';
+import './join_event_dialog.dart';
 
 
 class EventsScreen extends StatelessWidget {
@@ -19,7 +20,19 @@ class EventsScreen extends StatelessWidget {
     final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.eventsTitle)),
+      appBar: AppBar(
+        title: Text(l.eventsTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add_rounded),
+            tooltip: 'Unirse a un evento',
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const JoinEventDialog(),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showEventDialog(context, userId),
         backgroundColor: AppColors.brushedGold,

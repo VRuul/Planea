@@ -19,6 +19,8 @@ class EventModel extends Equatable {
   final int? customTypeIcon;
   final int guestGoal;
   final String? celebrantNames;
+  final String? inviteCode;
+  final List<String> collaboratorIds;
 
   const EventModel({
     required this.id,
@@ -35,6 +37,8 @@ class EventModel extends Equatable {
     this.customTypeIcon,
     this.guestGoal = 0,
     this.celebrantNames,
+    this.inviteCode,
+    this.collaboratorIds = const [],
   });
 
   factory EventModel.fromFirestore(Map<String, dynamic> data, String id) {
@@ -56,6 +60,8 @@ class EventModel extends Equatable {
       customTypeIcon: data['customTypeIcon'],
       guestGoal: data['guestGoal'] ?? 0,
       celebrantNames: data['celebrantNames'],
+      inviteCode: data['inviteCode'],
+      collaboratorIds: List<String>.from(data['collaboratorIds'] ?? []),
     );
   }
 
@@ -73,6 +79,8 @@ class EventModel extends Equatable {
     'customTypeIcon': customTypeIcon,
     'guestGoal': guestGoal,
     'celebrantNames': celebrantNames,
+    'inviteCode': inviteCode,
+    'collaboratorIds': collaboratorIds,
   };
 
   EventModel copyWith({
@@ -90,6 +98,8 @@ class EventModel extends Equatable {
     int? customTypeIcon,
     int? guestGoal,
     String? celebrantNames,
+    String? inviteCode,
+    List<String>? collaboratorIds,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -106,6 +116,8 @@ class EventModel extends Equatable {
       customTypeIcon: customTypeIcon ?? this.customTypeIcon,
       guestGoal: guestGoal ?? this.guestGoal,
       celebrantNames: celebrantNames ?? this.celebrantNames,
+      inviteCode: inviteCode ?? this.inviteCode,
+      collaboratorIds: collaboratorIds ?? this.collaboratorIds,
     );
   }
 
@@ -114,6 +126,7 @@ class EventModel extends Equatable {
   @override
   List<Object?> get props => [
         id, name, type, date, primaryColor, secondaryColor, venue, organizerId,
-        budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames
+        budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames,
+        inviteCode, collaboratorIds
       ];
 }
