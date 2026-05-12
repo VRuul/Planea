@@ -485,6 +485,7 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
   int _adults = 1, _children = 0, _teenagers = 0, _disabled = 0;
   bool _saving = false;
   bool _showSplitName = false;
+  bool _isAdvancedExpanded = false;
   final _service = FirestoreService();
 
   @override
@@ -544,25 +545,26 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ── CAMPOS BÁSICOS ──────────────────────────────────────────
               TextField(
                 controller: _displayController,
                 decoration: InputDecoration(
                   labelText: l.guestDisplayName,
                   prefixIcon: const Icon(Icons.badge_outlined),
-                  hintText: "Ej: Familia García o Juan Pérez",
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(children: [
-                Checkbox(value: _showSplitName, onChanged: (v) => setState(() => _showSplitName = v!)),
-                Text("Separar nombre y apellido", style: theme.textTheme.bodySmall),
-              ]),
-              if (_showSplitName) ...[
-                TextField(controller: _firstController, decoration: InputDecoration(labelText: l.guestFirstName)),
-                const SizedBox(height: 12),
-                TextField(controller: _lastController, decoration: InputDecoration(labelText: l.guestLastName)),
-                const SizedBox(height: 16),
-              ],
+              const SizedBox(height: 16),
+              _CounterRow(
+                label: l.countAdults,
+                count: _adults,
+                onChanged: (v) => setState(() => _adults = v),
+              ),
+              const SizedBox(height: 12),
+              _CounterRow(
+                label: l.countChildren,
+                count: _children,
+                onChanged: (v) => setState(() => _children = v),
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<GuestRole>(
                 value: _role,
@@ -571,24 +573,50 @@ class _AddGuestDialogState extends State<_AddGuestDialog> {
                 onChanged: (v) => setState(() => _role = v!),
               ),
               const SizedBox(height: 16),
-              _CounterRow(label: l.countAdults, count: _adults, onChanged: (v) => setState(() => _adults = v)),
-              _CounterRow(label: l.countChildren, count: _children, onChanged: (v) => setState(() => _children = v)),
-              _CounterRow(label: l.countTeenagers, count: _teenagers, onChanged: (v) => setState(() => _teenagers = v)),
-              _CounterRow(label: l.countDisabled, count: _disabled, onChanged: (v) => setState(() => _disabled = v)),
-              const Divider(height: 32),
-              Text(l.contactInfoSection, style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              TextField(controller: _phoneController, decoration: InputDecoration(labelText: l.contactPhone, prefixIcon: const Icon(Icons.phone_outlined))),
+              TextField(
+                controller: _phoneController,
+                decoration: InputDecoration(labelText: l.contactPhone, prefixIcon: const Icon(Icons.phone_outlined)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _notesController,
+                maxLines: 2,
+                decoration: InputDecoration(labelText: l.notesLabel, prefixIcon: const Icon(Icons.notes_rounded)),
+              ),
+
+              // ── SECCIÓN AVANZADA ────────────────────────────────────────
               const SizedBox(height: 12),
-              TextField(controller: _emailController, decoration: InputDecoration(labelText: l.contactEmail, prefixIcon: const Icon(Icons.email_outlined))),
-              const SizedBox(height: 12),
-              TextField(controller: _socialController, decoration: InputDecoration(labelText: l.contactSocial, prefixIcon: const Icon(Icons.link_rounded))),
-              const Divider(height: 32),
-              TextField(controller: _tableController, decoration: InputDecoration(labelText: l.tableOptional, prefixIcon: const Icon(Icons.table_restaurant_outlined))),
-              const SizedBox(height: 12),
-              TextField(controller: _notesController, maxLines: 2, decoration: InputDecoration(labelText: l.notesLabel, prefixIcon: const Icon(Icons.notes_rounded))),
-              const SizedBox(height: 12),
-              TextField(controller: _dietController, decoration: InputDecoration(labelText: l.dietaryLabel, prefixIcon: const Icon(Icons.no_food_outlined))),
+              Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  title: Text("Más información", style: theme.textTheme.labelMedium?.copyWith(color: AppColors.brushedGold)),
+                  trailing: Icon(_isAdvancedExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.brushedGold),
+                  onExpansionChanged: (v) => setState(() => _isAdvancedExpanded = v),
+                  childrenPadding: const EdgeInsets.only(top: 8),
+                  children: [
+                    Row(children: [
+                      Checkbox(value: _showSplitName, onChanged: (v) => setState(() => _showSplitName = v!)),
+                      Text("Separar nombre y apellido", style: theme.textTheme.bodySmall),
+                    ]),
+                    if (_showSplitName) ...[
+                      TextField(controller: _firstController, decoration: InputDecoration(labelText: l.guestFirstName)),
+                      const SizedBox(height: 12),
+                      TextField(controller: _lastController, decoration: InputDecoration(labelText: l.guestLastName)),
+                    ],
+                    const Divider(height: 32),
+                    _CounterRow(label: l.countTeenagers, count: _teenagers, onChanged: (v) => setState(() => _teenagers = v)),
+                    _CounterRow(label: l.countDisabled, count: _disabled, onChanged: (v) => setState(() => _disabled = v)),
+                    const Divider(height: 32),
+                    TextField(controller: _emailController, decoration: InputDecoration(labelText: l.contactEmail, prefixIcon: const Icon(Icons.email_outlined))),
+                    const SizedBox(height: 12),
+                    TextField(controller: _socialController, decoration: InputDecoration(labelText: l.contactSocial, prefixIcon: const Icon(Icons.link_rounded))),
+                    const SizedBox(height: 12),
+                    TextField(controller: _tableController, decoration: InputDecoration(labelText: l.tableOptional, prefixIcon: const Icon(Icons.table_restaurant_outlined))),
+                    const SizedBox(height: 12),
+                    TextField(controller: _dietController, decoration: InputDecoration(labelText: l.dietaryLabel, prefixIcon: const Icon(Icons.no_food_outlined))),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
