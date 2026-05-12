@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../data/models/guest_model.dart';
@@ -53,7 +54,6 @@ class DashboardScreen extends StatelessWidget {
         builder: (context, eventSnap) {
           final events = eventSnap.data ?? [];
           // Aseguramos que el ID actual sea válido y exista en la lista actual.
-          // Si el ID del provider ya no existe (fue borrado), tomamos el primero de la lista o null.
           final currentEventId = events.any((e) => e.id == eventProvider.currentEventId)
               ? eventProvider.currentEventId
               : (events.isNotEmpty ? events.first.id : null);
@@ -65,7 +65,6 @@ class DashboardScreen extends StatelessWidget {
             builder: (context, guestSnap) {
               final guests = guestSnap.data ?? [];
               
-              // ... (cálculos de invitados) ...
               final confirmedGroups = guests.where((g) => g.status == GuestStatus.confirmed).length;
               final pendingGroups = guests.where((g) => g.status == GuestStatus.pending).length;
               final declinedGroups = guests.where((g) => g.status == GuestStatus.declined).length;
@@ -73,14 +72,10 @@ class DashboardScreen extends StatelessWidget {
               final totalPeopleConfirmed = guests
                   .where((g) => g.status == GuestStatus.confirmed)
                   .fold<int>(0, (sum, g) => sum + g.totalSeats);
-              final totalPeoplePending = guests
-                  .where((g) => g.status == GuestStatus.pending)
-                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
               
               final totalExpected = guests.fold<int>(0, (sum, g) => sum + g.totalSeats);
               final progress = totalExpected > 0 ? totalPeopleConfirmed / totalExpected : 0.0;
 
-              // Buscamos el evento actual de forma segura
               final currentEvent = events.firstWhere(
                 (e) => e.id == currentEventId,
                 orElse: () => events.first,
@@ -366,11 +361,11 @@ class _EmptyDashboard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: AppColors.goldGradient, shape: BoxShape.circle),
-            child: const Icon(Icons.add_circle_outline_rounded,
+            decoration: const BoxDecoration(
+                gradient: AppColors.goldGradient, shape: BoxShape.circle),
+            child: const Icon(Icons.event_busy_rounded,
                 size: 48, color: AppColors.charcoal),
-          ),
+            ),
           const SizedBox(height: 20),
           Text(l.noEventsYet,
               style: theme.textTheme.headlineSmall
@@ -378,6 +373,16 @@ class _EmptyDashboard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(l.noEventsYetSubtitle,
               style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white54)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/events'),
+            icon: const Icon(Icons.add_rounded),
+            label: Text(l.newEvent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brushedGold,
+              foregroundColor: AppColors.charcoal,
+            ),
+          ),
         ],
       ),
     );
