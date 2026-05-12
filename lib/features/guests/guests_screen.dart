@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:go_router/go_router.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../data/models/guest_model.dart';
+import '../../data/models/event_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
@@ -28,88 +31,101 @@ class _GuestsScreenState extends State<GuestsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    final eventId = context.watch<EventProvider>().currentEventId;
+    final auth = context.read<AuthProvider>();
+    final eventProvider = context.watch<EventProvider>();
+    final userId = auth.currentUser?.uid ?? '';
 
-    if (eventId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l.guestsTitle)),
-        body: Center(child: Text(l.selectEventFirst)),
-      );
-    }
+    return StreamBuilder<List<EventModel>>(
+      stream: _service.watchUserEvents(userId),
+      builder: (context, eventSnap) {
+        final events = eventSnap.data ?? [];
+        
+        // Validamos el currentEventId contra la lista real de Firestore
+        final currentEventId = events.any((e) => e.id == eventProvider.currentEventId)
+            ? eventProvider.currentEventId
+            : (events.isNotEmpty ? events.first.id : null);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l.guestsTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
-            onPressed: () => _showFilterSheet(context, l),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: l.searchGuest,
-                prefixIcon: const Icon(Icons.search_rounded),
+        if (currentEventId == null) {
+          return Scaffold(
+            appBar: AppBar(title: Text(l.guestsTitle)),
+            body: _EmptyGuestsNoEvent(),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(l.guestsTitle),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.filter_list_rounded),
+                onPressed: () => _showFilterSheet(context, l),
               ),
-              onChanged: (v) => setState(() => _search = v),
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
-          if (_filterStatus != null || _filterRole != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  if (_filterStatus != null)
-                    _FilterChip(
-                      label: _statusLabel(l, _filterStatus!),
-                      onRemove: () => setState(() => _filterStatus = null),
-                    ),
-                  if (_filterRole != null)
-                    _FilterChip(
-                      label: _roleLabel(l, _filterRole!),
-                      onRemove: () => setState(() => _filterRole = null),
-                    ),
-                  if (_filterCustomRole != null)
-                    _FilterChip(
-                      label: _filterCustomRole!,
-                      onRemove: () => setState(() => _filterCustomRole = null),
-                    ),
-                  if (_filterGuestType != null)
-                    _FilterChip(
-                      label: _filterGuestType!,
-                      onRemove: () => setState(() => _filterGuestType = null),
-                    ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: StreamBuilder<List<GuestModel>>(
-              stream: _service.watchGuests(eventId),
-              builder: (context, snap) {
-                _allGuestsCached = snap.data ?? [];
-                // Update FAB or other elements that need this list
-                return Scaffold(
-                  backgroundColor: Colors.transparent,
-                  floatingActionButton: FloatingActionButton.extended(
-                    onPressed: () => _showGuestDialog(context, eventId, null, _allGuestsCached),
-                    backgroundColor: AppColors.brushedGold,
-                    foregroundColor: AppColors.charcoal,
-                    icon: const Icon(Icons.person_add_rounded),
-                    label: Text(l.addGuest),
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: l.searchGuest,
+                    prefixIcon: const Icon(Icons.search_rounded),
                   ),
-                  body: _buildGuestList(context, _allGuestsCached, eventId, l, theme),
-                );
-              },
-            ),
+                  onChanged: (v) => setState(() => _search = v),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_filterStatus != null || _filterRole != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      if (_filterStatus != null)
+                        _FilterChip(
+                          label: _statusLabel(l, _filterStatus!),
+                          onRemove: () => setState(() => _filterStatus = null),
+                        ),
+                      if (_filterRole != null)
+                        _FilterChip(
+                          label: _roleLabel(l, _filterRole!),
+                          onRemove: () => setState(() => _filterRole = null),
+                        ),
+                      if (_filterCustomRole != null)
+                        _FilterChip(
+                          label: _filterCustomRole!,
+                          onRemove: () => setState(() => _filterCustomRole = null),
+                        ),
+                      if (_filterGuestType != null)
+                        _FilterChip(
+                          label: _filterGuestType!,
+                          onRemove: () => setState(() => _filterGuestType = null),
+                        ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: StreamBuilder<List<GuestModel>>(
+                  stream: _service.watchGuests(currentEventId),
+                  builder: (context, snap) {
+                    _allGuestsCached = snap.data ?? [];
+                    return Scaffold(
+                      backgroundColor: Colors.transparent,
+                      floatingActionButton: FloatingActionButton.extended(
+                        onPressed: () => _showGuestDialog(context, currentEventId, null, _allGuestsCached),
+                        backgroundColor: AppColors.brushedGold,
+                        foregroundColor: AppColors.charcoal,
+                        icon: const Icon(Icons.person_add_rounded),
+                        label: Text(l.addGuest),
+                      ),
+                      body: _buildGuestList(context, _allGuestsCached, currentEventId, l, theme),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -117,7 +133,8 @@ class _GuestsScreenState extends State<GuestsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _FilterSheet(
         allGuests: _allGuestsCached,
         currentStatus: _filterStatus,
@@ -134,13 +151,13 @@ class _GuestsScreenState extends State<GuestsScreen> {
     );
   }
 
-  Widget _buildGuestList(BuildContext context, List<GuestModel> allGuests, String eventId, AppLocalizations l, ThemeData theme) {
+  Widget _buildGuestList(BuildContext context, List<GuestModel> allGuests,
+      String eventId, AppLocalizations l, ThemeData theme) {
     final filtered = allGuests.where((g) {
       final matchSearch = _search.isEmpty ||
           g.displayName.toLowerCase().contains(_search.toLowerCase());
-      final matchStatus =
-          _filterStatus == null || g.status == _filterStatus;
-      
+      final matchStatus = _filterStatus == null || g.status == _filterStatus;
+
       bool matchRole = true;
       if (_filterRole != null) {
         matchRole = g.role == _filterRole && g.customRole == null;
@@ -173,8 +190,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
             const Icon(Icons.people_outline_rounded,
                 size: 64, color: AppColors.brushedGold),
             const SizedBox(height: 12),
-            Text(l.noGuests,
-                style: theme.textTheme.titleMedium),
+            Text(l.noGuests, style: theme.textTheme.titleMedium),
           ],
         ),
       );
@@ -184,15 +200,57 @@ class _GuestsScreenState extends State<GuestsScreen> {
       padding: const EdgeInsets.all(16),
       itemCount: filtered.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) =>
-          _GuestCard(guest: filtered[i], eventId: eventId, allGuests: allGuests),
+      itemBuilder: (context, i) => _GuestCard(
+          guest: filtered[i], eventId: eventId, allGuests: allGuests),
     );
   }
 
-  Future<void> _showGuestDialog(BuildContext context, String eventId, [GuestModel? guest, List<GuestModel>? allGuests]) async {
+  Future<void> _showGuestDialog(BuildContext context, String eventId,
+      [GuestModel? guest, List<GuestModel>? allGuests]) async {
     await showDialog(
       context: context,
-      builder: (_) => _GuestDialog(eventId: eventId, guest: guest, allGuests: allGuests),
+      builder: (_) =>
+          _GuestDialog(eventId: eventId, guest: guest, allGuests: allGuests),
+    );
+  }
+}
+
+class _EmptyGuestsNoEvent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l = context.l10n;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+                gradient: AppColors.goldGradient, shape: BoxShape.circle),
+            child: const Icon(Icons.event_busy_rounded,
+                size: 48, color: AppColors.charcoal),
+          ),
+          const SizedBox(height: 20),
+          Text(l.noEventsYet,
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(l.noEventsYetSubtitle,
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: Colors.white54)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/events'),
+            icon: const Icon(Icons.add_rounded),
+            label: Text(l.newEvent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brushedGold,
+              foregroundColor: AppColors.charcoal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
