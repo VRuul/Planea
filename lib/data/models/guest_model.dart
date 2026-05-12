@@ -30,6 +30,8 @@ class GuestModel extends Equatable {
   final String? dietaryRestrictions;
   final Map<String, int> customCounts;
   final Map<String, int> customIcons;
+  final String? customRole;
+  final int? customRoleIcon;
 
   const GuestModel({
     required this.id,
@@ -51,6 +53,8 @@ class GuestModel extends Equatable {
     this.dietaryRestrictions,
     this.customCounts = const {},
     this.customIcons = const {},
+    this.customRole,
+    this.customRoleIcon,
   });
 
   int get totalSeats {
@@ -80,6 +84,8 @@ class GuestModel extends Equatable {
       dietaryRestrictions: data['dietaryRestrictions'],
       customCounts: Map<String, int>.from(data['customCounts'] ?? {}),
       customIcons: Map<String, int>.from(data['customIcons'] ?? {}),
+      customRole: data['customRole'],
+      customRoleIcon: data['customRoleIcon'],
     );
   }
 
@@ -103,6 +109,8 @@ class GuestModel extends Equatable {
       'dietaryRestrictions': dietaryRestrictions,
       'customCounts': customCounts,
       'customIcons': customIcons,
+      'customRole': customRole,
+      'customRoleIcon': customRoleIcon,
     };
   }
 
@@ -124,6 +132,8 @@ class GuestModel extends Equatable {
     String? dietaryRestrictions,
     Map<String, int>? customCounts,
     Map<String, int>? customIcons,
+    String? customRole,
+    int? customRoleIcon,
   }) {
     return GuestModel(
       id: id,
@@ -145,6 +155,8 @@ class GuestModel extends Equatable {
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
       customCounts: customCounts ?? this.customCounts,
       customIcons: customIcons ?? this.customIcons,
+      customRole: customRole ?? this.customRole,
+      customRoleIcon: customRoleIcon ?? this.customRoleIcon,
     );
   }
 
@@ -153,5 +165,6 @@ class GuestModel extends Equatable {
         id, eventId, displayName, firstName, lastName, role, status,
         tableId, adults, children, teenagers, disabled, phone, email,
         socialMedia, notes, dietaryRestrictions, customCounts, customIcons,
+        customRole, customRoleIcon,
       ];
 }

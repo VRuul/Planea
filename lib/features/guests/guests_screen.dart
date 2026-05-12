@@ -217,7 +217,10 @@ class _GuestCard extends StatelessWidget {
         subtitle: Wrap(
           spacing: 6, runSpacing: 4,
           children: [
-            GuestRoleChip(role: guest.role),
+            if (guest.customRole != null)
+              _CustomRoleChip(label: guest.customRole!, iconCode: guest.customRoleIcon)
+            else
+              GuestRoleChip(role: guest.role),
             if (guest.tableId != null)
               _SmallTag(label: l.tableLabel(guest.tableId!), color: Colors.blue.shade300),
             _SmallTag(label: 'Total: ${guest.totalSeats}', color: Colors.purple.shade300),
@@ -529,6 +532,8 @@ class _GuestDialogState extends State<_GuestDialog> {
   int _adults = 1, _children = 0, _teenagers = 0, _disabled = 0;
   Map<String, int> _customCounts = {};
   Map<String, int> _customIcons = {};
+  String? _selectedCustomRole;
+  int? _selectedCustomRoleIcon;
   bool _saving = false;
   bool _showSplitName = false;
   bool _isAdvancedExpanded = false;
@@ -555,6 +560,8 @@ class _GuestDialogState extends State<_GuestDialog> {
       _disabled = g.disabled;
       _customCounts = Map.from(g.customCounts);
       _customIcons = Map.from(g.customIcons);
+      _selectedCustomRole = g.customRole;
+      _selectedCustomRoleIcon = g.customRoleIcon;
       _showSplitName = g.firstName != null || g.lastName != null;
     } else if (widget.allGuests != null) {
       // Automatic learning: find all unique custom fields used in this event
@@ -610,6 +617,8 @@ class _GuestDialogState extends State<_GuestDialog> {
         dietaryRestrictions: _dietController.text.trim().isEmpty ? null : _dietController.text.trim(),
         customCounts: _customCounts,
         customIcons: _customIcons,
+        customRole: _selectedCustomRole,
+        customRoleIcon: _selectedCustomRoleIcon,
       );
       
       if (isEdit) {
@@ -730,12 +739,7 @@ class _GuestDialogState extends State<_GuestDialog> {
                 onChanged: (v) => setState(() => _children = v),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<GuestRole>(
-                value: _role,
-                decoration: InputDecoration(labelText: l.roleLabel, prefixIcon: const Icon(Icons.star_outline)),
-                items: GuestRole.values.map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(l, r)))).toList(),
-                onChanged: (v) => setState(() => _role = v!),
-              ),
+              _buildRoleSelector(l, theme),
               const SizedBox(height: 16),
               TextField(
                 controller: _phoneController,
@@ -812,6 +816,144 @@ class _GuestDialogState extends State<_GuestDialog> {
       ],
     );
   }
+
+  Widget _buildRoleSelector(AppLocalizations l, ThemeData theme) {
+    // Collect unique custom roles from all guests
+    final uniqueCustomRoles = <String, int?>{};
+    if (widget.allGuests != null) {
+      for (final g in widget.allGuests!) {
+        if (g.customRole != null) {
+          uniqueCustomRoles[g.customRole!] = g.customRoleIcon;
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: _selectedCustomRole ?? _role.name,
+          decoration: InputDecoration(
+            labelText: l.roleLabel,
+            prefixIcon: Icon(
+              _selectedCustomRole != null 
+                ? (_selectedCustomRoleIcon != null ? IconData(_selectedCustomRoleIcon!, fontFamily: 'MaterialIcons') : Icons.star_border_rounded)
+                : Icons.star_outline,
+            ),
+          ),
+          items: [
+            ...GuestRole.values.map((r) => DropdownMenuItem(
+              value: r.name,
+              child: Text(_roleLabel(l, r)),
+            )),
+            ...uniqueCustomRoles.entries.map((e) => DropdownMenuItem(
+              value: e.key,
+              child: Row(
+                children: [
+                  if (e.value != null) Icon(IconData(e.value!, fontFamily: 'MaterialIcons'), size: 18, color: AppColors.brushedGold),
+                  if (e.value != null) const SizedBox(width: 8),
+                  Text(e.key),
+                ],
+              ),
+            )),
+            const DropdownMenuItem(
+              value: "ADD_NEW",
+              child: Text("+ Añadir nuevo rol...", style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold)),
+            ),
+          ],
+          onChanged: (val) {
+            if (val == "ADD_NEW") {
+              _showAddNewRoleDialog();
+            } else {
+              final standardRole = GuestRole.values.firstWhere((r) => r.name == val, orElse: () => GuestRole.regular);
+              setState(() {
+                if (GuestRole.values.any((r) => r.name == val)) {
+                  _role = standardRole;
+                  _selectedCustomRole = null;
+                  _selectedCustomRoleIcon = null;
+                } else {
+                  _selectedCustomRole = val;
+                  _selectedCustomRoleIcon = uniqueCustomRoles[val];
+                }
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showAddNewRoleDialog() {
+    final controller = TextEditingController();
+    int? selectedIconCode;
+    
+    final icons = [
+      Icons.star, Icons.auto_awesome, Icons.favorite, Icons.verified,
+      Icons.workspace_premium, Icons.person, Icons.people, Icons.celebration,
+      Icons.card_membership, Icons.military_tech
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Nuevo Rol"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(hintText: "Ej: Dama de Honor, Chambelán..."),
+              ),
+              const SizedBox(height: 20),
+              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 250,
+                child: Wrap(
+                  spacing: 12, runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: icons.map((icon) {
+                    final isSelected = selectedIconCode == icon.codePoint;
+                    return InkWell(
+                      onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.2) : Colors.transparent,
+                          border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+            TextButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    _selectedCustomRole = name;
+                    _selectedCustomRoleIcon = selectedIconCode;
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Añadir"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CounterRow extends StatelessWidget {
@@ -841,6 +983,32 @@ class _CounterRow extends StatelessWidget {
         Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
         IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => onChanged(count + 1)),
       ],
+    );
+  }
+}
+
+class _CustomRoleChip extends StatelessWidget {
+  final String label;
+  final int? iconCode;
+  const _CustomRoleChip({required this.label, this.iconCode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.brushedGold.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (iconCode != null) Icon(IconData(iconCode!, fontFamily: 'MaterialIcons'), size: 12, color: AppColors.brushedGold),
+          if (iconCode != null) const SizedBox(width: 4),
+          Text(label, style: const TextStyle(color: AppColors.brushedGold, fontSize: 10, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }
