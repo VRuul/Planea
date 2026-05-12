@@ -6,6 +6,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../data/models/guest_model.dart';
 import '../../data/models/event_model.dart';
+import '../../data/models/table_model.dart';
+import '../../data/models/seating_assignment_model.dart';
+import '../../data/models/seating_data_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
@@ -104,20 +107,34 @@ class _GuestsScreenState extends State<GuestsScreen> {
                   ),
                 ),
               Expanded(
-                child: StreamBuilder<List<GuestModel>>(
-                  stream: _service.watchGuests(currentEventId),
-                  builder: (context, snap) {
-                    _allGuestsCached = snap.data ?? [];
+                child: StreamBuilder<SeatingData>(
+                  stream: _service.watchSeatingData(currentEventId),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                    }
+                    
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final data = snapshot.data;
+                    final tables = data?.tables ?? [];
+                    final assignments = data?.assignments ?? [];
+                    _allGuestsCached = data?.guests ?? [];
+
                     return Scaffold(
                       backgroundColor: Colors.transparent,
                       floatingActionButton: FloatingActionButton.extended(
-                        onPressed: () => _showGuestDialog(context, currentEventId, null, _allGuestsCached),
+                        onPressed: () => _showGuestDialog(
+                            context, currentEventId, null, _allGuestsCached),
                         backgroundColor: AppColors.brushedGold,
                         foregroundColor: AppColors.charcoal,
                         icon: const Icon(Icons.person_add_rounded),
                         label: Text(l.addGuest),
                       ),
-                      body: _buildGuestList(context, _allGuestsCached, currentEventId, l, theme),
+                      body: _buildGuestList(context, _allGuestsCached,
+                          currentEventId, l, theme, tables, assignments),
                     );
                   },
                 ),
@@ -152,7 +169,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
   }
 
   Widget _buildGuestList(BuildContext context, List<GuestModel> allGuests,
-      String eventId, AppLocalizations l, ThemeData theme) {
+      String eventId, AppLocalizations l, ThemeData theme, List<TableModel> tables, List<SeatingAssignment> assignments) {
     final filtered = allGuests.where((g) {
       final matchSearch = _search.isEmpty ||
           g.displayName.toLowerCase().contains(_search.toLowerCase());
@@ -201,7 +218,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
       itemCount: filtered.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, i) => _GuestCard(
-          guest: filtered[i], eventId: eventId, allGuests: allGuests),
+          guest: filtered[i], eventId: eventId, allGuests: allGuests, tables: tables, assignments: assignments),
     );
   }
 
@@ -279,7 +296,9 @@ class _GuestCard extends StatelessWidget {
   final GuestModel guest;
   final String eventId;
   final List<GuestModel>? allGuests;
-  _GuestCard({required this.guest, required this.eventId, this.allGuests});
+  final List<TableModel>? tables;
+  final List<SeatingAssignment>? assignments;
+  _GuestCard({required this.guest, required this.eventId, this.allGuests, this.tables, this.assignments});
   final _service = FirestoreService();
 
   @override
@@ -319,8 +338,28 @@ class _GuestCard extends StatelessWidget {
               _CustomRoleChip(label: guest.customRole!, iconCode: guest.customRoleIcon)
             else
               GuestRoleChip(role: guest.role),
-            if (guest.tableId != null)
-              _SmallTag(label: l.tableLabel(guest.tableId!), color: Colors.blue.shade300),
+            
+            // Reemplazamos guest.tableId por los datos reales de assignments
+            ...(){
+              final guestAssig = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
+              if (guestAssig.isEmpty && guest.tableId != null) {
+                // Fallback para legacy
+                return [_SmallTag(
+                  label: tables?.any((t) => t.id == guest.tableId) ?? false
+                      ? l.tableLabel(tables!.firstWhere((t) => t.id == guest.tableId).name)
+                      : l.tableLabel(guest.tableId!), 
+                  color: Colors.blue.shade300,
+                )];
+              }
+              return guestAssig.map((a) {
+                final t = tables?.firstWhere((t) => t.id == a.tableId, orElse: () => TableModel(id: '', eventId: '', name: '?', capacity: 0));
+                return _SmallTag(
+                  label: l.tableLabel("${t?.name ?? 'Mesa'} (${a.total})"),
+                  color: Colors.blue.shade300,
+                );
+              }).toList();
+            }(),
+
             _SmallTag(label: 'Total: ${guest.totalSeats}', color: Colors.purple.shade300),
           ],
         ),
@@ -397,16 +436,23 @@ class _GuestCard extends StatelessWidget {
                       icon: const Icon(Icons.edit_outlined, color: AppColors.brushedGold, size: 18),
                       label: Text(l.editButton, style: const TextStyle(color: AppColors.brushedGold)),
                     ),
-                    const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () {
-                        _showStatusDialog(context, l);
-                      },
+                      onPressed: () => _showStatusDialog(context, l),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: statusColor,
                         foregroundColor: Colors.white,
                       ),
                       child: const Text("Estatus"),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showTablePicker(context, l),
+                      icon: const Icon(Icons.table_restaurant_rounded, size: 18),
+                      label: const Text("Mesa"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brushedGold,
+                        foregroundColor: AppColors.charcoal,
+                      ),
                     ),
                   ],
                 ),
@@ -476,6 +522,26 @@ class _GuestCard extends StatelessWidget {
             child: Text(l.cancelButton),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showTablePicker(BuildContext context, AppLocalizations l) {
+    if (tables == null || tables!.isEmpty) return;
+    
+    // Obtenemos las asignaciones de este invitado para todas las mesas
+    final guestAssignments = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) => _TablePickerFlow(
+        guest: guest,
+        tables: tables!,
+        assignments: assignments ?? [],
+        guestAssignments: guestAssignments,
+        eventId: eventId,
+        service: _service,
+        l: l,
       ),
     );
   }
@@ -771,12 +837,12 @@ class _GuestDialogState extends State<_GuestDialog> {
   final _displayController = TextEditingController();
   final _firstController = TextEditingController();
   final _lastController = TextEditingController();
-  final _tableController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _socialController = TextEditingController();
   final _notesController = TextEditingController();
   final _dietController = TextEditingController();
+  String? _selectedTableId;
 
   GuestRole _role = GuestRole.regular;
   int _adults = 1, _children = 0, _teenagers = 0, _disabled = 0;
@@ -797,7 +863,7 @@ class _GuestDialogState extends State<_GuestDialog> {
       _displayController.text = g.displayName;
       _firstController.text = g.firstName ?? '';
       _lastController.text = g.lastName ?? '';
-      _tableController.text = g.tableId ?? '';
+      _selectedTableId = g.tableId;
       _phoneController.text = g.phone ?? '';
       _emailController.text = g.email ?? '';
       _socialController.text = g.socialMedia ?? '';
@@ -833,7 +899,6 @@ class _GuestDialogState extends State<_GuestDialog> {
     _displayController.dispose();
     _firstController.dispose();
     _lastController.dispose();
-    _tableController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _socialController.dispose();
@@ -855,7 +920,7 @@ class _GuestDialogState extends State<_GuestDialog> {
         lastName: _showSplitName ? _lastController.text.trim() : null,
         role: _role,
         status: isEdit ? widget.guest!.status : GuestStatus.pending,
-        tableId: _tableController.text.trim().isEmpty ? null : _tableController.text.trim(),
+        tableId: _selectedTableId,
         adults: _adults,
         children: _children,
         teenagers: _teenagers,
@@ -1047,7 +1112,28 @@ class _GuestDialogState extends State<_GuestDialog> {
                     const SizedBox(height: 12),
                     TextField(controller: _socialController, decoration: InputDecoration(labelText: l.contactSocial, prefixIcon: const Icon(Icons.link_rounded))),
                     const SizedBox(height: 12),
-                    TextField(controller: _tableController, decoration: InputDecoration(labelText: l.tableOptional, prefixIcon: const Icon(Icons.table_restaurant_outlined))),
+                    const SizedBox(height: 12),
+                    StreamBuilder<List<TableModel>>(
+                      stream: _service.watchTables(widget.eventId),
+                      builder: (context, snap) {
+                        final tables = snap.data ?? [];
+                        return DropdownButtonFormField<String?>(
+                          value: _selectedTableId,
+                          decoration: InputDecoration(
+                            labelText: l.navTables,
+                            prefixIcon: const Icon(Icons.table_restaurant_outlined),
+                          ),
+                          items: [
+                            DropdownMenuItem(value: null, child: Text(l.tableOptional)),
+                            ...tables.map((t) => DropdownMenuItem(
+                              value: t.id,
+                              child: Text(t.name),
+                            )),
+                          ],
+                          onChanged: (v) => setState(() => _selectedTableId = v),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 12),
                     TextField(controller: _dietController, decoration: InputDecoration(labelText: l.dietaryLabel, prefixIcon: const Icon(Icons.no_food_outlined))),
                   ],
@@ -1260,5 +1346,209 @@ class _CustomRoleChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _TablePickerFlow extends StatefulWidget {
+  final GuestModel guest;
+  final List<TableModel> tables;
+  final List<SeatingAssignment> assignments;
+  final List<SeatingAssignment> guestAssignments;
+  final String eventId;
+  final FirestoreService service;
+  final AppLocalizations l;
+
+  const _TablePickerFlow({
+    required this.guest,
+    required this.tables,
+    required this.assignments,
+    required this.guestAssignments,
+    required this.eventId,
+    required this.service,
+    required this.l,
+  });
+
+  @override
+  State<_TablePickerFlow> createState() => _TablePickerFlowState();
+}
+
+class _TablePickerFlowState extends State<_TablePickerFlow> {
+  TableModel? _selectedTable;
+  Map<String, int> _toAssign = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    if (_selectedTable != null) {
+      return _buildCountPicker(theme);
+    }
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Text("Asignar mesa para ${widget.guest.displayName}", textAlign: TextAlign.center),
+      content: SizedBox(
+        width: 400,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: widget.tables.length + 1,
+          itemBuilder: (context, i) {
+            if (i == 0) {
+              return ListTile(
+                leading: const Icon(Icons.no_accounts_rounded),
+                title: const Text("Sin mesa"),
+                subtitle: const Text("Limpia todas las asignaciones"),
+                onTap: () async {
+                  for (var a in widget.guestAssignments) {
+                    await widget.service.deleteAssignment(widget.eventId, a.id);
+                  }
+                  if (mounted) Navigator.pop(context);
+                },
+              );
+            }
+            final t = widget.tables[i - 1];
+            final assignment = widget.guestAssignments.firstWhere((a) => a.tableId == t.id, orElse: () => SeatingAssignment(id: '', guestId: widget.guest.id, tableId: t.id, counts: {}));
+            final isAssigned = assignment.id.isNotEmpty;
+
+            return ListTile(
+              leading: Icon(Icons.table_restaurant_rounded, color: isAssigned ? AppColors.brushedGold : null),
+              title: Text(t.name),
+              subtitle: Text(isAssigned ? "Asignado (${assignment.total})" : "${t.capacity} asientos"),
+              trailing: isAssigned ? const Icon(Icons.edit_rounded, size: 18, color: AppColors.brushedGold) : null,
+              onTap: () {
+                setState(() {
+                  _selectedTable = t;
+                  if (isAssigned) {
+                    _toAssign = Map<String, int>.from(assignment.counts);
+                  } else {
+                    _toAssign = {
+                      if (widget.guest.adults > 0) 'Adultos': 0,
+                      if (widget.guest.children > 0) 'Niños': 0,
+                      if (widget.guest.disabled > 0) 'Discapacitados': 0,
+                      ...widget.guest.customCounts.map((k, v) => MapEntry(k, 0)),
+                    };
+                  }
+                });
+              },
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(widget.l.cancelButton)),
+      ],
+    );
+  }
+
+  Widget _buildCountPicker(ThemeData theme) {
+    final g = widget.guest;
+    final t = _selectedTable!;
+    final assignment = widget.guestAssignments.firstWhere((a) => a.tableId == t.id, orElse: () => SeatingAssignment(id: '', guestId: g.id, tableId: t.id, counts: {}));
+    
+    // Calcular ocupados en OTRAS mesas para este invitado
+    Map<String, int> alreadyAssigned = {
+      'Adultos': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Adultos'] ?? 0)),
+      'Niños': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Niños'] ?? 0)),
+      'Discapacitados': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Discapacitados'] ?? 0)),
+    };
+    g.customCounts.forEach((key, _) {
+      alreadyAssigned[key] = widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts[key] ?? 0));
+    });
+
+    final categories = _toAssign.keys.toList();
+    final totalToAssign = _toAssign.values.fold(0, (sum, v) => sum + v);
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Text("¿Cuántos en ${t.name}?", textAlign: TextAlign.center),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...categories.map((cat) {
+              final maxAvailable = _getMaxForCategory(cat, g) - (alreadyAssigned[cat] ?? 0);
+              if (maxAvailable <= 0 && _toAssign[cat] == 0) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(cat, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: _toAssign[cat]! > 0 ? () => setState(() => _toAssign[cat] = _toAssign[cat]! - 1) : null,
+                    ),
+                    Text("${_toAssign[cat]}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: _toAssign[cat]! < maxAvailable ? () => setState(() => _toAssign[cat] = _toAssign[cat]! + 1) : null,
+                    ),
+                    Text("/ $maxAvailable", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  for (var cat in categories) {
+                    final maxAvail = _getMaxForCategory(cat, g) - (alreadyAssigned[cat] ?? 0);
+                    _toAssign[cat] = maxAvail;
+                  }
+                });
+              },
+              icon: const Icon(Icons.group_add_rounded, color: AppColors.brushedGold),
+              label: const Text("Asignar todo el grupo", style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold)),
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => setState(() => _selectedTable = null), child: const Text("Atrás")),
+        ElevatedButton(
+          onPressed: (totalToAssign > 0 || assignment.id.isNotEmpty) ? () async {
+            final cleanedCounts = Map<String, int>.from(_toAssign)..removeWhere((k, v) => v == 0);
+            
+            if (cleanedCounts.isEmpty) {
+              if (assignment.id.isNotEmpty) {
+                await widget.service.deleteAssignment(widget.eventId, assignment.id);
+              }
+            } else {
+              final newAssignment = SeatingAssignment(
+                id: assignment.id,
+                guestId: g.id,
+                tableId: t.id,
+                counts: cleanedCounts,
+              );
+              
+              if (newAssignment.id.isEmpty) {
+                await widget.service.addAssignment(widget.eventId, newAssignment);
+              } else {
+                await widget.service.updateAssignment(widget.eventId, newAssignment.id, newAssignment.toFirestore());
+              }
+            }
+            if (mounted) Navigator.pop(context);
+          } : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+          ),
+          child: const Text("Confirmar"),
+        ),
+      ],
+    );
+  }
+
+  int _getMaxForCategory(String cat, GuestModel g) {
+    if (cat == 'Adultos') return g.adults;
+    if (cat == 'Niños') return g.children;
+    if (cat == 'Discapacitados') return g.disabled;
+    return g.customCounts[cat] ?? 0;
   }
 }

@@ -7,6 +7,7 @@ import '../features/auth/login_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/guests/guests_screen.dart';
+import '../features/tables/tables_screen.dart';
 import '../features/events/events_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/events/event_detail_screen.dart';
@@ -39,6 +40,10 @@ class AppRouter {
             GoRoute(
               path: '/guests',
               builder: (context, state) => const GuestsScreen(),
+            ),
+            GoRoute(
+              path: '/tables',
+              builder: (context, state) => const TablesScreen(),
             ),
             GoRoute(
               path: '/events',
