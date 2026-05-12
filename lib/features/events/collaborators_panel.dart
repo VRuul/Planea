@@ -22,10 +22,21 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    return StreamBuilder<EventModel?>(
+      stream: _service.watchEvent(widget.event.id),
+      initialData: widget.event,
+      builder: (context, eventSnap) {
+        final event = eventSnap.data ?? widget.event;
+        return _buildBody(context, event);
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, EventModel event) {
     final theme = Theme.of(context);
     final l = context.l10n;
     final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
-    final isOwner = widget.event.organizerId == userId;
+    final isOwner = event.organizerId == userId;
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +46,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
             IconButton(
               icon: const Icon(Icons.person_add_rounded),
               tooltip: 'Invitar por correo',
-              onPressed: () => _showInviteByEmailDialog(context),
+              onPressed: () => _showInviteByEmailDialog(context, event),
             ),
         ],
       ),
@@ -49,8 +60,8 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               _SectionTitle('Compartir Evento'),
               const SizedBox(height: 12),
               _ShareCard(
-                event: widget.event,
-                onGenerateCode: () => _generateCode(context),
+                event: event,
+                onGenerateCode: () => _generateCode(context, event),
                 isLoading: _codeLoading,
               ),
               const SizedBox(height: 28),
@@ -61,7 +72,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               _SectionTitle('Solicitudes Pendientes'),
               const SizedBox(height: 12),
               StreamBuilder<List<CollaboratorModel>>(
-                stream: _service.watchPendingRequests(widget.event.id),
+                stream: _service.watchPendingRequests(event.id),
                 builder: (context, snap) {
                   if (snap.hasError) {
                     return Container(
@@ -93,7 +104,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                   return Column(
                     children: pending.map((c) => _PendingRequestCard(
                       collaborator: c,
-                      eventId: widget.event.id,
+                      eventId: event.id,
                     )).toList(),
                   );
                 },
@@ -110,7 +121,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<List<CollaboratorModel>>(
-              stream: _service.watchCollaborators(widget.event.id),
+              stream: _service.watchCollaborators(event.id),
               builder: (context, snap) {
                 if (snap.hasError) {
                   return Container(
@@ -144,7 +155,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 return Column(
                   children: all.map((c) => _CollaboratorCard(
                     collaborator: c,
-                    eventId: widget.event.id,
+                    eventId: event.id,
                     isOwner: isOwner,
                   )).toList(),
                 );
@@ -156,10 +167,10 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
     );
   }
 
-  Future<void> _generateCode(BuildContext context) async {
+  Future<void> _generateCode(BuildContext context, EventModel event) async {
     setState(() => _codeLoading = true);
     try {
-      await _service.generateInviteCode(widget.event.id);
+      await _service.generateInviteCode(event.id);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +185,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
     }
   }
 
-  void _showInviteByEmailDialog(BuildContext context) {
+  void _showInviteByEmailDialog(BuildContext context, EventModel event) {
     final emailController = TextEditingController();
     CollaboratorRole selectedRole = CollaboratorRole.viewer;
 
@@ -236,7 +247,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 if (emailController.text.trim().isEmpty) return;
                 final userName = context.read<AuthProvider>().currentUser?.displayName ?? 'Admin';
                 await _service.inviteByEmail(
-                  eventId: widget.event.id,
+                  eventId: event.id,
                   email: emailController.text.trim(),
                   role: selectedRole,
                   inviterName: userName,
@@ -371,7 +382,7 @@ class _ShareCard extends StatelessWidget {
   void _showQRDialog(BuildContext context, String code) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: const Text('Código QR', textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.w800)),
@@ -406,7 +417,7 @@ class _ShareCard extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cerrar')),
         ],
       ),
     );
