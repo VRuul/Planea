@@ -7,6 +7,7 @@ import '../../data/models/event_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
+import './widgets/event_utils.dart';
 
 
 class EventsScreen extends StatelessWidget {

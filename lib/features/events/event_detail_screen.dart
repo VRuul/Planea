@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import './events_screen.dart';
+import './widgets/event_utils.dart';
 
 
 class EventDetailScreen extends StatelessWidget {
