@@ -44,13 +44,6 @@ class _GuestsScreenState extends State<GuestsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showGuestDialog(context, eventId),
-        backgroundColor: AppColors.brushedGold,
-        foregroundColor: AppColors.charcoal,
-        icon: const Icon(Icons.person_add_rounded),
-        label: Text(l.addGuest),
-      ),
       body: Column(
         children: [
           Padding(
@@ -86,42 +79,18 @@ class _GuestsScreenState extends State<GuestsScreen> {
             child: StreamBuilder<List<GuestModel>>(
               stream: _service.watchGuests(eventId),
               builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.brushedGold));
-                }
-                final filtered = (snap.data ?? []).where((g) {
-                  final matchSearch = _search.isEmpty ||
-                      g.displayName.toLowerCase().contains(_search.toLowerCase());
-                  final matchStatus =
-                      _filterStatus == null || g.status == _filterStatus;
-                  final matchRole =
-                      _filterRole == null || g.role == _filterRole;
-                  return matchSearch && matchStatus && matchRole;
-                }).toList();
-
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.people_outline_rounded,
-                            size: 64, color: AppColors.brushedGold),
-                        const SizedBox(height: 12),
-                        Text(l.noGuests,
-                            style: theme.textTheme.titleMedium),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) =>
-                      _GuestCard(guest: filtered[i], eventId: eventId),
+                final allGuests = snap.data ?? [];
+                // Update FAB or other elements that need this list
+                return Scaffold(
+                  backgroundColor: Colors.transparent,
+                  floatingActionButton: FloatingActionButton.extended(
+                    onPressed: () => _showGuestDialog(context, eventId, null, allGuests),
+                    backgroundColor: AppColors.brushedGold,
+                    foregroundColor: AppColors.charcoal,
+                    icon: const Icon(Icons.person_add_rounded),
+                    label: Text(l.addGuest),
+                  ),
+                  body: _buildGuestList(context, allGuests, eventId, l, theme),
                 );
               },
             ),
@@ -145,10 +114,45 @@ class _GuestsScreenState extends State<GuestsScreen> {
     );
   }
 
-  Future<void> _showGuestDialog(BuildContext context, String eventId, [GuestModel? guest]) async {
+  Widget _buildGuestList(BuildContext context, List<GuestModel> allGuests, String eventId, AppLocalizations l, ThemeData theme) {
+    final filtered = allGuests.where((g) {
+      final matchSearch = _search.isEmpty ||
+          g.displayName.toLowerCase().contains(_search.toLowerCase());
+      final matchStatus =
+          _filterStatus == null || g.status == _filterStatus;
+      final matchRole =
+          _filterRole == null || g.role == _filterRole;
+      return matchSearch && matchStatus && matchRole;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.people_outline_rounded,
+                size: 64, color: AppColors.brushedGold),
+            const SizedBox(height: 12),
+            Text(l.noGuests,
+                style: theme.textTheme.titleMedium),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, i) =>
+          _GuestCard(guest: filtered[i], eventId: eventId, allGuests: allGuests),
+    );
+  }
+
+  Future<void> _showGuestDialog(BuildContext context, String eventId, [GuestModel? guest, List<GuestModel>? allGuests]) async {
     await showDialog(
       context: context,
-      builder: (_) => _GuestDialog(eventId: eventId, guest: guest),
+      builder: (_) => _GuestDialog(eventId: eventId, guest: guest, allGuests: allGuests),
     );
   }
 }
@@ -176,7 +180,8 @@ String _roleLabel(AppLocalizations l, GuestRole r) {
 class _GuestCard extends StatelessWidget {
   final GuestModel guest;
   final String eventId;
-  _GuestCard({required this.guest, required this.eventId});
+  final List<GuestModel>? allGuests;
+  _GuestCard({required this.guest, required this.eventId, this.allGuests});
   final _service = FirestoreService();
 
   @override
@@ -238,8 +243,12 @@ class _GuestCard extends StatelessWidget {
                   children: [
                     if (guest.adults > 0) _CountIndicator(label: l.countAdults, count: guest.adults, icon: Icons.person),
                     if (guest.children > 0) _CountIndicator(label: l.countChildren, count: guest.children, icon: Icons.child_care),
-                    if (guest.teenagers > 0) _CountIndicator(label: l.countTeenagers, count: guest.teenagers, icon: Icons.face),
                     if (guest.disabled > 0) _CountIndicator(label: l.countDisabled, count: guest.disabled, icon: Icons.accessible),
+                    ...guest.customCounts.entries.where((e) => e.value > 0).map((e) {
+                      final iconCode = guest.customIcons[e.key];
+                      final icon = iconCode != null ? IconData(iconCode, fontFamily: 'MaterialIcons') : Icons.star_border_rounded;
+                      return _CountIndicator(label: e.key, count: e.value, icon: icon);
+                    }),
                   ],
                 ),
                 const Divider(height: 32),
@@ -277,7 +286,7 @@ class _GuestCard extends StatelessWidget {
                         // Actually, since _GuestCard is inside _GuestsScreenState's build, 
                         // we can pass the function.
                         final state = context.findAncestorStateOfType<_GuestsScreenState>();
-                        state?._showGuestDialog(context, eventId, guest);
+                        state?._showGuestDialog(context, eventId, guest, allGuests);
                       },
                       icon: const Icon(Icons.edit_outlined, color: AppColors.brushedGold, size: 18),
                       label: Text(l.editButton, style: const TextStyle(color: AppColors.brushedGold)),
@@ -498,7 +507,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 class _GuestDialog extends StatefulWidget {
   final String eventId;
   final GuestModel? guest;
-  const _GuestDialog({required this.eventId, this.guest});
+  final List<GuestModel>? allGuests;
+  const _GuestDialog({required this.eventId, this.guest, this.allGuests});
 
   @override
   State<_GuestDialog> createState() => _GuestDialogState();
@@ -517,6 +527,8 @@ class _GuestDialogState extends State<_GuestDialog> {
 
   GuestRole _role = GuestRole.regular;
   int _adults = 1, _children = 0, _teenagers = 0, _disabled = 0;
+  Map<String, int> _customCounts = {};
+  Map<String, int> _customIcons = {};
   bool _saving = false;
   bool _showSplitName = false;
   bool _isAdvancedExpanded = false;
@@ -541,7 +553,21 @@ class _GuestDialogState extends State<_GuestDialog> {
       _children = g.children;
       _teenagers = g.teenagers;
       _disabled = g.disabled;
+      _customCounts = Map.from(g.customCounts);
+      _customIcons = Map.from(g.customIcons);
       _showSplitName = g.firstName != null || g.lastName != null;
+    } else if (widget.allGuests != null) {
+      // Automatic learning: find all unique custom fields used in this event
+      for (final g in widget.allGuests!) {
+        for (final entry in g.customCounts.entries) {
+          if (!_customCounts.containsKey(entry.key)) {
+            _customCounts[entry.key] = 0;
+            if (g.customIcons.containsKey(entry.key)) {
+              _customIcons[entry.key] = g.customIcons[entry.key]!;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -582,6 +608,8 @@ class _GuestDialogState extends State<_GuestDialog> {
         socialMedia: _socialController.text.trim().isEmpty ? null : _socialController.text.trim(),
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         dietaryRestrictions: _dietController.text.trim().isEmpty ? null : _dietController.text.trim(),
+        customCounts: _customCounts,
+        customIcons: _customIcons,
       );
       
       if (isEdit) {
@@ -593,6 +621,78 @@ class _GuestDialogState extends State<_GuestDialog> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _showAddCustomFieldDialog() {
+    final controller = TextEditingController();
+    int? selectedIconCode;
+    
+    final icons = [
+      Icons.pets, Icons.assignment_ind, Icons.music_note, Icons.card_giftcard,
+      Icons.camera_alt, Icons.star, Icons.location_on, Icons.restaurant,
+      Icons.wine_bar, Icons.directions_car
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Nuevo tipo de invitado"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(hintText: "Ej: Mascotas, Staff, etc."),
+              ),
+              const SizedBox(height: 20),
+              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 250,
+                child: Wrap(
+                  spacing: 12, runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: icons.map((icon) {
+                    final isSelected = selectedIconCode == icon.codePoint;
+                    return InkWell(
+                      onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.2) : Colors.transparent,
+                          border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+            TextButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    _customCounts[name] = 0;
+                    if (selectedIconCode != null) _customIcons[name] = selectedIconCode!;
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Añadir"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -668,8 +768,26 @@ class _GuestDialogState extends State<_GuestDialog> {
                       TextField(controller: _lastController, decoration: InputDecoration(labelText: l.guestLastName)),
                     ],
                     const Divider(height: 32),
-                    _CounterRow(label: l.countTeenagers, count: _teenagers, onChanged: (v) => setState(() => _teenagers = v)),
                     _CounterRow(label: l.countDisabled, count: _disabled, onChanged: (v) => setState(() => _disabled = v)),
+                    const SizedBox(height: 12),
+                    ..._customCounts.entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _CounterRow(
+                        label: e.key, 
+                        count: e.value, 
+                        icon: _customIcons[e.key] != null ? IconData(_customIcons[e.key]!, fontFamily: 'MaterialIcons') : null,
+                        onChanged: (v) => setState(() => _customCounts[e.key] = v),
+                        onRemove: () => setState(() {
+                          _customCounts.remove(e.key);
+                          _customIcons.remove(e.key);
+                        }),
+                      ),
+                    )),
+                    TextButton.icon(
+                      onPressed: _showAddCustomFieldDialog,
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      label: const Text("Añadir invitados personalizados"),
+                    ),
                     const Divider(height: 32),
                     TextField(controller: _emailController, decoration: InputDecoration(labelText: l.contactEmail, prefixIcon: const Icon(Icons.email_outlined))),
                     const SizedBox(height: 12),
@@ -699,14 +817,26 @@ class _GuestDialogState extends State<_GuestDialog> {
 class _CounterRow extends StatelessWidget {
   final String label;
   final int count;
+  final IconData? icon;
   final ValueChanged<int> onChanged;
-  const _CounterRow({required this.label, required this.count, required this.onChanged});
+  final VoidCallback? onRemove;
+  const _CounterRow({required this.label, required this.count, this.icon, required this.onChanged, this.onRemove});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(label)),
+        if (onRemove != null) 
+          IconButton(
+            icon: const Icon(Icons.remove_circle_rounded, color: Colors.redAccent, size: 18),
+            onPressed: onRemove,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        if (onRemove != null) const SizedBox(width: 8),
+        if (icon != null) Icon(icon, size: 18, color: AppColors.brushedGold),
+        if (icon != null) const SizedBox(width: 8),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
         IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: count > 0 ? () => onChanged(count - 1) : null),
         Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
         IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => onChanged(count + 1)),
