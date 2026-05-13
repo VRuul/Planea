@@ -52,39 +52,128 @@ class _DesktopShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
     final isDesktop = ResponsiveBreakpoints.of(context).largerThan(TABLET);
     
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            extended: isDesktop,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (i) => context.go(items[i].path),
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  _PlaneaLogo(compact: !isDesktop),
-                  const SizedBox(height: 24),
-                  if (isDesktop) _EventSwitcher(),
-                  const SizedBox(height: 8),
-                  const Divider(),
-                ],
-              ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: isDesktop ? 260 : 80,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: (isDark ? AppColors.charcoal : Colors.white).withValues(alpha: 0.95),
+              border: Border(right: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.1))),
             ),
-            destinations: items
-                .map((item) => NavigationRailDestination(
-                      icon: Icon(item.icon),
-                      selectedIcon: Icon(item.icon),
-                      label: Text(item.label),
-                    ))
-                .toList(),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _PlaneaLogo(compact: !isDesktop),
+                ),
+                const SizedBox(height: 32),
+                if (isDesktop) Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _EventSwitcher(),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Divider(alpha: 0.05),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isSelected = selectedIndex == index;
+                      return _SidebarItem(
+                        item: item,
+                        isSelected: isSelected,
+                        compact: !isDesktop,
+                        onTap: () => context.go(item.path),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
-          const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),
         ],
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final _NavItem item;
+  final bool isSelected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.item,
+    required this.isSelected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 16,
+            vertical: 14,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? AppColors.brushedGold.withValues(alpha: 0.08) 
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected 
+                  ? AppColors.brushedGold.withValues(alpha: 0.1) 
+                  : Colors.transparent,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+            children: [
+              Icon(
+                item.icon,
+                size: 24,
+                color: isSelected ? AppColors.brushedGold : baseColor.withValues(alpha: 0.4),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: 16),
+                Text(
+                  item.label,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: isSelected ? AppColors.brushedGold : baseColor.withValues(alpha: 0.6),
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -116,33 +205,51 @@ class _EventSwitcher extends StatelessWidget {
         );
 
         return Container(
-          width: 220,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          width: 260,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.brushedGold.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: PopupMenuButton<String>(
             tooltip: "Cambiar evento",
-            offset: const Offset(0, 45),
+            offset: const Offset(0, 50),
+            padding: EdgeInsets.zero,
             onSelected: (id) => eventProvider.setCurrentEventId(id),
             itemBuilder: (context) => events.map((e) => PopupMenuItem<String>(
               value: e.id,
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 8, color: e.primaryColor),
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(color: e.primaryColor, shape: BoxShape.circle),
+                  ),
                   const SizedBox(width: 12),
-                  Text(e.name, style: theme.textTheme.bodyMedium),
+                  Text(e.name, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ],
               ),
             )).toList(),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: currentEvent.primaryColor,
-                  child: const Icon(Icons.star, size: 14, color: Colors.white),
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 1.5),
+                  ),
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: currentEvent.primaryColor,
+                    child: const Icon(Icons.star_rounded, size: 16, color: Colors.white),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -154,17 +261,35 @@ class _EventSwitcher extends StatelessWidget {
                         currentEvent.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : Colors.black87,
+                          letterSpacing: 0.2,
+                        ),
                       ),
-                      Text(
-                        "Evento activo",
-                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: Colors.white54),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            width: 6, height: 6,
+                            decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "EVENTO ACTIVO",
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 9, 
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.brushedGold.withValues(alpha: 0.7),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                if (events.length > 1)
-                  const Icon(Icons.unfold_more_rounded, size: 18, color: Colors.white54),
+                Icon(Icons.unfold_more_rounded, size: 18, color: AppColors.brushedGold.withValues(alpha: 0.5)),
               ],
             ),
           ),
