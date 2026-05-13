@@ -1628,58 +1628,77 @@ class _GuestDialogState extends State<_GuestDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
     return AlertDialog(
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(
-        widget.guest == null ? l.addGuestTitle : "Editar Invitado",
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-        ),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      title: Row(
+        children: [
+          Icon(Icons.person_add_rounded, color: AppColors.brushedGold, size: 28),
+          const SizedBox(width: 12),
+          Text(
+            widget.guest == null ? l.addGuestTitle : "Editar Invitado",
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
       ),
       content: SizedBox(
-        width: 450,
+        width: 500,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── CAMPOS BÁSICOS ──────────────────────────────────────────
-              TextField(
-                controller: _displayController,
-                decoration: InputDecoration(
-                  labelText: l.guestDisplayName,
-                  prefixIcon: const Icon(Icons.badge_outlined),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _displayController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration(l.guestDisplayName, Icons.badge_rounded, theme),
+                    ),
+                    const SizedBox(height: 16),
+                    _CounterRow(
+                      label: l.countAdults,
+                      count: _adults,
+                      icon: Icons.person_rounded,
+                      onChanged: (v) => setState(() => _adults = v),
+                    ),
+                    const SizedBox(height: 12),
+                    _CounterRow(
+                      label: l.countChildren,
+                      count: _children,
+                      icon: Icons.child_care_rounded,
+                      onChanged: (v) => setState(() => _children = v),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildRoleSelector(l, theme),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              _CounterRow(
-                label: l.countAdults,
-                count: _adults,
-                onChanged: (v) => setState(() => _adults = v),
-              ),
-              const SizedBox(height: 12),
-              _CounterRow(
-                label: l.countChildren,
-                count: _children,
-                onChanged: (v) => setState(() => _children = v),
-              ),
-              const SizedBox(height: 16),
-              _buildRoleSelector(l, theme),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: l.contactPhone,
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                ),
+                keyboardType: TextInputType.phone,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration(l.contactPhone, Icons.phone_rounded, theme),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _notesController,
                 maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: l.notesLabel,
-                  prefixIcon: const Icon(Icons.notes_rounded),
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration(l.notesLabel, Icons.notes_rounded, theme),
               ),
 
               // ── SECCIÓN AVANZADA ────────────────────────────────────────
@@ -1716,14 +1735,14 @@ class _GuestDialogState extends State<_GuestDialog> {
                     if (_showSplitName) ...[
                       TextField(
                         controller: _firstController,
-                        decoration: InputDecoration(
-                          labelText: l.guestFirstName,
-                        ),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: _inputDecoration(l.guestFirstName, Icons.person_outline_rounded, theme),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _lastController,
-                        decoration: InputDecoration(labelText: l.guestLastName),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: _inputDecoration(l.guestLastName, Icons.person_outline_rounded, theme),
                       ),
                     ],
                     const Divider(height: 32),
@@ -1762,20 +1781,15 @@ class _GuestDialogState extends State<_GuestDialog> {
                     const Divider(height: 32),
                     TextField(
                       controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: l.contactEmail,
-                        prefixIcon: const Icon(Icons.email_outlined),
-                      ),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration(l.contactEmail, Icons.email_rounded, theme),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _socialController,
-                      decoration: InputDecoration(
-                        labelText: l.contactSocial,
-                        prefixIcon: const Icon(Icons.link_rounded),
-                      ),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration(l.contactSocial, Icons.link_rounded, theme),
                     ),
-                    const SizedBox(height: 12),
                     const SizedBox(height: 12),
                     StreamBuilder<List<TableModel>>(
                       stream: _service.watchTables(widget.eventId),
@@ -1783,12 +1797,9 @@ class _GuestDialogState extends State<_GuestDialog> {
                         final tables = snap.data ?? [];
                         return DropdownButtonFormField<String?>(
                           value: _selectedTableId,
-                          decoration: InputDecoration(
-                            labelText: l.navTables,
-                            prefixIcon: const Icon(
-                              Icons.table_restaurant_outlined,
-                            ),
-                          ),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          dropdownColor: isDark ? AppColors.charcoal : Colors.white,
+                          decoration: _inputDecoration(l.navTables, Icons.table_restaurant_rounded, theme),
                           items: [
                             DropdownMenuItem(
                               value: null,
@@ -1809,10 +1820,8 @@ class _GuestDialogState extends State<_GuestDialog> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _dietController,
-                      decoration: InputDecoration(
-                        labelText: l.dietaryLabel,
-                        prefixIcon: const Icon(Icons.no_food_outlined),
-                      ),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration(l.dietaryLabel, Icons.no_food_rounded, theme),
                     ),
                   ],
                 ),
@@ -1821,22 +1830,68 @@ class _GuestDialogState extends State<_GuestDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: isDark ? Colors.white54 : Colors.black45,
+          ),
           child: Text(l.cancelButton),
         ),
+        const SizedBox(width: 12),
         ElevatedButton(
           onPressed: _saving ? null : () => _save(l),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+            elevation: 8,
+            shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
           child: _saving
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal),
                 )
-              : Text(l.saveButton),
+              : Text(
+                  l.saveButton.toUpperCase(), 
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800, 
+                    letterSpacing: 1.5,
+                    fontSize: 13,
+                  ),
+                ),
         ),
       ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14),
+      prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20),
+      filled: true,
+      fillColor: baseColor.withValues(alpha: 0.03),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5),
+      ),
     );
   }
 
@@ -1851,13 +1906,15 @@ class _GuestDialogState extends State<_GuestDialog> {
       }
     }
 
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
           value: _selectedCustomRole ?? _role.name,
-          decoration: InputDecoration(
-            labelText: l.roleLabel,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+          dropdownColor: isDark ? AppColors.charcoal : Colors.white,
+          decoration: _inputDecoration(l.roleLabel, Icons.star_rounded, theme).copyWith(
             prefixIcon: Icon(
               _selectedCustomRole != null
                   ? (_selectedCustomRoleIcon != null
@@ -1865,8 +1922,10 @@ class _GuestDialogState extends State<_GuestDialog> {
                             _selectedCustomRoleIcon!,
                             fontFamily: 'MaterialIcons',
                           )
-                        : Icons.star_border_rounded)
-                  : Icons.star_outline,
+                        : Icons.star_rounded)
+                  : Icons.star_rounded,
+              color: AppColors.brushedGold,
+              size: 20,
             ),
           ),
           items: [
@@ -2047,33 +2106,67 @@ class _CounterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        if (onRemove != null)
-          IconButton(
-            icon: const Icon(
-              Icons.remove_circle_rounded,
-              color: Colors.redAccent,
-              size: 18,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: baseColor.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon ?? Icons.person_rounded, size: 20, color: AppColors.brushedGold),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: baseColor.withValues(alpha: 0.7),
+              ),
             ),
-            onPressed: onRemove,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
           ),
-        if (onRemove != null) const SizedBox(width: 8),
-        if (icon != null) Icon(icon, size: 18, color: AppColors.brushedGold),
-        if (icon != null) const SizedBox(width: 8),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline),
-          onPressed: count > 0 ? () => onChanged(count - 1) : null,
-        ),
-        Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline),
-          onPressed: () => onChanged(count + 1),
-        ),
-      ],
+          Container(
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove_rounded, size: 18),
+                  onPressed: count > 0 ? () => onChanged(count - 1) : null,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  color: AppColors.brushedGold,
+                ),
+                Text(
+                  '$count',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  onPressed: () => onChanged(count + 1),
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  color: AppColors.brushedGold,
+                ),
+              ],
+            ),
+          ),
+          if (onRemove != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
+              onPressed: onRemove,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
