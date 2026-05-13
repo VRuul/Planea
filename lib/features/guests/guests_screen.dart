@@ -12,6 +12,7 @@ import '../../data/models/seating_data_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../shared/widgets/guest_role_chip.dart';
 
 class GuestsScreen extends StatefulWidget {
@@ -43,9 +44,10 @@ class _GuestsScreenState extends State<GuestsScreen> {
       stream: _service.watchUserEvents(userId),
       builder: (context, eventSnap) {
         final events = eventSnap.data ?? [];
-        
+
         // Validamos el currentEventId contra la lista real de Firestore
-        final currentEventId = events.any((e) => e.id == eventProvider.currentEventId)
+        final currentEventId =
+            events.any((e) => e.id == eventProvider.currentEventId)
             ? eventProvider.currentEventId
             : (events.isNotEmpty ? events.first.id : null);
 
@@ -56,10 +58,21 @@ class _GuestsScreenState extends State<GuestsScreen> {
           );
         }
 
+        final currentEvent = events.firstWhere((e) => e.id == currentEventId);
+
         return Scaffold(
           appBar: AppBar(
             title: Text(l.guestsTitle),
             actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.message_rounded,
+                  color: Colors.greenAccent,
+                ),
+                tooltip: 'Configurar Mensaje',
+                onPressed: () =>
+                    _showTemplateDialog(context, currentEventId, currentEvent),
+              ),
               IconButton(
                 icon: const Icon(Icons.filter_list_rounded),
                 onPressed: () => _showFilterSheet(context, l),
@@ -97,17 +110,20 @@ class _GuestsScreenState extends State<GuestsScreen> {
                       if (_filterCustomRole != null)
                         _FilterChip(
                           label: _filterCustomRole!,
-                          onRemove: () => setState(() => _filterCustomRole = null),
+                          onRemove: () =>
+                              setState(() => _filterCustomRole = null),
                         ),
                       if (_filterGuestType != null)
                         _FilterChip(
                           label: _filterGuestType!,
-                          onRemove: () => setState(() => _filterGuestType = null),
+                          onRemove: () =>
+                              setState(() => _filterGuestType = null),
                         ),
                       if (_filterSeatingStatus != null)
                         _FilterChip(
                           label: _filterSeatingStatus!,
-                          onRemove: () => setState(() => _filterSeatingStatus = null),
+                          onRemove: () =>
+                              setState(() => _filterSeatingStatus = null),
                         ),
                     ],
                   ),
@@ -117,10 +133,16 @@ class _GuestsScreenState extends State<GuestsScreen> {
                   stream: _service.watchSeatingData(currentEventId),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                      return Center(
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
                     }
-                    
-                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
@@ -133,14 +155,26 @@ class _GuestsScreenState extends State<GuestsScreen> {
                       backgroundColor: Colors.transparent,
                       floatingActionButton: FloatingActionButton.extended(
                         onPressed: () => _showGuestDialog(
-                            context, currentEventId, null, _allGuestsCached),
+                          context,
+                          currentEventId,
+                          null,
+                          _allGuestsCached,
+                        ),
                         backgroundColor: AppColors.brushedGold,
                         foregroundColor: AppColors.charcoal,
                         icon: const Icon(Icons.person_add_rounded),
                         label: Text(l.addGuest),
                       ),
-                      body: _buildGuestList(context, _allGuestsCached,
-                          currentEventId, l, theme, tables, assignments),
+                      body: _buildGuestList(
+                        context,
+                        _allGuestsCached,
+                        currentEventId,
+                        l,
+                        theme,
+                        tables,
+                        assignments,
+                        currentEvent,
+                      ),
                     );
                   },
                 ),
@@ -157,7 +191,8 @@ class _GuestsScreenState extends State<GuestsScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => _FilterSheet(
         allGuests: _allGuestsCached,
         currentStatus: _filterStatus,
@@ -176,10 +211,19 @@ class _GuestsScreenState extends State<GuestsScreen> {
     );
   }
 
-  Widget _buildGuestList(BuildContext context, List<GuestModel> allGuests,
-      String eventId, AppLocalizations l, ThemeData theme, List<TableModel> tables, List<SeatingAssignment> assignments) {
+  Widget _buildGuestList(
+    BuildContext context,
+    List<GuestModel> allGuests,
+    String eventId,
+    AppLocalizations l,
+    ThemeData theme,
+    List<TableModel> tables,
+    List<SeatingAssignment> assignments,
+    EventModel event,
+  ) {
     final filtered = allGuests.where((g) {
-      final matchSearch = _search.isEmpty ||
+      final matchSearch =
+          _search.isEmpty ||
           g.displayName.toLowerCase().contains(_search.toLowerCase());
       final matchStatus = _filterStatus == null || g.status == _filterStatus;
 
@@ -207,8 +251,11 @@ class _GuestsScreenState extends State<GuestsScreen> {
       bool matchSeating = true;
       if (_filterSeatingStatus != null) {
         final guestAssig = assignments.where((a) => a.guestId == g.id);
-        final totalAssigned = guestAssig.fold<int>(0, (sum, a) => sum + a.total);
-        
+        final totalAssigned = guestAssig.fold<int>(
+          0,
+          (sum, a) => sum + a.total,
+        );
+
         if (_filterSeatingStatus == 'Completos') {
           matchSeating = totalAssigned >= g.totalSeats;
         } else if (_filterSeatingStatus == 'Parciales') {
@@ -218,7 +265,11 @@ class _GuestsScreenState extends State<GuestsScreen> {
         }
       }
 
-      return matchSearch && matchStatus && matchRole && matchType && matchSeating;
+      return matchSearch &&
+          matchStatus &&
+          matchRole &&
+          matchType &&
+          matchSeating;
     }).toList();
 
     if (filtered.isEmpty) {
@@ -226,8 +277,11 @@ class _GuestsScreenState extends State<GuestsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.people_outline_rounded,
-                size: 64, color: AppColors.brushedGold),
+            const Icon(
+              Icons.people_outline_rounded,
+              size: 64,
+              color: AppColors.brushedGold,
+            ),
             const SizedBox(height: 12),
             Text(l.noGuests, style: theme.textTheme.titleMedium),
           ],
@@ -240,12 +294,107 @@ class _GuestsScreenState extends State<GuestsScreen> {
       itemCount: filtered.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, i) => _GuestCard(
-          guest: filtered[i], eventId: eventId, allGuests: allGuests, tables: tables, assignments: assignments),
+        guest: filtered[i],
+        eventId: eventId,
+        allGuests: allGuests,
+        tables: tables,
+        assignments: assignments,
+        whatsappTemplate: event.whatsappTemplate ?? 'Hola {nombre}, te contacto para saludarte.',
+        emailTemplate: event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.',
+        emailSubject: event.emailSubject ?? 'Información de tu invitación',
+      ),
     );
   }
 
-  Future<void> _showGuestDialog(BuildContext context, String eventId,
-      [GuestModel? guest, List<GuestModel>? allGuests]) async {
+  void _showTemplateDialog(
+    BuildContext context,
+    String eventId,
+    EventModel event,
+  ) {
+    int activeTab = 0; // 0 for WhatsApp, 1 for Email
+    final waController = TextEditingController(text: event.whatsappTemplate ?? 'Hola {nombre}, te contacto para saludarte.');
+    final emailController = TextEditingController(text: event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.');
+    final subjectController = TextEditingController(text: event.emailSubject ?? 'Información de tu invitación');
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.charcoal,
+          title: Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => setDialogState(() => activeTab = 0),
+                  child: Text('WhatsApp', style: TextStyle(color: activeTab == 0 ? AppColors.brushedGold : Colors.white54)),
+                ),
+              ),
+              Expanded(
+                child: TextButton(
+                  onPressed: () => setDialogState(() => activeTab = 1),
+                  child: Text('Correo', style: TextStyle(color: activeTab == 1 ? AppColors.brushedGold : Colors.white54)),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Etiquetas: {nombre}, {mesa}, {total}',
+                style: TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              if (activeTab == 0) ...[
+                TextField(
+                  controller: waController,
+                  maxLines: 5,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(hintText: 'Mensaje de WhatsApp...'),
+                ),
+              ] else ...[
+                TextField(
+                  controller: subjectController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(hintText: 'Asunto del correo...'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailController,
+                  maxLines: 5,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(hintText: 'Cuerpo del correo...'),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                if (activeTab == 0) {
+                  await _service.updateEventTemplate(eventId, waController.text.trim());
+                } else {
+                  await _service.updateEventEmailConfig(eventId, emailController.text.trim(), subjectController.text.trim());
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showGuestDialog(
+    BuildContext context,
+    String eventId, [
+    GuestModel? guest,
+    List<GuestModel>? allGuests,
+  ]) async {
     await showDialog(
       context: context,
       builder: (_) =>
@@ -266,18 +415,27 @@ class _EmptyGuestsNoEvent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
-                gradient: AppColors.goldGradient, shape: BoxShape.circle),
-            child: const Icon(Icons.event_busy_rounded,
-                size: 48, color: AppColors.charcoal),
+              gradient: AppColors.goldGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.event_busy_rounded,
+              size: 48,
+              color: AppColors.charcoal,
+            ),
           ),
           const SizedBox(height: 20),
-          Text(l.noEventsYet,
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            l.noEventsYet,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(l.noEventsYetSubtitle,
-              style:
-                  theme.textTheme.bodyMedium?.copyWith(color: Colors.white54)),
+          Text(
+            l.noEventsYetSubtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white54),
+          ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => context.go('/events'),
@@ -298,17 +456,23 @@ class _EmptyGuestsNoEvent extends StatelessWidget {
 
 String _statusLabel(AppLocalizations l, GuestStatus s) {
   switch (s) {
-    case GuestStatus.confirmed: return l.guestConfirmed;
-    case GuestStatus.pending: return l.guestPending;
-    case GuestStatus.declined: return l.guestDeclined;
+    case GuestStatus.confirmed:
+      return l.guestConfirmed;
+    case GuestStatus.pending:
+      return l.guestPending;
+    case GuestStatus.declined:
+      return l.guestDeclined;
   }
 }
 
 String _roleLabel(AppLocalizations l, GuestRole r) {
   switch (r) {
-    case GuestRole.padrino: return l.rolePadrino;
-    case GuestRole.vip: return l.roleVip;
-    case GuestRole.regular: return l.roleRegular;
+    case GuestRole.padrino:
+      return l.rolePadrino;
+    case GuestRole.vip:
+      return l.roleVip;
+    case GuestRole.regular:
+      return l.roleRegular;
   }
 }
 
@@ -320,8 +484,57 @@ class _GuestCard extends StatelessWidget {
   final List<GuestModel>? allGuests;
   final List<TableModel>? tables;
   final List<SeatingAssignment>? assignments;
-  _GuestCard({required this.guest, required this.eventId, this.allGuests, this.tables, this.assignments});
+  final String whatsappTemplate;
+  final String emailTemplate;
+  final String emailSubject;
+
+  _GuestCard({
+    required this.guest,
+    required this.eventId,
+    this.allGuests,
+    this.tables,
+    this.assignments,
+    required this.whatsappTemplate,
+    required this.emailTemplate,
+    required this.emailSubject,
+  });
   final _service = FirestoreService();
+
+  String _buildMessage(String template) {
+    final assignment = assignments?.where((a) => a.guestId == guest.id).firstOrNull;
+    final tableName = assignment != null
+        ? tables?.firstWhere((t) => t.id == assignment.tableId).name ?? '?'
+        : 'Pendiente';
+
+    String message = template;
+    message = message.replaceAll('{nombre}', guest.displayName);
+    message = message.replaceAll('{total}', guest.totalSeats.toString());
+    message = message.replaceAll('{mesa}', tableName);
+    return message;
+  }
+
+  Future<void> _launchWhatsApp(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.isEmpty) return;
+    final message = _buildMessage(whatsappTemplate);
+    final url = Uri.parse("https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}");
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('No se pudo lanzar WhatsApp: $e');
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final subject = _buildMessage(emailSubject);
+    final body = _buildMessage(emailTemplate);
+    final url = Uri.parse("mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}");
+    try {
+      await launchUrl(url);
+    } catch (e) {
+      debugPrint('No se pudo lanzar Email: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -330,51 +543,109 @@ class _GuestCard extends StatelessWidget {
     final statusColor = guest.status == GuestStatus.confirmed
         ? AppColors.confirmed
         : guest.status == GuestStatus.pending
-            ? AppColors.pending
-            : AppColors.declined;
+        ? AppColors.pending
+        : AppColors.declined;
 
     return Container(
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(
+        boxShadow: [
+          BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12, offset: const Offset(0, 2))],
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: statusColor.withValues(alpha: 0.15),
-          child: Text(
-            guest.displayName.isNotEmpty ? guest.displayName[0].toUpperCase() : '?',
-            style: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 18),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (guest.phone != null && guest.phone!.isNotEmpty)
+              IconButton(
+                icon: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: Colors.greenAccent,
+                  size: 18,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _launchWhatsApp(guest.phone!),
+              ),
+            if (guest.email != null && guest.email!.isNotEmpty)
+              IconButton(
+                icon: const Icon(
+                  Icons.email_outlined,
+                  color: Colors.blueAccent,
+                  size: 18,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _launchEmail(guest.email!),
+              ),
+            const SizedBox(width: 4),
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: statusColor.withValues(alpha: 0.15),
+              child: Text(
+                guest.displayName.isNotEmpty
+                    ? guest.displayName[0].toUpperCase()
+                    : '?',
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        title: Text(
+          guest.displayName,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
-        title: Text(guest.displayName,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Wrap(
-          spacing: 6, runSpacing: 4,
+          spacing: 6,
+          runSpacing: 4,
           children: [
             if (guest.customRole != null)
-              _CustomRoleChip(label: guest.customRole!, iconCode: guest.customRoleIcon)
+              _CustomRoleChip(
+                label: guest.customRole!,
+                iconCode: guest.customRoleIcon,
+              )
             else
               GuestRoleChip(role: guest.role),
-            
+
             // Reemplazamos guest.tableId por los datos reales de assignments
-            ...(){
-              final guestAssig = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
+            ...() {
+              final guestAssig =
+                  assignments?.where((a) => a.guestId == guest.id).toList() ??
+                  [];
               if (guestAssig.isEmpty && guest.tableId != null) {
                 // Fallback para legacy
-                return [_SmallTag(
-                  label: tables?.any((t) => t.id == guest.tableId) ?? false
-                      ? l.tableLabel(tables!.firstWhere((t) => t.id == guest.tableId).name)
-                      : l.tableLabel(guest.tableId!), 
-                  color: Colors.blue.shade300,
-                )];
+                return [
+                  _SmallTag(
+                    label: tables?.any((t) => t.id == guest.tableId) ?? false
+                        ? l.tableLabel(
+                            tables!
+                                .firstWhere((t) => t.id == guest.tableId)
+                                .name,
+                          )
+                        : l.tableLabel(guest.tableId!),
+                    color: Colors.blue.shade300,
+                  ),
+                ];
               }
               return guestAssig.map((a) {
-                final t = tables?.firstWhere((t) => t.id == a.tableId, orElse: () => TableModel(id: '', eventId: '', name: '?', capacity: 0));
+                final t = tables?.firstWhere(
+                  (t) => t.id == a.tableId,
+                  orElse: () =>
+                      TableModel(id: '', eventId: '', name: '?', capacity: 0),
+                );
                 return _SmallTag(
                   label: l.tableLabel("${t?.name ?? 'Mesa'} (${a.total})"),
                   color: Colors.blue.shade300,
@@ -382,7 +653,10 @@ class _GuestCard extends StatelessWidget {
               }).toList();
             }(),
 
-            _SmallTag(label: 'Total: ${guest.totalSeats}', color: Colors.purple.shade300),
+            _SmallTag(
+              label: 'Total: ${guest.totalSeats}',
+              color: Colors.purple.shade300,
+            ),
           ],
         ),
         trailing: InkWell(
@@ -395,8 +669,14 @@ class _GuestCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: statusColor.withValues(alpha: 0.2)),
             ),
-            child: Text(_statusLabel(l, guest.status),
-                style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+            child: Text(
+              _statusLabel(l, guest.status),
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
         children: [
@@ -408,23 +688,60 @@ class _GuestCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    if (guest.adults > 0) _CountIndicator(label: l.countAdults, count: guest.adults, icon: Icons.person),
-                    if (guest.children > 0) _CountIndicator(label: l.countChildren, count: guest.children, icon: Icons.child_care),
-                    if (guest.disabled > 0) _CountIndicator(label: l.countDisabled, count: guest.disabled, icon: Icons.accessible),
-                    ...guest.customCounts.entries.where((e) => e.value > 0).map((e) {
-                      final iconCode = guest.customIcons[e.key];
-                      final icon = iconCode != null ? IconData(iconCode, fontFamily: 'MaterialIcons') : Icons.star_border_rounded;
-                      return _CountIndicator(label: e.key, count: e.value, icon: icon);
-                    }),
+                    if (guest.adults > 0)
+                      _CountIndicator(
+                        label: l.countAdults,
+                        count: guest.adults,
+                        icon: Icons.person,
+                      ),
+                    if (guest.children > 0)
+                      _CountIndicator(
+                        label: l.countChildren,
+                        count: guest.children,
+                        icon: Icons.child_care,
+                      ),
+                    if (guest.disabled > 0)
+                      _CountIndicator(
+                        label: l.countDisabled,
+                        count: guest.disabled,
+                        icon: Icons.accessible,
+                      ),
+                    ...guest.customCounts.entries.where((e) => e.value > 0).map(
+                      (e) {
+                        final iconCode = guest.customIcons[e.key];
+                        final icon = iconCode != null
+                            ? IconData(iconCode, fontFamily: 'MaterialIcons')
+                            : Icons.star_border_rounded;
+                        return _CountIndicator(
+                          label: e.key,
+                          count: e.value,
+                          icon: icon,
+                        );
+                      },
+                    ),
                   ],
                 ),
                 const Divider(height: 32),
-                if (guest.phone != null || guest.email != null || guest.socialMedia != null) ...[
+                if (guest.phone != null ||
+                    guest.email != null ||
+                    guest.socialMedia != null) ...[
                   Text(l.contactInfoSection, style: theme.textTheme.labelLarge),
                   const SizedBox(height: 8),
-                  if (guest.phone != null) _ContactRow(icon: Icons.phone_outlined, value: guest.phone!),
-                  if (guest.email != null) _ContactRow(icon: Icons.email_outlined, value: guest.email!),
-                  if (guest.socialMedia != null) _ContactRow(icon: Icons.link_rounded, value: guest.socialMedia!),
+                  if (guest.phone != null)
+                    _ContactRow(
+                      icon: Icons.phone_outlined,
+                      value: guest.phone!,
+                    ),
+                  if (guest.email != null)
+                    _ContactRow(
+                      icon: Icons.email_outlined,
+                      value: guest.email!,
+                    ),
+                  if (guest.socialMedia != null)
+                    _ContactRow(
+                      icon: Icons.link_rounded,
+                      value: guest.socialMedia!,
+                    ),
                   const SizedBox(height: 16),
                 ],
                 if (guest.notes != null && guest.notes!.isNotEmpty) ...[
@@ -432,9 +749,18 @@ class _GuestCard extends StatelessWidget {
                   Text(guest.notes!, style: theme.textTheme.bodySmall),
                   const SizedBox(height: 12),
                 ],
-                if (guest.dietaryRestrictions != null && guest.dietaryRestrictions!.isNotEmpty) ...[
-                  Text(l.dietaryLabel, style: theme.textTheme.labelLarge?.copyWith(color: Colors.orange.shade700)),
-                  Text(guest.dietaryRestrictions!, style: theme.textTheme.bodySmall),
+                if (guest.dietaryRestrictions != null &&
+                    guest.dietaryRestrictions!.isNotEmpty) ...[
+                  Text(
+                    l.dietaryLabel,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  Text(
+                    guest.dietaryRestrictions!,
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ],
                 const SizedBox(height: 8),
                 Row(
@@ -442,21 +768,41 @@ class _GuestCard extends StatelessWidget {
                   children: [
                     TextButton.icon(
                       onPressed: () => _showDeleteDialog(context, l),
-                      icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                      label: Text(l.deleteButton, style: const TextStyle(color: Colors.red)),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 18,
+                      ),
+                      label: Text(
+                        l.deleteButton,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
-                        // Using a private method from the parent state is tricky, 
+                        // Using a private method from the parent state is tricky,
                         // so we'll trigger it via a callback or find another way.
-                        // Actually, since _GuestCard is inside _GuestsScreenState's build, 
+                        // Actually, since _GuestCard is inside _GuestsScreenState's build,
                         // we can pass the function.
-                        final state = context.findAncestorStateOfType<_GuestsScreenState>();
-                        state?._showGuestDialog(context, eventId, guest, allGuests);
+                        final state = context
+                            .findAncestorStateOfType<_GuestsScreenState>();
+                        state?._showGuestDialog(
+                          context,
+                          eventId,
+                          guest,
+                          allGuests,
+                        );
                       },
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.brushedGold, size: 18),
-                      label: Text(l.editButton, style: const TextStyle(color: AppColors.brushedGold)),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.brushedGold,
+                        size: 18,
+                      ),
+                      label: Text(
+                        l.editButton,
+                        style: const TextStyle(color: AppColors.brushedGold),
+                      ),
                     ),
                     ElevatedButton(
                       onPressed: () => _showStatusDialog(context, l),
@@ -469,7 +815,10 @@ class _GuestCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: () => _showTablePicker(context, l),
-                      icon: const Icon(Icons.table_restaurant_rounded, size: 18),
+                      icon: const Icon(
+                        Icons.table_restaurant_rounded,
+                        size: 18,
+                      ),
                       label: const Text("Mesa"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.brushedGold,
@@ -491,21 +840,24 @@ class _GuestCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(l.filterStatus, textAlign: TextAlign.center, 
-            style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(
+          l.filterStatus,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: GuestStatus.values.map((s) {
             final color = s == GuestStatus.confirmed
                 ? AppColors.confirmed
                 : s == GuestStatus.pending
-                    ? AppColors.pending
-                    : AppColors.declined;
+                ? AppColors.pending
+                : AppColors.declined;
             final icon = s == GuestStatus.confirmed
                 ? Icons.check_circle_outline_rounded
                 : s == GuestStatus.pending
-                    ? Icons.hourglass_empty_rounded
-                    : Icons.cancel_outlined;
+                ? Icons.hourglass_empty_rounded
+                : Icons.cancel_outlined;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -516,18 +868,30 @@ class _GuestCard extends StatelessWidget {
                 },
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
-                    border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
                       Icon(icon, color: color),
                       const SizedBox(width: 16),
-                      Text(_statusLabel(l, s), 
-                          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(
+                        _statusLabel(l, s),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const Spacer(),
                       if (guest.status == s)
                         Icon(Icons.check_rounded, color: color, size: 18),
@@ -550,9 +914,10 @@ class _GuestCard extends StatelessWidget {
 
   void _showTablePicker(BuildContext context, AppLocalizations l) {
     if (tables == null || tables!.isEmpty) return;
-    
+
     // Obtenemos las asignaciones de este invitado para todas las mesas
-    final guestAssignments = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
+    final guestAssignments =
+        assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
 
     showDialog(
       context: context,
@@ -575,13 +940,19 @@ class _GuestCard extends StatelessWidget {
         title: Text(l.deleteConfirmTitle),
         content: Text(l.deleteConfirmMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l.cancelButton),
+          ),
           TextButton(
             onPressed: () {
               _service.deleteGuest(eventId, guest.id);
               Navigator.pop(context);
             },
-            child: Text(l.deleteButton, style: const TextStyle(color: Colors.red)),
+            child: Text(
+              l.deleteButton,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -593,13 +964,21 @@ class _CountIndicator extends StatelessWidget {
   final String label;
   final int count;
   final IconData icon;
-  const _CountIndicator({required this.label, required this.count, required this.icon});
+  const _CountIndicator({
+    required this.label,
+    required this.count,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: 20, color: count > 0 ? AppColors.brushedGold : Colors.grey.shade400),
+        Icon(
+          icon,
+          size: 20,
+          color: count > 0 ? AppColors.brushedGold : Colors.grey.shade400,
+        ),
         const SizedBox(height: 4),
         Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
         Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
@@ -617,11 +996,13 @@ class _ContactRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Row(children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 8),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
-      ]),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.grey),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
     );
   }
 }
@@ -636,11 +1017,17 @@ class _SmallTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(6)),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -713,7 +1100,7 @@ class _FilterSheetState extends State<_FilterSheet> {
         .map((g) => g.customRole!)
         .toSet()
         .toList();
-    
+
     final customTypes = widget.allGuests
         .expand((g) => g.customCounts.keys)
         .toSet()
@@ -725,25 +1112,35 @@ class _FilterSheetState extends State<_FilterSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l.filterGuests, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            l.filterGuests,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 20),
-          
+
           Text(l.filterStatus, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: GuestStatus.values.map((s) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(_statusLabel(l, s)),
-                  selected: _status == s,
-                  onSelected: (v) => setState(() => _status = v ? s : null),
-                ),
-              )).toList(),
+              children: GuestStatus.values
+                  .map(
+                    (s) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(_statusLabel(l, s)),
+                        selected: _status == s,
+                        onSelected: (v) =>
+                            setState(() => _status = v ? s : null),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
-          
+
           const SizedBox(height: 16),
           Text(l.filterRole, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
@@ -751,28 +1148,32 @@ class _FilterSheetState extends State<_FilterSheet> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                ...GuestRole.values.map((r) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(_roleLabel(l, r)),
-                    selected: _role == r && _customRole == null,
-                    onSelected: (v) => setState(() {
-                      _role = v ? r : null;
-                      _customRole = null;
-                    }),
+                ...GuestRole.values.map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(_roleLabel(l, r)),
+                      selected: _role == r && _customRole == null,
+                      onSelected: (v) => setState(() {
+                        _role = v ? r : null;
+                        _customRole = null;
+                      }),
+                    ),
                   ),
-                )),
-                ...customRoles.map((cr) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(cr),
-                    selected: _customRole == cr,
-                    onSelected: (v) => setState(() {
-                      _customRole = v ? cr : null;
-                      _role = null;
-                    }),
+                ),
+                ...customRoles.map(
+                  (cr) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(cr),
+                      selected: _customRole == cr,
+                      onSelected: (v) => setState(() {
+                        _customRole = v ? cr : null;
+                        _role = null;
+                      }),
+                    ),
                   ),
-                )),
+                ),
               ],
             ),
           ),
@@ -787,23 +1188,29 @@ class _FilterSheetState extends State<_FilterSheet> {
                 _TypeChip(
                   label: l.countAdults,
                   selected: _guestType == l.countAdults,
-                  onSelected: (v) => setState(() => _guestType = v ? l.countAdults : null),
+                  onSelected: (v) =>
+                      setState(() => _guestType = v ? l.countAdults : null),
                 ),
                 _TypeChip(
                   label: l.countChildren,
                   selected: _guestType == l.countChildren,
-                  onSelected: (v) => setState(() => _guestType = v ? l.countChildren : null),
+                  onSelected: (v) =>
+                      setState(() => _guestType = v ? l.countChildren : null),
                 ),
                 _TypeChip(
                   label: l.countDisabled,
                   selected: _guestType == l.countDisabled,
-                  onSelected: (v) => setState(() => _guestType = v ? l.countDisabled : null),
+                  onSelected: (v) =>
+                      setState(() => _guestType = v ? l.countDisabled : null),
                 ),
-                ...customTypes.map((ct) => _TypeChip(
-                  label: ct,
-                  selected: _guestType == ct,
-                  onSelected: (v) => setState(() => _guestType = v ? ct : null),
-                )),
+                ...customTypes.map(
+                  (ct) => _TypeChip(
+                    label: ct,
+                    selected: _guestType == ct,
+                    onSelected: (v) =>
+                        setState(() => _guestType = v ? ct : null),
+                  ),
+                ),
               ],
             ),
           ),
@@ -818,17 +1225,20 @@ class _FilterSheetState extends State<_FilterSheet> {
                 _TypeChip(
                   label: 'Completos',
                   selected: _seatingStatus == 'Completos',
-                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Completos' : null),
+                  onSelected: (v) =>
+                      setState(() => _seatingStatus = v ? 'Completos' : null),
                 ),
                 _TypeChip(
                   label: 'Parciales',
                   selected: _seatingStatus == 'Parciales',
-                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Parciales' : null),
+                  onSelected: (v) =>
+                      setState(() => _seatingStatus = v ? 'Parciales' : null),
                 ),
                 _TypeChip(
                   label: 'Sin Asignar',
                   selected: _seatingStatus == 'Sin Asignar',
-                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Sin Asignar' : null),
+                  onSelected: (v) =>
+                      setState(() => _seatingStatus = v ? 'Sin Asignar' : null),
                 ),
               ],
             ),
@@ -839,7 +1249,13 @@ class _FilterSheetState extends State<_FilterSheet> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                widget.onApply(_status, _role, _customRole, _guestType, _seatingStatus);
+                widget.onApply(
+                  _status,
+                  _role,
+                  _customRole,
+                  _guestType,
+                  _seatingStatus,
+                );
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -860,7 +1276,11 @@ class _TypeChip extends StatelessWidget {
   final String label;
   final bool selected;
   final ValueChanged<bool> onSelected;
-  const _TypeChip({required this.label, required this.selected, required this.onSelected});
+  const _TypeChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -977,17 +1397,27 @@ class _GuestDialogState extends State<_GuestDialog> {
         children: _children,
         teenagers: _teenagers,
         disabled: _disabled,
-        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        socialMedia: _socialController.text.trim().isEmpty ? null : _socialController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        dietaryRestrictions: _dietController.text.trim().isEmpty ? null : _dietController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        email: _emailController.text.trim().isEmpty
+            ? null
+            : _emailController.text.trim(),
+        socialMedia: _socialController.text.trim().isEmpty
+            ? null
+            : _socialController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+        dietaryRestrictions: _dietController.text.trim().isEmpty
+            ? null
+            : _dietController.text.trim(),
         customCounts: _customCounts,
         customIcons: _customIcons,
         customRole: _selectedCustomRole,
         customRoleIcon: _selectedCustomRoleIcon,
       );
-      
+
       if (isEdit) {
         await _service.updateGuest(widget.eventId, guest);
       } else {
@@ -1002,11 +1432,18 @@ class _GuestDialogState extends State<_GuestDialog> {
   void _showAddCustomFieldDialog() {
     final controller = TextEditingController();
     int? selectedIconCode;
-    
+
     final icons = [
-      Icons.pets, Icons.assignment_ind, Icons.music_note, Icons.card_giftcard,
-      Icons.camera_alt, Icons.star, Icons.location_on, Icons.restaurant,
-      Icons.wine_bar, Icons.directions_car
+      Icons.pets,
+      Icons.assignment_ind,
+      Icons.music_note,
+      Icons.card_giftcard,
+      Icons.camera_alt,
+      Icons.star,
+      Icons.location_on,
+      Icons.restaurant,
+      Icons.wine_bar,
+      Icons.directions_car,
     ];
 
     showDialog(
@@ -1020,29 +1457,48 @@ class _GuestDialogState extends State<_GuestDialog> {
               TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: "Ej: Mascotas, Staff, etc."),
+                decoration: const InputDecoration(
+                  hintText: "Ej: Mascotas, Staff, etc.",
+                ),
               ),
               const SizedBox(height: 20),
-              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const Text(
+                "Elige un icono:",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: 250,
                 child: Wrap(
-                  spacing: 12, runSpacing: 12,
+                  spacing: 12,
+                  runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: icons.map((icon) {
                     final isSelected = selectedIconCode == icon.codePoint;
                     return InkWell(
-                      onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
+                      onTap: () => setDialogState(
+                        () => selectedIconCode = icon.codePoint,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.2) : Colors.transparent,
-                          border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.shade300),
+                          color: isSelected
+                              ? AppColors.brushedGold.withValues(alpha: 0.2)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.brushedGold
+                                : Colors.grey.shade300,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey),
+                        child: Icon(
+                          icon,
+                          color: isSelected
+                              ? AppColors.brushedGold
+                              : Colors.grey,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -1051,14 +1507,18 @@ class _GuestDialogState extends State<_GuestDialog> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
             TextButton(
               onPressed: () {
                 final name = controller.text.trim();
                 if (name.isNotEmpty) {
                   setState(() {
                     _customCounts[name] = 0;
-                    if (selectedIconCode != null) _customIcons[name] = selectedIconCode!;
+                    if (selectedIconCode != null)
+                      _customIcons[name] = selectedIconCode!;
                   });
                 }
                 Navigator.pop(context);
@@ -1077,8 +1537,12 @@ class _GuestDialogState extends State<_GuestDialog> {
     final l = context.l10n;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(widget.guest == null ? l.addGuestTitle : "Editar Invitado", 
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      title: Text(
+        widget.guest == null ? l.addGuestTitle : "Editar Invitado",
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+        ),
+      ),
       content: SizedBox(
         width: 450,
         child: SingleChildScrollView(
@@ -1110,13 +1574,19 @@ class _GuestDialogState extends State<_GuestDialog> {
               const SizedBox(height: 16),
               TextField(
                 controller: _phoneController,
-                decoration: InputDecoration(labelText: l.contactPhone, prefixIcon: const Icon(Icons.phone_outlined)),
+                decoration: InputDecoration(
+                  labelText: l.contactPhone,
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _notesController,
                 maxLines: 2,
-                decoration: InputDecoration(labelText: l.notesLabel, prefixIcon: const Icon(Icons.notes_rounded)),
+                decoration: InputDecoration(
+                  labelText: l.notesLabel,
+                  prefixIcon: const Icon(Icons.notes_rounded),
+                ),
               ),
 
               // ── SECCIÓN AVANZADA ────────────────────────────────────────
@@ -1124,45 +1594,94 @@ class _GuestDialogState extends State<_GuestDialog> {
               Theme(
                 data: theme.copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  title: Text("Más información", style: theme.textTheme.labelMedium?.copyWith(color: AppColors.brushedGold)),
-                  trailing: Icon(_isAdvancedExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.brushedGold),
-                  onExpansionChanged: (v) => setState(() => _isAdvancedExpanded = v),
+                  title: Text(
+                    "Más información",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: AppColors.brushedGold,
+                    ),
+                  ),
+                  trailing: Icon(
+                    _isAdvancedExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: AppColors.brushedGold,
+                  ),
+                  onExpansionChanged: (v) =>
+                      setState(() => _isAdvancedExpanded = v),
                   childrenPadding: const EdgeInsets.only(top: 8),
                   children: [
-                    Row(children: [
-                      Checkbox(value: _showSplitName, onChanged: (v) => setState(() => _showSplitName = v!)),
-                      Text("Separar nombre y apellido", style: theme.textTheme.bodySmall),
-                    ]),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _showSplitName,
+                          onChanged: (v) => setState(() => _showSplitName = v!),
+                        ),
+                        Text(
+                          "Separar nombre y apellido",
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                     if (_showSplitName) ...[
-                      TextField(controller: _firstController, decoration: InputDecoration(labelText: l.guestFirstName)),
+                      TextField(
+                        controller: _firstController,
+                        decoration: InputDecoration(
+                          labelText: l.guestFirstName,
+                        ),
+                      ),
                       const SizedBox(height: 12),
-                      TextField(controller: _lastController, decoration: InputDecoration(labelText: l.guestLastName)),
+                      TextField(
+                        controller: _lastController,
+                        decoration: InputDecoration(labelText: l.guestLastName),
+                      ),
                     ],
                     const Divider(height: 32),
-                    _CounterRow(label: l.countDisabled, count: _disabled, onChanged: (v) => setState(() => _disabled = v)),
+                    _CounterRow(
+                      label: l.countDisabled,
+                      count: _disabled,
+                      onChanged: (v) => setState(() => _disabled = v),
+                    ),
                     const SizedBox(height: 12),
-                    ..._customCounts.entries.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _CounterRow(
-                        label: e.key, 
-                        count: e.value, 
-                        icon: _customIcons[e.key] != null ? IconData(_customIcons[e.key]!, fontFamily: 'MaterialIcons') : null,
-                        onChanged: (v) => setState(() => _customCounts[e.key] = v),
-                        onRemove: () => setState(() {
-                          _customCounts.remove(e.key);
-                          _customIcons.remove(e.key);
-                        }),
+                    ..._customCounts.entries.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _CounterRow(
+                          label: e.key,
+                          count: e.value,
+                          icon: _customIcons[e.key] != null
+                              ? IconData(
+                                  _customIcons[e.key]!,
+                                  fontFamily: 'MaterialIcons',
+                                )
+                              : null,
+                          onChanged: (v) =>
+                              setState(() => _customCounts[e.key] = v),
+                          onRemove: () => setState(() {
+                            _customCounts.remove(e.key);
+                            _customIcons.remove(e.key);
+                          }),
+                        ),
                       ),
-                    )),
+                    ),
                     TextButton.icon(
                       onPressed: _showAddCustomFieldDialog,
                       icon: const Icon(Icons.add_circle_outline_rounded),
                       label: const Text("Añadir invitados personalizados"),
                     ),
                     const Divider(height: 32),
-                    TextField(controller: _emailController, decoration: InputDecoration(labelText: l.contactEmail, prefixIcon: const Icon(Icons.email_outlined))),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: l.contactEmail,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    TextField(controller: _socialController, decoration: InputDecoration(labelText: l.contactSocial, prefixIcon: const Icon(Icons.link_rounded))),
+                    TextField(
+                      controller: _socialController,
+                      decoration: InputDecoration(
+                        labelText: l.contactSocial,
+                        prefixIcon: const Icon(Icons.link_rounded),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     const SizedBox(height: 12),
                     StreamBuilder<List<TableModel>>(
@@ -1173,21 +1692,35 @@ class _GuestDialogState extends State<_GuestDialog> {
                           value: _selectedTableId,
                           decoration: InputDecoration(
                             labelText: l.navTables,
-                            prefixIcon: const Icon(Icons.table_restaurant_outlined),
+                            prefixIcon: const Icon(
+                              Icons.table_restaurant_outlined,
+                            ),
                           ),
                           items: [
-                            DropdownMenuItem(value: null, child: Text(l.tableOptional)),
-                            ...tables.map((t) => DropdownMenuItem(
-                              value: t.id,
-                              child: Text(t.name),
-                            )),
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text(l.tableOptional),
+                            ),
+                            ...tables.map(
+                              (t) => DropdownMenuItem(
+                                value: t.id,
+                                child: Text(t.name),
+                              ),
+                            ),
                           ],
-                          onChanged: (v) => setState(() => _selectedTableId = v),
+                          onChanged: (v) =>
+                              setState(() => _selectedTableId = v),
                         );
                       },
                     ),
                     const SizedBox(height: 12),
-                    TextField(controller: _dietController, decoration: InputDecoration(labelText: l.dietaryLabel, prefixIcon: const Icon(Icons.no_food_outlined))),
+                    TextField(
+                      controller: _dietController,
+                      decoration: InputDecoration(
+                        labelText: l.dietaryLabel,
+                        prefixIcon: const Icon(Icons.no_food_outlined),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1196,10 +1729,19 @@ class _GuestDialogState extends State<_GuestDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancelButton),
+        ),
         ElevatedButton(
           onPressed: _saving ? null : () => _save(l),
-          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.saveButton),
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l.saveButton),
         ),
       ],
     );
@@ -1224,36 +1766,59 @@ class _GuestDialogState extends State<_GuestDialog> {
           decoration: InputDecoration(
             labelText: l.roleLabel,
             prefixIcon: Icon(
-              _selectedCustomRole != null 
-                ? (_selectedCustomRoleIcon != null ? IconData(_selectedCustomRoleIcon!, fontFamily: 'MaterialIcons') : Icons.star_border_rounded)
-                : Icons.star_outline,
+              _selectedCustomRole != null
+                  ? (_selectedCustomRoleIcon != null
+                        ? IconData(
+                            _selectedCustomRoleIcon!,
+                            fontFamily: 'MaterialIcons',
+                          )
+                        : Icons.star_border_rounded)
+                  : Icons.star_outline,
             ),
           ),
           items: [
-            ...GuestRole.values.map((r) => DropdownMenuItem(
-              value: r.name,
-              child: Text(_roleLabel(l, r)),
-            )),
-            ...uniqueCustomRoles.entries.map((e) => DropdownMenuItem(
-              value: e.key,
-              child: Row(
-                children: [
-                  if (e.value != null) Icon(IconData(e.value!, fontFamily: 'MaterialIcons'), size: 18, color: AppColors.brushedGold),
-                  if (e.value != null) const SizedBox(width: 8),
-                  Text(e.key),
-                ],
+            ...GuestRole.values.map(
+              (r) => DropdownMenuItem(
+                value: r.name,
+                child: Text(_roleLabel(l, r)),
               ),
-            )),
+            ),
+            ...uniqueCustomRoles.entries.map(
+              (e) => DropdownMenuItem(
+                value: e.key,
+                child: Row(
+                  children: [
+                    if (e.value != null)
+                      Icon(
+                        IconData(e.value!, fontFamily: 'MaterialIcons'),
+                        size: 18,
+                        color: AppColors.brushedGold,
+                      ),
+                    if (e.value != null) const SizedBox(width: 8),
+                    Text(e.key),
+                  ],
+                ),
+              ),
+            ),
             const DropdownMenuItem(
               value: "ADD_NEW",
-              child: Text("+ Añadir nuevo rol...", style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold)),
+              child: Text(
+                "+ Añadir nuevo rol...",
+                style: TextStyle(
+                  color: AppColors.brushedGold,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
           onChanged: (val) {
             if (val == "ADD_NEW") {
               _showAddNewRoleDialog();
             } else {
-              final standardRole = GuestRole.values.firstWhere((r) => r.name == val, orElse: () => GuestRole.regular);
+              final standardRole = GuestRole.values.firstWhere(
+                (r) => r.name == val,
+                orElse: () => GuestRole.regular,
+              );
               setState(() {
                 if (GuestRole.values.any((r) => r.name == val)) {
                   _role = standardRole;
@@ -1274,11 +1839,18 @@ class _GuestDialogState extends State<_GuestDialog> {
   void _showAddNewRoleDialog() {
     final controller = TextEditingController();
     int? selectedIconCode;
-    
+
     final icons = [
-      Icons.star, Icons.auto_awesome, Icons.favorite, Icons.verified,
-      Icons.workspace_premium, Icons.person, Icons.people, Icons.celebration,
-      Icons.card_membership, Icons.military_tech
+      Icons.star,
+      Icons.auto_awesome,
+      Icons.favorite,
+      Icons.verified,
+      Icons.workspace_premium,
+      Icons.person,
+      Icons.people,
+      Icons.celebration,
+      Icons.card_membership,
+      Icons.military_tech,
     ];
 
     showDialog(
@@ -1292,29 +1864,48 @@ class _GuestDialogState extends State<_GuestDialog> {
               TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: "Ej: Dama de Honor, Chambelán..."),
+                decoration: const InputDecoration(
+                  hintText: "Ej: Dama de Honor, Chambelán...",
+                ),
               ),
               const SizedBox(height: 20),
-              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const Text(
+                "Elige un icono:",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: 250,
                 child: Wrap(
-                  spacing: 12, runSpacing: 12,
+                  spacing: 12,
+                  runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: icons.map((icon) {
                     final isSelected = selectedIconCode == icon.codePoint;
                     return InkWell(
-                      onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
+                      onTap: () => setDialogState(
+                        () => selectedIconCode = icon.codePoint,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.2) : Colors.transparent,
-                          border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.shade300),
+                          color: isSelected
+                              ? AppColors.brushedGold.withValues(alpha: 0.2)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.brushedGold
+                                : Colors.grey.shade300,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey),
+                        child: Icon(
+                          icon,
+                          color: isSelected
+                              ? AppColors.brushedGold
+                              : Colors.grey,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -1323,7 +1914,10 @@ class _GuestDialogState extends State<_GuestDialog> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
             TextButton(
               onPressed: () {
                 final name = controller.text.trim();
@@ -1350,15 +1944,25 @@ class _CounterRow extends StatelessWidget {
   final IconData? icon;
   final ValueChanged<int> onChanged;
   final VoidCallback? onRemove;
-  const _CounterRow({required this.label, required this.count, this.icon, required this.onChanged, this.onRemove});
+  const _CounterRow({
+    required this.label,
+    required this.count,
+    this.icon,
+    required this.onChanged,
+    this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        if (onRemove != null) 
+        if (onRemove != null)
           IconButton(
-            icon: const Icon(Icons.remove_circle_rounded, color: Colors.redAccent, size: 18),
+            icon: const Icon(
+              Icons.remove_circle_rounded,
+              color: Colors.redAccent,
+              size: 18,
+            ),
             onPressed: onRemove,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -1367,9 +1971,15 @@ class _CounterRow extends StatelessWidget {
         if (icon != null) Icon(icon, size: 18, color: AppColors.brushedGold),
         if (icon != null) const SizedBox(width: 8),
         Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
-        IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: count > 0 ? () => onChanged(count - 1) : null),
+        IconButton(
+          icon: const Icon(Icons.remove_circle_outline),
+          onPressed: count > 0 ? () => onChanged(count - 1) : null,
+        ),
         Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
-        IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => onChanged(count + 1)),
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          onPressed: () => onChanged(count + 1),
+        ),
       ],
     );
   }
@@ -1392,9 +2002,21 @@ class _CustomRoleChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (iconCode != null) Icon(IconData(iconCode!, fontFamily: 'MaterialIcons'), size: 12, color: AppColors.brushedGold),
+          if (iconCode != null)
+            Icon(
+              IconData(iconCode!, fontFamily: 'MaterialIcons'),
+              size: 12,
+              color: AppColors.brushedGold,
+            ),
           if (iconCode != null) const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: AppColors.brushedGold, fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.brushedGold,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1431,14 +2053,17 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     if (_selectedTable != null) {
       return _buildCountPicker(theme);
     }
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text("Asignar mesa para ${widget.guest.displayName}", textAlign: TextAlign.center),
+      title: Text(
+        "Asignar mesa para ${widget.guest.displayName}",
+        textAlign: TextAlign.center,
+      ),
       content: SizedBox(
         width: 400,
         child: ListView.builder(
@@ -1459,14 +2084,35 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
               );
             }
             final t = widget.tables[i - 1];
-            final assignment = widget.guestAssignments.firstWhere((a) => a.tableId == t.id, orElse: () => SeatingAssignment(id: '', guestId: widget.guest.id, tableId: t.id, counts: {}));
+            final assignment = widget.guestAssignments.firstWhere(
+              (a) => a.tableId == t.id,
+              orElse: () => SeatingAssignment(
+                id: '',
+                guestId: widget.guest.id,
+                tableId: t.id,
+                counts: {},
+              ),
+            );
             final isAssigned = assignment.id.isNotEmpty;
 
             return ListTile(
-              leading: Icon(Icons.table_restaurant_rounded, color: isAssigned ? AppColors.brushedGold : null),
+              leading: Icon(
+                Icons.table_restaurant_rounded,
+                color: isAssigned ? AppColors.brushedGold : null,
+              ),
               title: Text(t.name),
-              subtitle: Text(isAssigned ? "Asignado (${assignment.total})" : "${t.capacity} asientos"),
-              trailing: isAssigned ? const Icon(Icons.edit_rounded, size: 18, color: AppColors.brushedGold) : null,
+              subtitle: Text(
+                isAssigned
+                    ? "Asignado (${assignment.total})"
+                    : "${t.capacity} asientos",
+              ),
+              trailing: isAssigned
+                  ? const Icon(
+                      Icons.edit_rounded,
+                      size: 18,
+                      color: AppColors.brushedGold,
+                    )
+                  : null,
               onTap: () {
                 setState(() {
                   _selectedTable = t;
@@ -1477,7 +2123,9 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
                       if (widget.guest.adults > 0) 'Adultos': 0,
                       if (widget.guest.children > 0) 'Niños': 0,
                       if (widget.guest.disabled > 0) 'Discapacitados': 0,
-                      ...widget.guest.customCounts.map((k, v) => MapEntry(k, 0)),
+                      ...widget.guest.customCounts.map(
+                        (k, v) => MapEntry(k, 0),
+                      ),
                     };
                   }
                 });
@@ -1487,7 +2135,10 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(widget.l.cancelButton)),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(widget.l.cancelButton),
+        ),
       ],
     );
   }
@@ -1495,16 +2146,28 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
   Widget _buildCountPicker(ThemeData theme) {
     final g = widget.guest;
     final t = _selectedTable!;
-    final assignment = widget.guestAssignments.firstWhere((a) => a.tableId == t.id, orElse: () => SeatingAssignment(id: '', guestId: g.id, tableId: t.id, counts: {}));
-    
+    final assignment = widget.guestAssignments.firstWhere(
+      (a) => a.tableId == t.id,
+      orElse: () =>
+          SeatingAssignment(id: '', guestId: g.id, tableId: t.id, counts: {}),
+    );
+
     // Calcular ocupados en OTRAS mesas para este invitado
     Map<String, int> alreadyAssigned = {
-      'Adultos': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Adultos'] ?? 0)),
-      'Niños': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Niños'] ?? 0)),
-      'Discapacitados': widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts['Discapacitados'] ?? 0)),
+      'Adultos': widget.guestAssignments
+          .where((a) => a.id != assignment.id)
+          .fold(0, (sum, a) => sum + (a.counts['Adultos'] ?? 0)),
+      'Niños': widget.guestAssignments
+          .where((a) => a.id != assignment.id)
+          .fold(0, (sum, a) => sum + (a.counts['Niños'] ?? 0)),
+      'Discapacitados': widget.guestAssignments
+          .where((a) => a.id != assignment.id)
+          .fold(0, (sum, a) => sum + (a.counts['Discapacitados'] ?? 0)),
     };
     g.customCounts.forEach((key, _) {
-      alreadyAssigned[key] = widget.guestAssignments.where((a) => a.id != assignment.id).fold(0, (sum, a) => sum + (a.counts[key] ?? 0));
+      alreadyAssigned[key] = widget.guestAssignments
+          .where((a) => a.id != assignment.id)
+          .fold(0, (sum, a) => sum + (a.counts[key] ?? 0));
     });
 
     final categories = _toAssign.keys.toList();
@@ -1519,24 +2182,51 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ...categories.map((cat) {
-              final maxAvailable = _getMaxForCategory(cat, g) - (alreadyAssigned[cat] ?? 0);
-              if (maxAvailable <= 0 && _toAssign[cat] == 0) return const SizedBox.shrink();
+              final maxAvailable =
+                  _getMaxForCategory(cat, g) - (alreadyAssigned[cat] ?? 0);
+              if (maxAvailable <= 0 && _toAssign[cat] == 0)
+                return const SizedBox.shrink();
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
-                    Expanded(child: Text(cat, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(
+                      child: Text(
+                        cat,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: _toAssign[cat]! > 0 ? () => setState(() => _toAssign[cat] = _toAssign[cat]! - 1) : null,
+                      onPressed: _toAssign[cat]! > 0
+                          ? () => setState(
+                              () => _toAssign[cat] = _toAssign[cat]! - 1,
+                            )
+                          : null,
                     ),
-                    Text("${_toAssign[cat]}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      "${_toAssign[cat]}",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline),
-                      onPressed: _toAssign[cat]! < maxAvailable ? () => setState(() => _toAssign[cat] = _toAssign[cat]! + 1) : null,
+                      onPressed: _toAssign[cat]! < maxAvailable
+                          ? () => setState(
+                              () => _toAssign[cat] = _toAssign[cat]! + 1,
+                            )
+                          : null,
                     ),
-                    Text("/ $maxAvailable", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    Text(
+                      "/ $maxAvailable",
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -1546,47 +2236,77 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
               onPressed: () {
                 setState(() {
                   for (var cat in categories) {
-                    final maxAvail = _getMaxForCategory(cat, g) - (alreadyAssigned[cat] ?? 0);
+                    final maxAvail =
+                        _getMaxForCategory(cat, g) -
+                        (alreadyAssigned[cat] ?? 0);
                     _toAssign[cat] = maxAvail;
                   }
                 });
               },
-              icon: const Icon(Icons.group_add_rounded, color: AppColors.brushedGold),
-              label: const Text("Asignar todo el grupo", style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold)),
+              icon: const Icon(
+                Icons.group_add_rounded,
+                color: AppColors.brushedGold,
+              ),
+              label: const Text(
+                "Asignar todo el grupo",
+                style: TextStyle(
+                  color: AppColors.brushedGold,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => setState(() => _selectedTable = null), child: const Text("Atrás")),
+        TextButton(
+          onPressed: () => setState(() => _selectedTable = null),
+          child: const Text("Atrás"),
+        ),
         ElevatedButton(
-          onPressed: (totalToAssign > 0 || assignment.id.isNotEmpty) ? () async {
-            final cleanedCounts = Map<String, int>.from(_toAssign)..removeWhere((k, v) => v == 0);
-            
-            if (cleanedCounts.isEmpty) {
-              if (assignment.id.isNotEmpty) {
-                await widget.service.deleteAssignment(widget.eventId, assignment.id);
-              }
-            } else {
-              final newAssignment = SeatingAssignment(
-                id: assignment.id,
-                guestId: g.id,
-                tableId: t.id,
-                counts: cleanedCounts,
-              );
-              
-              if (newAssignment.id.isEmpty) {
-                await widget.service.addAssignment(widget.eventId, newAssignment);
-              } else {
-                await widget.service.updateAssignment(widget.eventId, newAssignment.id, newAssignment.toFirestore());
-              }
-            }
-            if (mounted) Navigator.pop(context);
-          } : null,
+          onPressed: (totalToAssign > 0 || assignment.id.isNotEmpty)
+              ? () async {
+                  final cleanedCounts = Map<String, int>.from(_toAssign)
+                    ..removeWhere((k, v) => v == 0);
+
+                  if (cleanedCounts.isEmpty) {
+                    if (assignment.id.isNotEmpty) {
+                      await widget.service.deleteAssignment(
+                        widget.eventId,
+                        assignment.id,
+                      );
+                    }
+                  } else {
+                    final newAssignment = SeatingAssignment(
+                      id: assignment.id,
+                      guestId: g.id,
+                      tableId: t.id,
+                      counts: cleanedCounts,
+                    );
+
+                    if (newAssignment.id.isEmpty) {
+                      await widget.service.addAssignment(
+                        widget.eventId,
+                        newAssignment,
+                      );
+                    } else {
+                      await widget.service.updateAssignment(
+                        widget.eventId,
+                        newAssignment.id,
+                        newAssignment.toFirestore(),
+                      );
+                    }
+                  }
+                  if (mounted) Navigator.pop(context);
+                }
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.brushedGold,
             foregroundColor: AppColors.charcoal,

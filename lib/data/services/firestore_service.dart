@@ -34,6 +34,17 @@ class FirestoreService {
   Future<void> updateEvent(EventModel event) =>
       _events.doc(event.id).update(event.toFirestore());
 
+  Future<void> updateEventTemplate(String eventId, String template) async {
+    await _events.doc(eventId).update({'whatsappTemplate': template});
+  }
+
+  Future<void> updateEventEmailConfig(String eventId, String template, String subject) async {
+    await _events.doc(eventId).update({
+      'emailTemplate': template,
+      'emailSubject': subject,
+    });
+  }
+
   Future<void> deleteEvent(String eventId) async {
     final batch = _db.batch();
 

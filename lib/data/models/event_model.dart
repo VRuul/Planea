@@ -21,6 +21,9 @@ class EventModel extends Equatable {
   final String? celebrantNames;
   final String? inviteCode;
   final List<String> collaboratorIds;
+  final String? whatsappTemplate;
+  final String? emailTemplate;
+  final String? emailSubject;
 
   const EventModel({
     required this.id,
@@ -39,6 +42,9 @@ class EventModel extends Equatable {
     this.celebrantNames,
     this.inviteCode,
     this.collaboratorIds = const [],
+    this.whatsappTemplate,
+    this.emailTemplate,
+    this.emailSubject,
   });
 
   factory EventModel.fromFirestore(Map<String, dynamic> data, String id) {
@@ -62,6 +68,9 @@ class EventModel extends Equatable {
       celebrantNames: data['celebrantNames'],
       inviteCode: data['inviteCode'],
       collaboratorIds: List<String>.from(data['collaboratorIds'] ?? []),
+      whatsappTemplate: data['whatsappTemplate'],
+      emailTemplate: data['emailTemplate'],
+      emailSubject: data['emailSubject'],
     );
   }
 
@@ -81,6 +90,9 @@ class EventModel extends Equatable {
     'celebrantNames': celebrantNames,
     'inviteCode': inviteCode,
     'collaboratorIds': collaboratorIds,
+    'whatsappTemplate': whatsappTemplate,
+    'emailTemplate': emailTemplate,
+    'emailSubject': emailSubject,
   };
 
   EventModel copyWith({
@@ -100,6 +112,9 @@ class EventModel extends Equatable {
     String? celebrantNames,
     String? inviteCode,
     List<String>? collaboratorIds,
+    String? whatsappTemplate,
+    String? emailTemplate,
+    String? emailSubject,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -118,6 +133,9 @@ class EventModel extends Equatable {
       celebrantNames: celebrantNames ?? this.celebrantNames,
       inviteCode: inviteCode ?? this.inviteCode,
       collaboratorIds: collaboratorIds ?? this.collaboratorIds,
+      whatsappTemplate: whatsappTemplate ?? this.whatsappTemplate,
+      emailTemplate: emailTemplate ?? this.emailTemplate,
+      emailSubject: emailSubject ?? this.emailSubject,
     );
   }
 
@@ -127,6 +145,6 @@ class EventModel extends Equatable {
   List<Object?> get props => [
         id, name, type, date, primaryColor, secondaryColor, venue, organizerId,
         budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames,
-        inviteCode, collaboratorIds
+        inviteCode, collaboratorIds, whatsappTemplate, emailTemplate, emailSubject
       ];
 }
