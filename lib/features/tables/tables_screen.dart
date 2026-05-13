@@ -618,7 +618,11 @@ class _AssignmentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unassignedGuests = guests.where((g) => !assignments.any((a) => a.guestId == g.id)).toList();
+    final unassignedGuests = guests.where((g) {
+      final guestAssignments = assignments.where((a) => a.guestId == g.id);
+      final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
+      return totalAssigned < g.totalSeats;
+    }).toList();
     final totalSeats = tables.fold(0, (sum, t) => sum + t.capacity);
     final occupiedSeats = assignments.length;
     final occupancyPercent = totalSeats > 0 ? (occupiedSeats / totalSeats) : 0.0;
@@ -680,24 +684,24 @@ class _AssignmentView extends StatelessWidget {
         // Grid of Tables
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.75,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 320,
+              mainAxisExtent: 220,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
             itemCount: tables.length,
             itemBuilder: (context, index) {
               final table = tables[index];
               final tableAssignments = assignments.where((a) => a.tableId == table.id).toList();
-              final count = tableAssignments.length;
+              final count = tableAssignments.fold(0, (sum, a) => sum + a.total);
               final isFull = count >= table.capacity;
 
               return Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isFull 
                         ? Colors.redAccent.withValues(alpha: 0.3) 
@@ -705,77 +709,82 @@ class _AssignmentView extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                clipBehavior: Clip.antiAlias,
+                padding: const EdgeInsets.all(12),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Table Header
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  table.name,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '$count / ${table.capacity}',
-                                  style: TextStyle(
-                                    color: isFull ? Colors.redAccent : Colors.white54,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          table.name,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '$count / ${table.capacity}',
+                          style: TextStyle(
+                            color: isFull ? Colors.redAccent : Colors.white54,
+                            fontSize: 11,
                           ),
-                          _TableIndicator(percent: count / table.capacity, isFull: isFull),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    
-                    // Guest Pills List
+                    const SizedBox(height: 8),
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: tableAssignments.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Sin invitados',
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.1), fontSize: 12),
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                itemCount: tableAssignments.length,
-                                itemBuilder: (context, i) {
-                                  final guest = guests.firstWhere((g) => g.id == tableAssignments[i].guestId);
-                                  return _GuestPill(
-                                    name: guest.displayName,
-                                    onDelete: () => service.deleteAssignment(eventId, tableAssignments[i].id),
-                                  );
-                                },
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: tableAssignments.map((assignment) {
+                            final guest = guests.firstWhere((g) => g.id == assignment.guestId,
+                                orElse: () => GuestModel(
+                                    id: '',
+                                    eventId: '',
+                                    firstName: '?',
+                                    lastName: '',
+                                    displayName: '?',
+                                    role: GuestRole.regular,
+                                    status: GuestStatus.pending,
+                                    adults: 0,
+                                    children: 0,
+                                    teenagers: 0,
+                                    disabled: 0));
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                               ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.person, size: 10, color: Colors.white.withValues(alpha: 0.5)),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      '${guest.displayName} (${assignment.total})',
+                                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  InkWell(
+                                    onTap: () => service.deleteAssignment(eventId, assignment.id),
+                                    child: Icon(Icons.close, size: 12, color: Colors.white.withValues(alpha: 0.3)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
-
-                    // Add Button Area
-                    GestureDetector(
-                      onTap: () => _showAssignGuestPicker(context, table, unassignedGuests),
-                      child: Container(
-                        height: 40,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.05),
-                        ),
-                        child: Icon(
-                          Icons.add_circle_outline, 
-                          size: 20, 
-                          color: isFull ? Colors.white10 : AppColors.brushedGold.withValues(alpha: 0.5)
-                        ),
+                    Center(
+                      child: IconButton(
+                        icon: const Icon(Icons.add_circle_outline, color: AppColors.brushedGold, size: 20),
+                        onPressed: () => _showAssignGuestPicker(context, table, unassignedGuests),
                       ),
                     ),
                   ],
@@ -803,38 +812,75 @@ class _AssignmentView extends StatelessWidget {
   }
 
   Future<void> _autoAssign(BuildContext context) async {
-    final unassigned = guests.where((g) => !assignments.any((a) => a.guestId == g.id)).toList();
-    if (unassigned.isEmpty) return;
+    final pending = guests.where((g) {
+      final guestAssignments = assignments.where((a) => a.guestId == g.id);
+      final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
+      return totalAssigned < g.totalSeats;
+    }).toList();
+    
+    if (pending.isEmpty) return;
 
-    for (var guest in unassigned) {
+    final List<SeatingAssignment> newAssignments = [];
+
+    for (var guest in pending) {
+      final guestAssignments = assignments.where((a) => a.guestId == guest.id);
+      final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
+      int remainingToAssign = guest.totalSeats - totalAssigned;
+
       for (var table in tables) {
-        final tableCount = assignments.where((a) => a.tableId == table.id).length;
-        if (tableCount < table.capacity) {
-          // Usamos await para no saturar el motor de renderizado con actualizaciones de stream
-          await service.addAssignment(eventId, SeatingAssignment(
-            id: '', 
-            tableId: table.id, 
-            guestId: guest.id,
-            counts: {
-              'Adults': guest.adults,
-              'Children': guest.children,
-              'Teenagers': guest.teenagers,
-              'Disabled': guest.disabled,
-              ...guest.customCounts,
-            },
-          ));
-          break;
+        if (remainingToAssign <= 0) break;
+
+        // Considerar también las nuevas asignaciones que aún no están en Firestore pero sí en nuestro lote local
+        final batchOccupiedInTable = newAssignments.where((a) => a.tableId == table.id).fold(0, (sum, a) => sum + a.total);
+        final tableAssignments = assignments.where((a) => a.tableId == table.id);
+        final occupiedInTable = tableAssignments.fold(0, (sum, a) => sum + a.total) + batchOccupiedInTable;
+        final freeInTable = table.capacity - occupiedInTable;
+
+        if (freeInTable > 0) {
+          int toSit = remainingToAssign > freeInTable ? freeInTable : remainingToAssign;
+          
+          Map<String, int> assignedCounts = {};
+          int totalSat = 0;
+          
+          void tryFill(String type, int totalInGuest) {
+            final alreadySatType = guestAssignments.fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0)) +
+                                   newAssignments.where((a) => a.guestId == guest.id).fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0));
+            int stillNeeds = totalInGuest - alreadySatType;
+            if (stillNeeds > 0 && totalSat < toSit) {
+              int canSit = (toSit - totalSat) > stillNeeds ? stillNeeds : (toSit - totalSat);
+              if (canSit > 0) {
+                assignedCounts[type] = canSit;
+                totalSat += canSit;
+              }
+            }
+          }
+
+          tryFill('Adultos', guest.adults);
+          tryFill('Niños', guest.children);
+          tryFill('Jóvenes', guest.teenagers);
+          tryFill('Especial', guest.disabled);
+          guest.customCounts.forEach((k, v) => tryFill(k, v));
+
+          if (assignedCounts.isNotEmpty) {
+            newAssignments.add(SeatingAssignment(
+              id: '', 
+              tableId: table.id, 
+              guestId: guest.id,
+              counts: assignedCounts,
+            ));
+            remainingToAssign -= totalSat;
+          }
         }
       }
     }
 
+    if (newAssignments.isNotEmpty) {
+      await service.addAssignmentsBatch(eventId, newAssignments);
+    }
+
     if (!context.mounted) return;
-    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invitados asignados automáticamente'),
-        backgroundColor: AppColors.brushedGold,
-      )
+      const SnackBar(content: Text('Invitados asignados automáticamente'), backgroundColor: AppColors.brushedGold)
     );
   }
 }
@@ -997,66 +1043,69 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
     return AlertDialog(
       backgroundColor: AppColors.charcoal,
       title: Text(widget.element == null ? 'Agregar Elemento' : 'Editar Elemento', style: const TextStyle(color: Colors.white)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<VenueElementType>(
-              value: _type,
-              dropdownColor: AppColors.charcoal,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Tipo de Elemento',
-                labelStyle: TextStyle(color: Colors.white60),
+      content: SizedBox(
+        width: 450,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<VenueElementType>(
+                value: _type,
+                dropdownColor: AppColors.charcoal,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Elemento',
+                  labelStyle: TextStyle(color: Colors.white60),
+                ),
+                items: VenueElementType.values.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(_getLocalizedTypeName(type, l)),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _type = val);
+                },
               ),
-              items: VenueElementType.values.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(_getLocalizedTypeName(type, l)),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) setState(() => _type = val);
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Nombre (opcional)',
-                labelStyle: TextStyle(color: Colors.white60),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Nombre (opcional)',
+                  labelStyle: TextStyle(color: Colors.white60),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _widthController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Ancho',
-                      labelStyle: TextStyle(color: Colors.white60),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _widthController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Ancho',
+                        labelStyle: TextStyle(color: Colors.white60),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    controller: _heightController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Alto',
-                      labelStyle: TextStyle(color: Colors.white60),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _heightController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Alto',
+                        labelStyle: TextStyle(color: Colors.white60),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -1297,7 +1346,9 @@ class _TableDialogState extends State<_TableDialog> {
     return AlertDialog(
       backgroundColor: AppColors.charcoal,
       title: Text(widget.table == null ? 'Crear Mesa' : 'Editar Mesa', style: const TextStyle(color: Colors.white)),
-      content: SingleChildScrollView(
+      content: SizedBox(
+        width: 450,
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1369,6 +1420,7 @@ class _TableDialogState extends State<_TableDialog> {
             ],
           ],
         ),
+      ),
       ),
       actions: [
         TextButton(
@@ -1444,14 +1496,24 @@ class _AssignGuestDialog extends StatefulWidget {
 
 class _AssignGuestDialogState extends State<_AssignGuestDialog> {
   String _searchQuery = '';
+  GuestModel? _selectedGuest;
+  final Map<String, int> _toAssign = {};
 
   @override
   Widget build(BuildContext context) {
     final tableAssignments = widget.allAssignments.where((a) => a.tableId == widget.table.id).toList();
+    final occupiedInTable = tableAssignments.fold(0, (sum, a) => sum + a.total);
+    final remainingInTable = widget.table.capacity - occupiedInTable;
+
+    if (_selectedGuest != null) {
+      return _buildCountPicker(remainingInTable);
+    }
+
     final availableGuests = widget.allGuests.where((g) {
-      final isAlreadyAssigned = widget.allAssignments.any((a) => a.guestId == g.id);
+      final guestAssignments = widget.allAssignments.where((a) => a.guestId == g.id);
+      final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
       final matchesSearch = g.displayName.toLowerCase().contains(_searchQuery.toLowerCase());
-      return !isAlreadyAssigned && matchesSearch;
+      return totalAssigned < g.totalSeats && matchesSearch;
     }).toList();
 
     return AlertDialog(
@@ -1460,12 +1522,12 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Asignar a ${widget.table.name}', style: const TextStyle(color: Colors.white, fontSize: 18)),
-          Text('${tableAssignments.length}/${widget.table.capacity} asientos ocupados', 
+          Text('$occupiedInTable / ${widget.table.capacity} asientos ocupados', 
             style: const TextStyle(color: Colors.white60, fontSize: 12)),
         ],
       ),
       content: SizedBox(
-        width: double.maxFinite,
+        width: 450,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1482,36 +1544,74 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 300),
               child: availableGuests.isEmpty
-                  ? const Center(child: Text('No hay invitados disponibles', style: TextStyle(color: Colors.white24)))
+                  ? const Center(child: Text('No hay invitados pendientes', style: TextStyle(color: Colors.white24)))
                   : ListView.builder(
                       shrinkWrap: true,
                       itemCount: availableGuests.length,
                       itemBuilder: (context, index) {
                         final guest = availableGuests[index];
+                        final guestAssignments = widget.allAssignments.where((a) => a.guestId == guest.id);
+                        final alreadyAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
+                        
                         return ListTile(
                           title: Text(guest.displayName, style: const TextStyle(color: Colors.white)),
-                          subtitle: Text(guest.role.name, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                          trailing: const Icon(Icons.add_circle_outline, color: AppColors.brushedGold),
-                          onTap: () {
-                            if (tableAssignments.length < widget.table.capacity) {
-                              widget.service.addAssignment(widget.eventId, SeatingAssignment(
-                                id: '', 
-                                tableId: widget.table.id, 
-                                guestId: guest.id,
-                                counts: {
-                                  'Adults': guest.adults,
-                                  'Children': guest.children,
-                                  'Teenagers': guest.teenagers,
-                                  'Disabled': guest.disabled,
-                                  ...guest.customCounts,
+                          subtitle: Text('Quedan ${guest.totalSeats - alreadyAssigned} boletos', 
+                            style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.group_add, color: AppColors.brushedGold),
+                                tooltip: 'Asignar todos',
+                                onPressed: () async {
+                                  final guestAssignments = widget.allAssignments.where((a) => a.guestId == guest.id);
+                                  final alreadyAssigned = guestAssignments.fold<int>(0, (sum, a) => sum + a.total);
+                                  int guestRemaining = guest.totalSeats - alreadyAssigned;
+                                  
+                                  if (guestRemaining <= remainingInTable) {
+                                    // Cerramos el diálogo primero para evitar colisiones gráficas en web
+                                    Navigator.pop(context);
+
+                                    Map<String, int> toSit = {};
+                                    void fill(String type, int totalInGuest) {
+                                      final sat = guestAssignments.fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0));
+                                      if (totalInGuest - sat > 0) toSit[type] = totalInGuest - sat;
+                                    }
+
+                                    fill('Adultos', guest.adults);
+                                    fill('Niños', guest.children);
+                                    fill('Jóvenes', guest.teenagers);
+                                    fill('Especial', guest.disabled);
+                                    guest.customCounts.forEach((k, v) => fill(k, v));
+
+                                    await widget.service.addAssignment(widget.eventId, SeatingAssignment(
+                                      id: '',
+                                      guestId: guest.id,
+                                      tableId: widget.table.id,
+                                      counts: toSit,
+                                    ));
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('No caben todos en esta mesa'))
+                                    );
+                                  }
                                 },
-                              ));
-                              Navigator.pop(context);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('La mesa está llena'))
-                              );
-                            }
+                              ),
+                              const Icon(Icons.chevron_right, color: Colors.white24),
+                            ],
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedGuest = guest;
+                              _toAssign.clear();
+                              _toAssign['Adultos'] = 0;
+                              if (guest.children > 0) _toAssign['Niños'] = 0;
+                              if (guest.teenagers > 0) _toAssign['Jóvenes'] = 0;
+                              if (guest.disabled > 0) _toAssign['Especial'] = 0;
+                              for (var key in guest.customCounts.keys) {
+                                _toAssign[key] = 0;
+                              }
+                            });
                           },
                         );
                       },
@@ -1524,6 +1624,109 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cerrar', style: TextStyle(color: Colors.white60)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCountPicker(int remainingInTable) {
+    final g = _selectedGuest!;
+    final guestAssignments = widget.allAssignments.where((a) => a.guestId == g.id);
+    
+    // Calcular cuánto se ha asignado de cada categoría en OTRAS mesas
+    Map<String, int> assignedPerType = {
+      'Adultos': 0, 'Niños': 0, 'Jóvenes': 0, 'Especial': 0,
+    };
+    for (var a in guestAssignments) {
+      a.counts.forEach((key, val) {
+        assignedPerType[key] = (assignedPerType[key] ?? 0) + val;
+      });
+    }
+
+    int currentTotalToAssign = _toAssign.values.fold(0, (sum, v) => sum + v);
+
+    return AlertDialog(
+      backgroundColor: AppColors.charcoal,
+      title: Text('¿Cuántos de ${g.displayName}?', style: const TextStyle(color: Colors.white, fontSize: 16)),
+      content: SizedBox(
+        width: 450,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _toAssign.keys.map((type) {
+          int maxForType = 0;
+          if (type == 'Adultos') {
+            maxForType = g.adults;
+          } else if (type == 'Niños') {
+            maxForType = g.children;
+          } else if (type == 'Jóvenes') {
+            maxForType = g.teenagers;
+          } else if (type == 'Especial') {
+            maxForType = g.disabled;
+          } else {
+            maxForType = g.customCounts[type] ?? 0;
+          }
+
+          int remainingForType = maxForType - (assignedPerType[type] ?? 0);
+          if (remainingForType <= 0) return const SizedBox.shrink();
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(type, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                      Text('$remainingForType disponibles', 
+                        style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, color: Colors.white24),
+                  onPressed: _toAssign[type]! > 0 ? () => setState(() => _toAssign[type] = _toAssign[type]! - 1) : null,
+                ),
+                SizedBox(
+                  width: 30,
+                  child: Center(
+                    child: Text('${_toAssign[type]}', 
+                      style: const TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.brushedGold),
+                  onPressed: (_toAssign[type]! < remainingForType && currentTotalToAssign < remainingInTable) 
+                      ? () => setState(() => _toAssign[type] = _toAssign[type]! + 1) 
+                      : null,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => setState(() => _selectedGuest = null),
+          child: const Text('Atrás', style: TextStyle(color: Colors.white60)),
+        ),
+        ElevatedButton(
+          onPressed: currentTotalToAssign > 0 ? () async {
+            final counts = Map<String, int>.from(_toAssign)..removeWhere((k, v) => v == 0);
+            
+            // Cerrar primero para estabilidad en Web
+            Navigator.pop(context);
+
+            await widget.service.addAssignment(widget.eventId, SeatingAssignment(
+              id: '',
+              guestId: g.id,
+              tableId: widget.table.id,
+              counts: counts,
+            ));
+          } : null,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal),
+          child: const Text('Asignar'),
         ),
       ],
     );

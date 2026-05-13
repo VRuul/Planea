@@ -21,7 +21,7 @@ class FirestoreService {
   CollectionReference _tables(String eventId) =>
       _db.collection('events').doc(eventId).collection('tables');
   CollectionReference _assignments(String eventId) =>
-      _db.collection('events').doc(eventId).collection('assignments');
+      _db.collection('events').doc(eventId).collection('seatingAssignments');
   CollectionReference _venueElements(String eventId) =>
       _db.collection('events').doc(eventId).collection('venueElements');
 
@@ -350,8 +350,17 @@ class FirestoreService {
         snap.docs.map((doc) => SeatingAssignment.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList());
   }
 
-  Future<void> addAssignment(String eventId, SeatingAssignment assignment) {
-    return _assignments(eventId).add(assignment.toFirestore());
+  Future<void> addAssignment(String eventId, SeatingAssignment assignment) async {
+    await _assignments(eventId).add(assignment.toFirestore());
+  }
+
+  Future<void> addAssignmentsBatch(String eventId, List<SeatingAssignment> assignments) async {
+    final batch = _db.batch();
+    for (var a in assignments) {
+      final docRef = _assignments(eventId).doc();
+      batch.set(docRef, a.toFirestore());
+    }
+    await batch.commit();
   }
 
   Future<void> updateAssignment(String eventId, String assignmentId, Map<String, dynamic> data) {
