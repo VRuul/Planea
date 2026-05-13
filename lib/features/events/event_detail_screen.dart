@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:flex_color_picker/flex_color_picker.dart';
 import '../../data/models/event_model.dart';
 import '../../data/services/firestore_service.dart';
 import '../../providers/theme_provider.dart';
@@ -58,9 +57,9 @@ class _EventDetailView extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('¿Eliminar evento?', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.charcoal,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text('¿Eliminar evento?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         content: const Text(
           'Esta acción borrará toda la información del evento, incluyendo invitados y colaboradores. No se puede deshacer.',
           style: TextStyle(color: Colors.white70),
@@ -115,21 +114,21 @@ class _EventDetailView extends StatelessWidget {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            backgroundColor: AppColors.charcoal,
+            leading: const BackButton(color: AppColors.brushedGold),
             actions: [
               IconButton(
-                icon: const Icon(Icons.group_rounded, color: Colors.white),
+                icon: const Icon(Icons.group_rounded, color: AppColors.brushedGold),
                 tooltip: 'Equipo',
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => CollaboratorsPanel(event: event),
-                    ),
+                    MaterialPageRoute(builder: (_) => CollaboratorsPanel(event: event)),
                   );
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                icon: const Icon(Icons.edit_rounded, color: AppColors.brushedGold),
                 onPressed: () {
                   final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
                   showDialog(
@@ -146,30 +145,33 @@ class _EventDetailView extends StatelessWidget {
                 ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(event.name,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w800)),
+              title: Text(event.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
               background: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [event.primaryColor, event.secondaryColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.charcoal,
+                  border: Border(bottom: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.15))),
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        event.customTypeIcon != null 
-                          ? IconData(event.customTypeIcon!, fontFamily: 'MaterialIcons') 
-                          : getEventTypeInfo(context, event.type).icon,
-                        size: 64, color: Colors.white30),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.brushedGold.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+                        ),
+                        child: Icon(
+                          event.customTypeIcon != null 
+                            ? IconData(event.customTypeIcon!, fontFamily: 'MaterialIcons') 
+                            : getEventTypeInfo(context, event.type).icon,
+                          size: 48, color: AppColors.brushedGold),
+                      ),
                       if (event.celebrantNames != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Text(event.celebrantNames!, 
-                          style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                       ]
                     ],
                   ),
@@ -180,31 +182,40 @@ class _EventDetailView extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.all(20),
             sliver: SliverList.list(children: [
-              _SectionTitle(l.colorPaletteSection),
-              const SizedBox(height: 16),
-              _ColorPaletteEditor(event: event),
-              const SizedBox(height: 24),
               _SectionTitle(l.budgetSection),
               const SizedBox(height: 16),
               _BudgetCard(event: event),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               _SectionTitle(l.eventDetailsSection),
               const SizedBox(height: 16),
-              _DetailRow(icon: Icons.category_outlined,
-                  label: l.typeLabelDetail,
-                  value: event.customType ?? getEventTypeInfo(context, event.type).label),
-              _DetailRow(icon: Icons.calendar_today_outlined,
-                  label: l.dateLabelDetail,
-                  value: '${event.date.day}/${event.date.month}/${event.date.year}'),
-              if (event.celebrantNames != null)
-                _DetailRow(icon: Icons.people_outline_rounded,
-                    label: "Protagonistas", value: event.celebrantNames!),
-              if (event.guestGoal > 0)
-                _DetailRow(icon: Icons.group_outlined,
-                    label: "Meta de invitados", value: "${event.guestGoal}"),
-              if (event.venue != null)
-                _DetailRow(icon: Icons.location_on_outlined,
-                    label: l.venueLabelDetail, value: event.venue!),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Column(
+                  children: [
+                    _DetailRow(icon: Icons.category_outlined,
+                        label: l.typeLabelDetail,
+                        value: event.customType ?? getEventTypeInfo(context, event.type).label),
+                    _DetailRow(icon: Icons.calendar_today_outlined,
+                        label: l.dateLabelDetail,
+                        value: '${event.date.day}/${event.date.month}/${event.date.year}'),
+                    if (event.celebrantNames != null)
+                      _DetailRow(icon: Icons.people_outline_rounded,
+                          label: "Protagonistas", value: event.celebrantNames!),
+                    if (event.guestGoal > 0)
+                      _DetailRow(icon: Icons.group_outlined,
+                          label: "Meta de invitados", value: "${event.guestGoal}"),
+                    if (event.venue != null)
+                      _DetailRow(icon: Icons.location_on_outlined,
+                          label: l.venueLabelDetail, value: event.venue!, isLast: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
             ]),
           ),
         ],
@@ -213,146 +224,6 @@ class _EventDetailView extends StatelessWidget {
   }
 }
 
-class _ColorPaletteEditor extends StatelessWidget {
-  final EventModel event;
-  const _ColorPaletteEditor({required this.event});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l = context.l10n;
-    final themeProvider = context.read<ThemeProvider>();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(
-          color: event.secondaryColor.withValues(alpha: 0.1),
-          blurRadius: 16, offset: const Offset(0, 4),
-        )],
-      ),
-      child: Column(children: [
-        _ColorRow(
-          label: l.primaryColorLabel,
-          color: event.primaryColor,
-          onPick: (c) async {
-            final picked = await _showColorPicker(context, c, l.primaryColorLabel, l);
-            if (picked != null) {
-              await FirestoreService().updateEvent(event.copyWith(primaryColor: picked));
-              themeProvider.applyEventColors(picked, event.secondaryColor);
-            }
-          },
-        ),
-        const SizedBox(height: 16),
-        _ColorRow(
-          label: l.accentColorLabel,
-          color: event.secondaryColor,
-          onPick: (c) async {
-            final picked = await _showColorPicker(context, c, l.accentColorLabel, l);
-            if (picked != null) {
-              await FirestoreService().updateEvent(event.copyWith(secondaryColor: picked));
-              themeProvider.applyEventColors(event.primaryColor, picked);
-            }
-          },
-        ),
-        const SizedBox(height: 16),
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: [event.primaryColor, event.secondaryColor]),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(l.previewLabel,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1)),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Future<Color?> _showColorPicker(
-      BuildContext context, Color initial, String label, AppLocalizations l) async {
-    Color selected = initial;
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(l.chooseColorFor(label)),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            color: initial,
-            onColorChanged: (c) => selected = c,
-            heading: Text(l.selectColorHeading,
-                style: Theme.of(context).textTheme.titleSmall),
-            subheading: Text(l.adjustToneSubheading,
-                style: Theme.of(context).textTheme.bodySmall),
-            pickersEnabled: const {
-              ColorPickerType.both: true,
-              ColorPickerType.primary: false,
-              ColorPickerType.accent: false,
-              ColorPickerType.bw: false,
-              ColorPickerType.custom: true,
-              ColorPickerType.wheel: true,
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l.cancelButton)),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l.applyButton)),
-        ],
-      ),
-    );
-    return result == true ? selected : null;
-  }
-}
-
-class _ColorRow extends StatelessWidget {
-  final String label;
-  final Color color;
-  final ValueChanged<Color> onPick;
-  const _ColorRow({required this.label, required this.color, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(label, style: Theme.of(context).textTheme.titleSmall)),
-        GestureDetector(
-          onTap: () => onPick(color),
-          child: Row(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: color, shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3), width: 2),
-                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8)],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.edit_outlined, size: 14, color: Colors.grey),
-          ]),
-        ),
-      ],
-    );
-  }
-}
 
 class _BudgetCard extends StatelessWidget {
   final EventModel event;
@@ -362,56 +233,62 @@ class _BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
     final progress = event.budgetProgress;
     final remaining = event.budget - event.budgetSpent;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-          color: theme.cardTheme.color, borderRadius: BorderRadius.circular(24)),
+          color: baseColor.withValues(alpha: 0.03), 
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: baseColor.withValues(alpha: 0.05))),
       child: Column(children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(l.totalBudgetLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.4), fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 4),
               Text('\$${event.budget.toStringAsFixed(0)}',
-                  style: theme.textTheme.headlineMedium
-                      ?.copyWith(fontWeight: FontWeight.w800)),
+                  style: theme.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w900, color: baseColor)),
             ]),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(l.remainingLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.4), fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              const SizedBox(height: 4),
               Text('\$${remaining.toStringAsFixed(0)}',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: remaining >= 0 ? AppColors.confirmed : AppColors.declined,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: remaining >= 0 ? AppColors.brushedGold : Colors.redAccent,
                   )),
             ]),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: LinearProgressIndicator(
-            value: progress, minHeight: 10,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            value: progress, minHeight: 12,
+            backgroundColor: baseColor.withValues(alpha: 0.05),
             valueColor: AlwaysStoppedAnimation<Color>(
-              progress > 0.9 ? AppColors.declined : AppColors.brushedGold),
+              progress > 0.9 ? Colors.redAccent : AppColors.brushedGold),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               l.budgetSpentLabel('\$${event.budgetSpent.toStringAsFixed(0)}'),
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+              style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.4), fontWeight: FontWeight.w500),
             ),
             Text('${(progress * 100).round()}%',
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.brushedGold, fontWeight: FontWeight.w600)),
+                style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.brushedGold, fontWeight: FontWeight.w900)),
           ],
         ),
       ]),
@@ -425,9 +302,12 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title,
-        style: Theme.of(context).textTheme.titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700));
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Text(title,
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+    );
   }
 }
 
@@ -435,21 +315,33 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  final bool isLast;
+  const _DetailRow({required this.icon, required this.label, required this.value, this.isLast = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: isLast ? null : Border(bottom: BorderSide(color: baseColor.withValues(alpha: 0.05))),
+      ),
       child: Row(children: [
-        Icon(icon, size: 20, color: Colors.grey),
-        const SizedBox(width: 12),
-        Text('$label: ',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-        Text(value,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Icon(icon, size: 20, color: AppColors.brushedGold),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.4), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: baseColor)),
+            ],
+          ),
+        ),
       ]),
     );
   }
