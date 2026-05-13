@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -149,61 +150,75 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [event.primaryColor, event.secondaryColor],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
         boxShadow: [
-          BoxShadow(
-            color: event.secondaryColor.withValues(alpha: 0.3),
-            blurRadius: 24, offset: const Offset(0, 8),
-          ),
+          BoxShadow(color: AppColors.brushedGold.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, 10)),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(event.name,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(
-                  '${_localizedType(l, event.type)} • ${event.date.day}/${event.date.month}/${event.date.year}',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: Colors.white70, letterSpacing: 0.5),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            // Glass background
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+                      isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+                    ],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
                 ),
-                if (event.venue != null) ...[
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.location_on_outlined,
-                        color: Colors.white70, size: 14),
-                    const SizedBox(width: 4),
-                    Text(event.venue!,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.white70)),
-                  ]),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.brushedGold.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.celebration_rounded, color: AppColors.brushedGold, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(event.name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: baseColor)),
+                            Text(
+                              '${_localizedType(l, event.type)} • ${event.date.day}/${event.date.month}/${event.date.year}',
+                              style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.5), letterSpacing: 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  _CountdownTimer(targetDate: event.date),
+                  const SizedBox(height: 12),
+                  Text("TIEMPO PARA LA CELEBRACIÓN", style: TextStyle(color: AppColors.brushedGold.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
                 ],
-              ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.celebration_rounded,
-                color: Colors.white, size: 28),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -220,6 +235,76 @@ class _DashboardHeader extends StatelessWidget {
   }
 }
 
+class _CountdownTimer extends StatefulWidget {
+  final DateTime targetDate;
+  const _CountdownTimer({required this.targetDate});
+
+  @override
+  State<_CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<_CountdownTimer> {
+  late Timer _timer;
+  Duration _timeLeft = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    setState(() {
+      _timeLeft = widget.targetDate.isAfter(now) ? widget.targetDate.difference(now) : Duration.zero;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final days = _timeLeft.inDays;
+    final hours = _timeLeft.inHours % 24;
+    final minutes = _timeLeft.inMinutes % 60;
+    final seconds = _timeLeft.inSeconds % 60;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _TimeBlock(value: days.toString().padLeft(2, '0'), label: "DÍAS"),
+        _TimeBlock(value: hours.toString().padLeft(2, '0'), label: "HORAS"),
+        _TimeBlock(value: minutes.toString().padLeft(2, '0'), label: "MIN"),
+        _TimeBlock(value: seconds.toString().padLeft(2, '0'), label: "SEG", isLast: true),
+      ],
+    );
+  }
+}
+
+class _TimeBlock extends StatelessWidget {
+  final String value;
+  final String label;
+  final bool isLast;
+  const _TimeBlock({required this.value, required this.label, this.isLast = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: AppColors.brushedGold, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+      ],
+    );
+  }
+}
+
 class _StatsRow extends StatelessWidget {
   final int confirmed, pending, declined;
   const _StatsRow({required this.confirmed, required this.pending, required this.declined});
@@ -229,15 +314,44 @@ class _StatsRow extends StatelessWidget {
     final l = context.l10n;
     return Row(
       children: [
-        Expanded(child: StatCard(label: l.statConfirmed, value: confirmed.toString(),
-            icon: Icons.check_circle_rounded, color: AppColors.confirmed)),
+        Expanded(child: _PremiumStatCard(label: l.statConfirmed, value: confirmed.toString(), icon: Icons.check_circle_rounded, color: AppColors.confirmed)),
         const SizedBox(width: 12),
-        Expanded(child: StatCard(label: l.statPending, value: pending.toString(),
-            icon: Icons.schedule_rounded, color: AppColors.pending)),
+        Expanded(child: _PremiumStatCard(label: l.statPending, value: pending.toString(), icon: Icons.schedule_rounded, color: AppColors.pending)),
         const SizedBox(width: 12),
-        Expanded(child: StatCard(label: l.statDeclined, value: declined.toString(),
-            icon: Icons.cancel_rounded, color: AppColors.declined)),
+        Expanded(child: _PremiumStatCard(label: l.statDeclined, value: declined.toString(), icon: Icons.cancel_rounded, color: AppColors.declined)),
       ],
+    );
+  }
+}
+
+class _PremiumStatCard extends StatelessWidget {
+  final String label, value;
+  final IconData icon;
+  final Color color;
+
+  const _PremiumStatCard({required this.label, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color.withValues(alpha: 0.6), size: 20),
+          const SizedBox(height: 12),
+          Text(value, style: TextStyle(color: baseColor, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(label.toUpperCase(), style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        ],
+      ),
     );
   }
 }
@@ -250,6 +364,9 @@ class _GuestTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    
     final statusColor = guest.status == GuestStatus.confirmed
         ? AppColors.confirmed
         : guest.status == GuestStatus.pending
@@ -259,21 +376,18 @@ class _GuestTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12, offset: const Offset(0, 2)),
-        ],
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 22,
-            backgroundColor: statusColor.withValues(alpha: 0.15),
+            radius: 20,
+            backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
             child: Text(
               guest.displayName.isNotEmpty ? guest.displayName[0].toUpperCase() : '?',
-              style: TextStyle(color: statusColor, fontWeight: FontWeight.w700),
+              style: const TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.w900),
             ),
           ),
           const SizedBox(width: 12),
@@ -281,16 +395,14 @@ class _GuestTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(guest.displayName,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(guest.displayName, style: TextStyle(color: baseColor, fontWeight: FontWeight.w700, fontSize: 14)),
                 const SizedBox(height: 2),
                 Row(
                   children: [
                     GuestRoleChip(role: guest.role),
-                    if (guest.totalSeats > 1) ...[
+                    if (guest.adults + guest.children + guest.teenagers + guest.disabled > 1) ...[
                       const SizedBox(width: 8),
-                      Text('• ${guest.totalSeats} pers.', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white54)),
+                      Text('• ${guest.adults + guest.children + guest.teenagers + guest.disabled} pers.', style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 11)),
                     ],
                   ],
                 ),
@@ -300,13 +412,12 @@ class _GuestTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              _statusLabel(l, guest.status),
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
+              _statusLabel(l, guest.status).toUpperCase(),
+              style: TextStyle(color: statusColor, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5),
             ),
           ),
         ],

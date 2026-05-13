@@ -60,17 +60,15 @@ class _CelebrationProgressBarState extends State<CelebrationProgressBar>
     final theme = Theme.of(context);
     final l = context.l10n;
 
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.brushedGold.withValues(alpha: 0.08),
-            blurRadius: 20, offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
