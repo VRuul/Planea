@@ -37,18 +37,19 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
     final l = context.l10n;
     final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
     final isOwner = event.organizerId == userId;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
 
     return Scaffold(
-      backgroundColor: AppColors.charcoal,
       appBar: AppBar(
-        backgroundColor: AppColors.charcoal,
         elevation: 0,
-        leading: const BackButton(color: AppColors.brushedGold),
-        title: const Text('Equipo del Evento', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        leading: BackButton(color: isDark ? AppColors.brushedGold : baseColor),
+        title: Text('Equipo del Evento', style: TextStyle(fontWeight: FontWeight.w800, color: baseColor)),
         actions: [
           if (isOwner)
             IconButton(
-              icon: const Icon(Icons.person_add_rounded, color: AppColors.brushedGold),
+              icon: Icon(Icons.person_add_rounded, color: isDark ? AppColors.brushedGold : baseColor),
               tooltip: 'Invitar por correo',
               onPressed: () => _showInviteByEmailDialog(context, event),
             ),
@@ -80,14 +81,15 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 builder: (context, snap) {
                   if (snap.hasError) {
                     return Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(16),
+                        color: baseColor.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
                       ),
-                      child: const Center(
-                        child: Text('Error al cargar solicitudes. Verifica las reglas de Firestore.',
-                            style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      child: Center(
+                        child: Text('Error al cargar solicitudes',
+                            style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontSize: 12)),
                       ),
                     );
                   }
@@ -96,13 +98,13 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                     return Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
+                        color: baseColor.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text('No hay solicitudes pendientes',
-                            style: TextStyle(color: Colors.white30, fontSize: 13, fontWeight: FontWeight.w500)),
+                            style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.w500)),
                       ),
                     );
                   }
@@ -130,14 +132,15 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               builder: (context, snap) {
                 if (snap.hasError) {
                   return Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(16),
+                      color: baseColor.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: baseColor.withValues(alpha: 0.05)),
                     ),
-                    child: const Center(
-                      child: Text('Error al cargar colaboradores. Verifica las reglas de Firestore.',
-                          style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    child: Center(
+                      child: Text('Error al cargar colaboradores',
+                          style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontSize: 12)),
                     ),
                   );
                 }
@@ -148,13 +151,13 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                   return Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
+                      color: baseColor.withValues(alpha: 0.03),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(color: baseColor.withValues(alpha: 0.05)),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text('Aún no hay colaboradores',
-                          style: TextStyle(color: Colors.white30, fontSize: 13, fontWeight: FontWeight.w500)),
+                          style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.w500)),
                     ),
                   );
                 }
@@ -193,6 +196,8 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
 
   void _showInviteByEmailDialog(BuildContext context, EventModel event) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
     final emailController = TextEditingController();
     CollaboratorRole selectedRole = CollaboratorRole.viewer;
 
@@ -200,10 +205,10 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.charcoal,
+          backgroundColor: theme.scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          title: const Text('Invitar Colaborador',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+          title: Text('Invitar Colaborador',
+              style: TextStyle(fontWeight: FontWeight.w900, color: baseColor, letterSpacing: 0.5)),
           content: SizedBox(
             width: 400,
             child: Column(
@@ -212,12 +217,12 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 TextField(
                   controller: emailController,
                   autofocus: true,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: baseColor),
                   keyboardType: TextInputType.emailAddress,
                   decoration: _inputDecoration('Correo electrónico', Icons.email_outlined, theme),
                 ),
                 const SizedBox(height: 20),
-                const Text('Rol a asignar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text('Rol a asignar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: baseColor)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -245,8 +250,13 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               ],
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              style: TextButton.styleFrom(foregroundColor: baseColor.withValues(alpha: 0.5)),
+              child: const Text('Cancelar')
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (emailController.text.trim().isEmpty) return;
@@ -281,7 +291,17 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
 
   InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
-    return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)));
+    return InputDecoration(
+      labelText: label, 
+      labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), 
+      prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), 
+      filled: true, 
+      fillColor: baseColor.withValues(alpha: 0.03), 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), 
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), 
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5))
+    );
   }
 }
 
@@ -295,23 +315,25 @@ class _ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
     final hasCode = event.inviteCode != null && event.inviteCode!.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
           if (!hasCode) ...[
             const Icon(Icons.link_rounded, size: 40, color: AppColors.brushedGold),
             const SizedBox(height: 12),
-            const Text('Genera un código de invitación para compartir este evento con tu equipo.',
+            Text('Genera un código de invitación para compartir este evento con tu equipo.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+                style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 13)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: isLoading ? null : onGenerateCode,
@@ -336,7 +358,7 @@ class _ShareCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Código de Invitación', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text('Código de Invitación', style: TextStyle(fontSize: 11, color: baseColor.withValues(alpha: 0.4))),
                       const SizedBox(height: 4),
                       Text(event.inviteCode!,
                           style: const TextStyle(
@@ -403,13 +425,17 @@ class _ShareCard extends StatelessWidget {
   }
 
   void _showQRDialog(BuildContext context, String code) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.charcoal,
+        backgroundColor: theme.scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Código QR', textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+        title: Text('Código QR', textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w900, color: baseColor, letterSpacing: 0.5)),
         content: SizedBox(
           width: 280,
           child: Column(
@@ -434,9 +460,9 @@ class _ShareCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text('Escanea este código con la app Planea para unirte al evento.',
+              Text('Escanea este código con la app Planea para unirte al evento.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 12)),
             ],
           ),
         ),
@@ -456,6 +482,10 @@ class _ShareAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -465,7 +495,7 @@ class _ShareAction extends StatelessWidget {
           children: [
             Icon(icon, color: AppColors.brushedGold, size: 22),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(label, style: TextStyle(fontSize: 10, color: baseColor.withValues(alpha: 0.4))),
           ],
         ),
       ),
@@ -482,11 +512,14 @@ class _PendingRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.pending.withValues(alpha: 0.2)),
       ),
@@ -507,9 +540,9 @@ class _PendingRequestCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(collaborator.displayName,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: baseColor)),
                 Text(collaborator.email,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    style: theme.textTheme.bodySmall?.copyWith(color: baseColor.withValues(alpha: 0.4))),
               ],
             ),
           ),
@@ -532,22 +565,26 @@ class _PendingRequestCard extends StatelessWidget {
 
   void _showApprovalDialog(BuildContext context) {
     CollaboratorRole selectedRole = CollaboratorRole.viewer;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.charcoal,
+          backgroundColor: theme.scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          title: const Text('Aprobar Colaborador', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+          title: Text('Aprobar Colaborador', style: TextStyle(fontWeight: FontWeight.w900, color: baseColor)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('${collaborator.displayName} quiere unirse al evento.',
-                  style: const TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: baseColor.withValues(alpha: 0.7))),
               Text(collaborator.email,
-                  style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                  style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 12)),
               const SizedBox(height: 20),
-              const Text('Asignar rol:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Asignar rol:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: baseColor)),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -576,7 +613,11 @@ class _PendingRequestCard extends StatelessWidget {
           ),
           actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: Colors.white54), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              style: TextButton.styleFrom(foregroundColor: baseColor.withValues(alpha: 0.5)),
+              child: const Text('Cancelar')
+            ),
             ElevatedButton(
               onPressed: () {
                 FirestoreService().approveCollaborator(eventId, collaborator.userId, selectedRole);
@@ -610,6 +651,8 @@ class _CollaboratorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
     final roleColor = collaborator.isAdmin ? AppColors.brushedGold : Colors.blueGrey;
     final roleLabel = collaborator.isAdmin ? 'Administrador' : 'Visualizador';
     final roleIcon = collaborator.isAdmin
@@ -620,9 +663,9 @@ class _CollaboratorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -641,9 +684,9 @@ class _CollaboratorCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(collaborator.displayName,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: baseColor)),
                 Text(collaborator.email,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38)),
+                    style: theme.textTheme.bodySmall?.copyWith(color: baseColor.withValues(alpha: 0.4))),
               ],
             ),
           ),
@@ -666,7 +709,7 @@ class _CollaboratorCard extends StatelessWidget {
           if (isOwner) ...[
             const SizedBox(width: 8),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, color: Colors.white30),
+              icon: Icon(Icons.more_vert_rounded, color: baseColor.withValues(alpha: 0.3)),
               onSelected: (val) {
                 if (val == 'remove') {
                   FirestoreService().removeCollaborator(eventId, collaborator.userId);
@@ -701,6 +744,9 @@ class _OwnerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -722,7 +768,7 @@ class _OwnerCard extends StatelessWidget {
               children: [
                 Text(displayName,
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
-                Text(email, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38)),
+                Text(email, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6))),
               ],
             ),
           ),
@@ -766,7 +812,11 @@ class _RoleOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.brushedGold : Colors.grey;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+    final color = selected ? AppColors.brushedGold : baseColor.withValues(alpha: 0.4);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -782,7 +832,7 @@ class _RoleOption extends StatelessWidget {
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 6),
             Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
-            Text(description, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10)),
+            Text(description, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -797,13 +847,16 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Text(title.toUpperCase(),
           style: Theme.of(context)
               .textTheme
               .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w900, color: AppColors.brushedGold.withValues(alpha: 0.5), letterSpacing: 1.5)),
+              ?.copyWith(fontWeight: FontWeight.w900, color: (isDark ? AppColors.brushedGold : Colors.black87).withValues(alpha: 0.5), letterSpacing: 1.5)),
     );
   }
 }
