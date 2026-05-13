@@ -39,12 +39,16 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
     final isOwner = event.organizerId == userId;
 
     return Scaffold(
+      backgroundColor: AppColors.charcoal,
       appBar: AppBar(
-        title: const Text('Equipo del Evento'),
+        backgroundColor: AppColors.charcoal,
+        elevation: 0,
+        leading: const BackButton(color: AppColors.brushedGold),
+        title: const Text('Equipo del Evento', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
         actions: [
           if (isOwner)
             IconButton(
-              icon: const Icon(Icons.person_add_rounded),
+              icon: const Icon(Icons.person_add_rounded, color: AppColors.brushedGold),
               tooltip: 'Invitar por correo',
               onPressed: () => _showInviteByEmailDialog(context, event),
             ),
@@ -90,14 +94,15 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                   final pending = snap.data ?? [];
                   if (pending.isEmpty) {
                     return Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       child: const Center(
                         child: Text('No hay solicitudes pendientes',
-                            style: TextStyle(color: Colors.grey)),
+                            style: TextStyle(color: Colors.white30, fontSize: 13, fontWeight: FontWeight.w500)),
                       ),
                     );
                   }
@@ -141,14 +146,15 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                     .toList();
                 if (all.isEmpty) {
                   return Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: const Center(
                       child: Text('Aún no hay colaboradores',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(color: Colors.white30, fontSize: 13, fontWeight: FontWeight.w500)),
                     ),
                   );
                 }
@@ -186,6 +192,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
   }
 
   void _showInviteByEmailDialog(BuildContext context, EventModel event) {
+    final theme = Theme.of(context);
     final emailController = TextEditingController();
     CollaboratorRole selectedRole = CollaboratorRole.viewer;
 
@@ -193,9 +200,10 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.charcoal,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           title: const Text('Invitar Colaborador',
-              style: TextStyle(fontWeight: FontWeight.w800)),
+              style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
           content: SizedBox(
             width: 400,
             child: Column(
@@ -204,12 +212,9 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 TextField(
                   controller: emailController,
                   autofocus: true,
+                  style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    hintText: 'ejemplo@correo.com',
-                  ),
+                  decoration: _inputDecoration('Correo electrónico', Icons.email_outlined, theme),
                 ),
                 const SizedBox(height: 20),
                 const Text('Rol a asignar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -260,12 +265,23 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                   );
                 }
               },
-              child: const Text('Enviar Invitación'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: AppColors.charcoal,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Enviar Invitación', style: TextStyle(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
       ),
     );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)));
   }
 }
 
@@ -282,11 +298,11 @@ class _ShareCard extends StatelessWidget {
     final hasCode = event.inviteCode != null && event.inviteCode!.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -299,10 +315,17 @@ class _ShareCard extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: isLoading ? null : onGenerateCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: AppColors.charcoal,
+                elevation: 4,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
               icon: isLoading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal))
                   : const Icon(Icons.vpn_key_rounded),
-              label: const Text('Generar Código'),
+              label: const Text('Generar Código', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
             ),
           ] else ...[
             Row(
@@ -317,13 +340,13 @@ class _ShareCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(event.inviteCode!,
                           style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w900,
-                              letterSpacing: 3, color: AppColors.brushedGold)),
+                              fontSize: 24, fontWeight: FontWeight.w900,
+                              letterSpacing: 4, color: AppColors.brushedGold)),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.copy_rounded),
+                  icon: const Icon(Icons.copy_rounded, color: AppColors.brushedGold),
                   tooltip: 'Copiar código',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: event.inviteCode!));
@@ -383,9 +406,10 @@ class _ShareCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.charcoal,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: const Text('Código QR', textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w800)),
+            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
         content: SizedBox(
           width: 280,
           child: Column(
@@ -462,9 +486,9 @@ class _PendingRequestCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.pending.withValues(alpha: 0.3)),
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.pending.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -512,15 +536,16 @@ class _PendingRequestCard extends StatelessWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.charcoal,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          title: const Text('Aprobar Colaborador', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Text('Aprobar Colaborador', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('${collaborator.displayName} quiere unirse al evento.',
-                  style: const TextStyle(color: Colors.grey)),
+                  style: const TextStyle(color: Colors.white70)),
               Text(collaborator.email,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  style: const TextStyle(color: Colors.white38, fontSize: 12)),
               const SizedBox(height: 20),
               const Text('Asignar rol:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 12),
@@ -549,14 +574,20 @@ class _PendingRequestCard extends StatelessWidget {
               ),
             ],
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: Colors.white54), child: const Text('Cancelar')),
             ElevatedButton(
               onPressed: () {
                 FirestoreService().approveCollaborator(eventId, collaborator.userId, selectedRole);
                 Navigator.pop(context);
               },
-              child: const Text('Aprobar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: AppColors.charcoal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Aprobar', style: TextStyle(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -589,8 +620,9 @@ class _CollaboratorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -609,17 +641,18 @@ class _CollaboratorCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(collaborator.displayName,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
                 Text(collaborator.email,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38)),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: roleColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: roleColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: roleColor.withValues(alpha: 0.15)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -633,6 +666,7 @@ class _CollaboratorCard extends StatelessWidget {
           if (isOwner) ...[
             const SizedBox(width: 8),
             PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white30),
               onSelected: (val) {
                 if (val == 'remove') {
                   FirestoreService().removeCollaborator(eventId, collaborator.userId);
@@ -671,9 +705,9 @@ class _OwnerCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.3)),
+        color: AppColors.brushedGold.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -687,16 +721,17 @@ class _OwnerCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(displayName,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                Text(email, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
+                Text(email, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38)),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.brushedGold.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.brushedGold.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -762,10 +797,13 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700));
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Text(title.toUpperCase(),
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w900, color: AppColors.brushedGold.withValues(alpha: 0.5), letterSpacing: 1.5)),
+    );
   }
 }
