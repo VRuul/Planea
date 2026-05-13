@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -206,39 +207,24 @@ class _EventSwitcher extends StatelessWidget {
           orElse: () => events.first,
         );
 
-        return Container(
-          width: 260,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.brushedGold.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: PopupMenuButton<String>(
-            tooltip: "Cambiar evento",
-            offset: const Offset(0, 50),
-            padding: EdgeInsets.zero,
-            onSelected: (id) => eventProvider.setCurrentEventId(id),
-            itemBuilder: (context) => events.map((e) => PopupMenuItem<String>(
-              value: e.id,
-              child: Row(
-                children: [
-                  Container(
-                    width: 10, height: 10,
-                    decoration: BoxDecoration(color: e.primaryColor, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(e.name, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )).toList(),
+        return InkWell(
+          onTap: () => _showEventPicker(context, events, eventProvider),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 260,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.brushedGold.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Row(
               children: [
                 Container(
@@ -297,6 +283,118 @@ class _EventSwitcher extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showEventPicker(BuildContext context, List<EventModel> events, EventProvider provider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = context.l10n;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: (isDark ? AppColors.charcoal : Colors.white).withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40, 
+                  height: 4, 
+                  decoration: BoxDecoration(
+                    color: AppColors.brushedGold.withValues(alpha: 0.2), 
+                    borderRadius: BorderRadius.circular(2)
+                  )
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "MIS EVENTOS", 
+                  style: TextStyle(
+                    color: AppColors.brushedGold, 
+                    fontWeight: FontWeight.w900, 
+                    fontSize: 11, 
+                    letterSpacing: 2
+                  )
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: events.length,
+                    itemBuilder: (context, index) {
+                      final e = events[index];
+                      final isSelected = e.id == provider.currentEventId;
+                      
+                      return InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          provider.setCurrentEventId(e.id);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? AppColors.brushedGold.withValues(alpha: 0.05) 
+                                : Colors.transparent,
+                            border: Border(
+                              left: BorderSide(
+                                color: isSelected ? AppColors.brushedGold : Colors.transparent, 
+                                width: 4
+                              )
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12, height: 12,
+                                decoration: BoxDecoration(color: e.primaryColor, shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  e.name, 
+                                  style: TextStyle(
+                                    color: isSelected 
+                                        ? AppColors.brushedGold 
+                                        : (isDark ? Colors.white : Colors.black87), 
+                                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected) 
+                                const Icon(
+                                  Icons.check_circle_rounded, 
+                                  color: AppColors.brushedGold, 
+                                  size: 18
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
