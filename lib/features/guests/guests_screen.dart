@@ -82,30 +82,27 @@ class _GuestsScreenState extends State<GuestsScreen> {
           body: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: TextField(
+                  style: TextStyle(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     hintText: l.searchGuest,
+                    hintStyle: TextStyle(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.brushedGold),
                     filled: true,
-                    fillColor: theme.brightness == Brightness.dark 
-                        ? Colors.white.withValues(alpha: 0.03) 
-                        : Colors.black.withValues(alpha: 0.03),
+                    fillColor: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.03),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(
-                        color: theme.brightness == Brightness.dark 
-                            ? Colors.white.withValues(alpha: 0.05) 
-                            : Colors.black.withValues(alpha: 0.05)
-                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(
-                        color: theme.brightness == Brightness.dark 
-                            ? Colors.white.withValues(alpha: 0.05) 
-                            : Colors.black.withValues(alpha: 0.05)
-                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5),
                     ),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -619,37 +616,57 @@ class _EmptyGuestsNoEvent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
               gradient: AppColors.goldGradient,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.brushedGold.withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  spreadRadius: 10,
+                ),
+              ],
             ),
             child: const Icon(
               Icons.event_busy_rounded,
-              size: 48,
+              size: 56,
               color: AppColors.charcoal,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
           Text(
             l.noEventsYet,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+              color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black87),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            l.noEventsYetSubtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white54),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              l.noEventsYetSubtitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                height: 1.5,
+              ),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
           ElevatedButton.icon(
             onPressed: () => context.go('/events'),
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l.newEvent),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: Text(l.newEvent.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.brushedGold,
               foregroundColor: AppColors.charcoal,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 8,
+              shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
             ),
           ),
         ],
@@ -754,22 +771,12 @@ class _GuestCard extends StatelessWidget {
         : AppColors.declined;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark 
-            ? theme.cardTheme.color?.withValues(alpha: 0.6)
-            : Colors.white,
+        color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)
+          color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.05)
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -778,7 +785,7 @@ class _GuestCard extends StatelessWidget {
           backgroundColor: Colors.transparent,
           collapsedBackgroundColor: Colors.transparent,
           iconColor: AppColors.brushedGold,
-          collapsedIconColor: Colors.white30,
+          collapsedIconColor: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.2),
           leading: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -864,19 +871,21 @@ class _GuestCard extends StatelessWidget {
             ],
           ),
           subtitle: Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 10),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                if (guest.role == GuestRole.vip)
+                   _PremiumBadge(label: "VIP", icon: Icons.stars_rounded),
+                
                 if (guest.customRole != null)
-                  _CustomRoleChip(
+                  _PremiumBadge(
                     label: guest.customRole!,
-                    iconCode: guest.customRoleIcon,
+                    icon: IconData(guest.customRoleIcon ?? 0xe5e1, fontFamily: 'MaterialIcons'),
                   )
-                else
-                  GuestRoleChip(role: guest.role),
+                else if (guest.role != GuestRole.regular)
+                  _PremiumBadge(label: _roleLabel(l, guest.role), icon: Icons.star_rounded),
                 
                 ...() {
                   final guestAssig = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
@@ -885,17 +894,15 @@ class _GuestCard extends StatelessWidget {
                       (t) => t.id == a.tableId,
                       orElse: () => TableModel(id: '', eventId: '', name: '?', capacity: 0),
                     );
-                    return _PremiumTag(
+                    return _PremiumBadge(
                       label: "${t?.name ?? 'Mesa'} (${a.total})",
                       icon: Icons.table_restaurant_rounded,
-                      color: Colors.blueAccent.withValues(alpha: 0.8),
                     );
                   }).toList();
                 }(),
-                _PremiumTag(
+                _PremiumBadge(
                   label: 'Total: ${guest.totalSeats}',
                   icon: Icons.people_alt_rounded,
-                  color: Colors.purpleAccent.withValues(alpha: 0.8),
                 ),
               ],
             ),
@@ -974,20 +981,20 @@ class _GuestCard extends StatelessWidget {
                       value: guest.email!,
                     ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 Row(
                   children: [
                     _ActionButton(
                       label: l.deleteButton,
                       icon: Icons.delete_outline_rounded,
-                      color: Colors.redAccent.withValues(alpha: 0.8),
+                      color: Colors.redAccent,
                       onTap: () => _showDeleteDialog(context, l),
                     ),
                     const SizedBox(width: 12),
                     _ActionButton(
                       label: l.editButton,
                       icon: Icons.edit_rounded,
-                      color: AppColors.brushedGold,
+                      color: baseColor.withValues(alpha: 0.5),
                       onTap: () {
                         final state = context.findAncestorStateOfType<_GuestsScreenState>();
                         state?._showGuestDialog(context, eventId, guest, allGuests);
@@ -995,17 +1002,17 @@ class _GuestCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         onPressed: () => _showTablePicker(context, l),
-                        icon: const Icon(Icons.table_restaurant_rounded, size: 18),
-                        label: const Text("ASIGNAR MESA"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.brushedGold,
                           foregroundColor: AppColors.charcoal,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 4,
+                          shadowColor: AppColors.brushedGold.withValues(alpha: 0.2),
                         ),
+                        child: const Text("ASIGNAR MESA", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                       ),
                     ),
                   ],
@@ -1153,51 +1160,49 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 4, spreadRadius: 0),
-        ],
       ),
       child: Text(
         _statusLabel(l, status).toUpperCase(),
         style: TextStyle(
           color: color,
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: FontWeight.w900,
-          letterSpacing: 1.1,
+          letterSpacing: 1,
         ),
       ),
     );
   }
 }
 
-class _PremiumTag extends StatelessWidget {
+class _PremiumBadge extends StatelessWidget {
   final String label;
   final IconData icon;
-  final Color color;
-  const _PremiumTag({required this.label, required this.icon, required this.color});
+  const _PremiumBadge({required this.label, required this.icon});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: baseColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 6),
+          Icon(icon, size: 12, color: AppColors.brushedGold),
+          const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+            style: TextStyle(color: baseColor.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -1213,21 +1218,20 @@ class _PremiumCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+            color: AppColors.brushedGold.withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.1)),
           ),
           child: Icon(icon, size: 20, color: AppColors.brushedGold),
         ),
         const SizedBox(height: 8),
-        Text('$count', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        Text(label.toUpperCase(), style: TextStyle(fontSize: 8, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)),
+        Text('$count', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 8, color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4), letterSpacing: 1, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -1240,14 +1244,13 @@ class _ContactItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: isDark ? Colors.white30 : Colors.black38),
+          Icon(icon, size: 14, color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
           const SizedBox(width: 12),
-          Text(value, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+          Text(value, style: TextStyle(fontSize: 13, color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.6))),
         ],
       ),
     );
@@ -1320,10 +1323,15 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Chip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        deleteIcon: const Icon(Icons.close, size: 14),
+      child: RawChip(
+        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brushedGold)),
+        deleteIcon: const Icon(Icons.close, size: 14, color: AppColors.brushedGold),
         onDeleted: onRemove,
+        backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+        ),
       ),
     );
   }
@@ -1386,8 +1394,12 @@ class _FilterSheetState extends State<_FilterSheet> {
         .toList();
 
     final isDark = theme.brightness == Brightness.dark;
-    return Padding(
+    return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1399,21 +1411,22 @@ class _FilterSheetState extends State<_FilterSheet> {
               Text(
                 l.filterGuests,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
+                  color: (isDark ? Colors.white : Colors.black87),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           Text(l.filterStatus.toUpperCase(), 
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark ? Colors.white38 : Colors.black38,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
+              color: AppColors.brushedGold,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
             )),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -1430,14 +1443,14 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text(l.filterRole.toUpperCase(), 
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark ? Colors.white38 : Colors.black38,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
+              color: AppColors.brushedGold,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
             )),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -1466,14 +1479,14 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text("Categoría de Invitado".toUpperCase(), 
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark ? Colors.white38 : Colors.black38,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
+              color: AppColors.brushedGold,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
             )),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -1508,14 +1521,14 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text("Asignación de Mesa".toUpperCase(), 
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isDark ? Colors.white38 : Colors.black38,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
+              color: AppColors.brushedGold,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w900,
             )),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -1542,7 +1555,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 48),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1559,17 +1572,17 @@ class _FilterSheetState extends State<_FilterSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.brushedGold,
                 foregroundColor: AppColors.charcoal,
-                elevation: 8,
+                elevation: 12,
                 shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               child: Text(
                 l.applyFilters.toUpperCase(),
                 style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -1778,25 +1791,26 @@ class _GuestDialogState extends State<_GuestDialog> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text("Nuevo tipo de invitado"),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          title: Text("Nuevo tipo de invitado", style: TextStyle(fontWeight: FontWeight.w900, color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: "Ej: Mascotas, Staff, etc.",
-                ),
+                style: TextStyle(color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)),
+                decoration: _inputDecoration("Ej: Mascotas, Staff, etc.", Icons.label_important_outline_rounded, Theme.of(context)),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
                 "Elige un icono:",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.brushedGold, letterSpacing: 1),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               SizedBox(
-                width: 250,
+                width: 280,
                 child: Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -1807,25 +1821,26 @@ class _GuestDialogState extends State<_GuestDialog> {
                       onTap: () => setDialogState(
                         () => selectedIconCode = icon.codePoint,
                       ),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.brushedGold.withValues(alpha: 0.2)
+                              ? AppColors.brushedGold.withValues(alpha: 0.1)
                               : Colors.transparent,
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.brushedGold
-                                : Colors.grey.shade300,
+                                : (Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black12),
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           icon,
+                          size: 20,
                           color: isSelected
                               ? AppColors.brushedGold
-                              : Colors.grey,
+                              : (Theme.of(context).brightness == Brightness.dark ? Colors.white30 : Colors.black38),
                         ),
                       ),
                     );
@@ -1834,12 +1849,13 @@ class _GuestDialogState extends State<_GuestDialog> {
               ),
             ],
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Cancelar"),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 final name = controller.text.trim();
                 if (name.isNotEmpty) {
@@ -1851,7 +1867,12 @@ class _GuestDialogState extends State<_GuestDialog> {
                 }
                 Navigator.pop(context);
               },
-              child: const Text("Añadir"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: AppColors.charcoal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Añadir", style: TextStyle(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -2480,28 +2501,42 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
     }
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       title: Text(
         "Asignar mesa para ${widget.guest.displayName}",
         textAlign: TextAlign.center,
+        style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
       ),
-      content: SizedBox(
+      content: Container(
         width: 400,
-        child: ListView.builder(
+        padding: const EdgeInsets.only(top: 8),
+        child: ListView.separated(
           shrinkWrap: true,
           itemCount: widget.tables.length + 1,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, i) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final baseColor = isDark ? Colors.white : Colors.black;
+
             if (i == 0) {
-              return ListTile(
-                leading: const Icon(Icons.no_accounts_rounded),
-                title: const Text("Sin mesa"),
-                subtitle: const Text("Limpia todas las asignaciones"),
-                onTap: () async {
-                  for (var a in widget.guestAssignments) {
-                    await widget.service.deleteAssignment(widget.eventId, a.id);
-                  }
-                  if (mounted) Navigator.pop(context);
-                },
+              return Container(
+                decoration: BoxDecoration(
+                  color: baseColor.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.no_accounts_rounded, color: Colors.redAccent),
+                  title: const Text("Sin mesa", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                  subtitle: Text("Limpia todas las asignaciones", style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.5), fontSize: 11)),
+                  onTap: () async {
+                    for (var a in widget.guestAssignments) {
+                      await widget.service.deleteAssignment(widget.eventId, a.id);
+                    }
+                    if (mounted) Navigator.pop(context);
+                  },
+                ),
               );
             }
             final t = widget.tables[i - 1];
@@ -2516,48 +2551,58 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
             );
             final isAssigned = assignment.id.isNotEmpty;
 
-            return ListTile(
-              leading: Icon(
-                Icons.table_restaurant_rounded,
-                color: isAssigned ? AppColors.brushedGold : null,
+            return Container(
+              decoration: BoxDecoration(
+                color: isAssigned ? AppColors.brushedGold.withValues(alpha: 0.1) : baseColor.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isAssigned ? AppColors.brushedGold.withValues(alpha: 0.3) : Colors.transparent),
               ),
-              title: Text(t.name),
-              subtitle: Text(
-                isAssigned
-                    ? "Asignado (${assignment.total})"
-                    : "${t.capacity} asientos",
+              child: ListTile(
+                leading: Icon(
+                  Icons.table_restaurant_rounded,
+                  color: isAssigned ? AppColors.brushedGold : baseColor.withValues(alpha: 0.2),
+                ),
+                title: Text(t.name, style: TextStyle(fontWeight: FontWeight.w800, color: isAssigned ? AppColors.brushedGold : baseColor)),
+                subtitle: Text(
+                  isAssigned
+                      ? "Asignado (${assignment.total})"
+                      : "${t.capacity} asientos",
+                  style: TextStyle(color: (isAssigned ? AppColors.brushedGold : baseColor).withValues(alpha: 0.5), fontSize: 11),
+                ),
+                trailing: isAssigned
+                    ? const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: AppColors.brushedGold,
+                      )
+                    : Icon(Icons.chevron_right_rounded, color: baseColor.withValues(alpha: 0.1)),
+                onTap: () {
+                  setState(() {
+                    _selectedTable = t;
+                    if (isAssigned) {
+                      _toAssign = Map<String, int>.from(assignment.counts);
+                    } else {
+                      _toAssign = {
+                        if (widget.guest.adults > 0) 'Adultos': 0,
+                        if (widget.guest.children > 0) 'Niños': 0,
+                        if (widget.guest.disabled > 0) 'Discapacitados': 0,
+                        ...widget.guest.customCounts.map(
+                          (k, v) => MapEntry(k, 0),
+                        ),
+                      };
+                    }
+                  });
+                },
               ),
-              trailing: isAssigned
-                  ? const Icon(
-                      Icons.edit_rounded,
-                      size: 18,
-                      color: AppColors.brushedGold,
-                    )
-                  : null,
-              onTap: () {
-                setState(() {
-                  _selectedTable = t;
-                  if (isAssigned) {
-                    _toAssign = Map<String, int>.from(assignment.counts);
-                  } else {
-                    _toAssign = {
-                      if (widget.guest.adults > 0) 'Adultos': 0,
-                      if (widget.guest.children > 0) 'Niños': 0,
-                      if (widget.guest.disabled > 0) 'Discapacitados': 0,
-                      ...widget.guest.customCounts.map(
-                        (k, v) => MapEntry(k, 0),
-                      ),
-                    };
-                  }
-                });
-              },
             );
           },
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: (Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black45)),
           child: Text(widget.l.cancelButton),
         ),
       ],
