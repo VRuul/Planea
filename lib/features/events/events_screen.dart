@@ -37,8 +37,10 @@ class EventsScreen extends StatelessWidget {
         onPressed: () => _showEventDialog(context, userId),
         backgroundColor: AppColors.brushedGold,
         foregroundColor: AppColors.charcoal,
+        elevation: 8,
         icon: const Icon(Icons.add_rounded),
-        label: Text(l.newEvent),
+        label: Text(l.newEvent, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       body: StreamBuilder<List<EventModel>>(
         stream: FirestoreService().watchUserEvents(userId),
@@ -76,69 +78,67 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    final typeInfo = getEventTypeInfo(context, event.type);
+
     return GestureDetector(
       onTap: () => context.go('/events/${event.id}'),
       child: Container(
-        height: 140,
+        height: 120,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [event.primaryColor, event.secondaryColor],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(
-            color: event.secondaryColor.withValues(alpha: 0.3),
-            blurRadius: 20, offset: const Offset(0, 8),
-          )],
+          color: baseColor.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(color: AppColors.brushedGold.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 8)),
+          ],
         ),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.brushedGold.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(typeInfo.icon, color: AppColors.brushedGold, size: 28),
+            ),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(event.name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                          color: Colors.white, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    const Icon(Icons.calendar_today_rounded,
-                        color: Colors.white70, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${event.date.day}/${event.date.month}/${event.date.year}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.white70),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
+                  Text(event.name, style: theme.textTheme.titleLarge?.copyWith(color: baseColor, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, color: baseColor.withValues(alpha: 0.4), size: 12),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${event.date.day}/${event.date.month}/${event.date.year}',
+                        style: theme.textTheme.labelSmall?.copyWith(color: baseColor.withValues(alpha: 0.4), letterSpacing: 0.5),
                       ),
-                      child: Text(
-                        getEventTypeInfo(context, event.type).label.toUpperCase(),
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: Colors.white),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.brushedGold.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          typeInfo.label.toUpperCase(),
+                          style: const TextStyle(color: AppColors.brushedGold, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                        ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white, size: 18),
-            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: baseColor.withValues(alpha: 0.2), size: 16),
           ],
         ),
       ),
@@ -160,10 +160,12 @@ class _EmptyEvents extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-                gradient: AppColors.goldGradient, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+                color: AppColors.brushedGold.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2))),
             child: const Icon(Icons.celebration_outlined,
-                size: 48, color: AppColors.charcoal),
+                size: 48, color: AppColors.brushedGold),
           ),
           const SizedBox(height: 20),
           Text(l.startPlanning,
