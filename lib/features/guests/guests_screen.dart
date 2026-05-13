@@ -2051,22 +2051,7 @@ class _GuestDialogState extends State<_GuestDialog> {
                       decoration: _inputDecoration(l.contactSocial, Icons.link_rounded, theme),
                     ),
                     const SizedBox(height: 12),
-                    StreamBuilder<List<TableModel>>(
-                      stream: _service.watchTables(widget.eventId),
-                      builder: (context, snap) {
-                        final tables = snap.data ?? [];
-                        return PremiumPicker<String?>(
-                          label: l.navTables,
-                          icon: Icons.table_restaurant_rounded,
-                          value: _selectedTableId,
-                          items: [
-                            PremiumPickerItem(value: null, label: l.tableOptional, icon: Icons.block_rounded),
-                            ...tables.map((t) => PremiumPickerItem(value: t.id, label: t.name, icon: Icons.table_bar_rounded)),
-                          ],
-                          onChanged: (v) => setState(() => _selectedTableId = v),
-                        );
-                      },
-                    ),
+                    const SizedBox(height: 12),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _dietController,
