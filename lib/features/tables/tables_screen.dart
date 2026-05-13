@@ -1,14 +1,16 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:planea/data/models/event_model.dart';
+import 'package:planea/data/models/guest_model.dart';
+import 'package:planea/data/models/table_model.dart';
+import 'package:planea/data/models/venue_element_model.dart';
+import 'package:planea/data/models/seating_assignment_model.dart';
+import 'package:planea/data/models/seating_data_model.dart';
+import 'package:planea/data/services/firestore_service.dart';
+import 'package:planea/providers/event_provider.dart';
 import 'package:planea/l10n/app_localizations.dart';
-import '../../core/constants/app_colors.dart';
-import '../../providers/event_provider.dart';
-import '../../data/models/table_model.dart';
-import '../../data/models/venue_element_model.dart';
-import '../../data/models/seating_data_model.dart';
-import '../../data/services/firestore_service.dart';
-import '../../data/models/guest_model.dart';
-import '../../data/models/seating_assignment_model.dart';
+import 'package:planea/core/constants/app_colors.dart';
 
 class TablesScreen extends StatefulWidget {
   const TablesScreen({super.key});
@@ -18,9 +20,9 @@ class TablesScreen extends StatefulWidget {
 }
 
 class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   final FirestoreService _service = FirestoreService();
   bool _isLayoutMode = false;
+  late TabController _tabController;
 
   @override
   void initState() {
@@ -36,47 +38,43 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final eventProvider = context.watch<EventProvider>();
     final eventId = eventProvider.currentEventId;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
 
     if (eventId == null) {
       return Scaffold(
-        backgroundColor: AppColors.charcoal,
+        backgroundColor: isDark ? AppColors.charcoal : Colors.grey[50],
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text(
-            l.tablesTitle,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          title: Text(l.tablesTitle, style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
         ),
-        body: const Center(
-          child: Text(
-            'Selecciona un evento primero',
-            style: TextStyle(color: Colors.white60),
-          ),
-        ),
+        body: Center(child: Text('Selecciona un evento primero', style: TextStyle(color: isDark ? Colors.white60 : Colors.black45))),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.charcoal,
+      backgroundColor: isDark ? AppColors.charcoal : Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           l.tablesTitle,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         actions: [
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white10,
-              borderRadius: BorderRadius.circular(12),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _ModeButton(
                   icon: Icons.list_rounded,
@@ -98,15 +96,10 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
       body: StreamBuilder<SeatingData>(
         stream: _service.watchSeatingData(eventId),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.brushedGold));
-          }
+          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+          if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: AppColors.brushedGold));
 
           final data = snapshot.data!;
-          
           if (_isLayoutMode) {
             return _LayoutCanvas(
               eventId: eventId,
@@ -121,22 +114,18 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
               TabBar(
                 controller: _tabController,
                 indicatorColor: AppColors.brushedGold,
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.label,
                 labelColor: AppColors.brushedGold,
-                unselectedLabelColor: Colors.white60,
-                tabs: const [
-                  Tab(text: "Mesas"),
-                  Tab(text: "Asignar"),
-                ],
+                unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 13),
+                tabs: const [Tab(text: "MESAS"), Tab(text: "ASIGNAR")],
               ),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _TablesList(
-                      eventId: eventId,
-                      tables: data.tables,
-                      service: _service,
-                    ),
+                    _TablesList(eventId: eventId, tables: data.tables, service: _service),
                     _AssignmentView(
                       eventId: eventId,
                       tables: data.tables,
@@ -151,11 +140,22 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
           );
         },
       ),
-      floatingActionButton: !_isLayoutMode ? FloatingActionButton(
-        onPressed: () => _showTableDialog(context, eventId, showDimensions: false),
+      floatingActionButton: _isLayoutMode ? null : FloatingActionButton.extended(
+        onPressed: () => _showTableDialog(context, eventId),
         backgroundColor: AppColors.brushedGold,
-        child: const Icon(Icons.add, color: AppColors.charcoal),
-      ) : null,
+        foregroundColor: AppColors.charcoal,
+        elevation: 8,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(l.addTable, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    );
+  }
+
+  void _showTableDialog(BuildContext context, String eventId, {TableModel? table, bool showDimensions = false}) {
+    showDialog(
+      context: context,
+      builder: (context) => _TableDialog(eventId: eventId, table: table, showDimensions: showDimensions),
     );
   }
 }
@@ -166,333 +166,32 @@ class _ModeButton extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ModeButton({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _ModeButton({required this.icon, required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brushedGold : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? (isDark ? AppColors.brushedGold : AppColors.charcoal) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected ? [BoxShadow(color: (isDark ? AppColors.brushedGold : AppColors.charcoal).withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : [],
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? AppColors.charcoal : Colors.white70,
-            ),
+            Icon(icon, size: 18, color: isSelected ? (isDark ? AppColors.charcoal : Colors.white) : (isDark ? Colors.white54 : Colors.black54)),
             const SizedBox(width: 8),
             Text(
-              label,
+              label.toUpperCase(),
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.charcoal : Colors.white70,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LayoutCanvas extends StatefulWidget {
-  final String eventId;
-  final List<TableModel> tables;
-  final List<VenueElementModel> venueElements;
-  final FirestoreService service;
-
-  const _LayoutCanvas({
-    required this.eventId,
-    required this.tables,
-    required this.venueElements,
-    required this.service,
-  });
-
-  @override
-  State<_LayoutCanvas> createState() => _LayoutCanvasState();
-}
-
-class _LayoutCanvasState extends State<_LayoutCanvas> {
-  final Map<String, Offset> _dragPositions = {};
-  final TransformationController _transformController = TransformationController();
-  bool _isDragging = false;
-
-  static const double _canvasSize = 10000.0;
-  static const double _canvasOrigin = 5000.0;
-
-  @override
-  void dispose() {
-    _transformController.dispose();
-    super.dispose();
-  }
-
-  void _centerView(BoxConstraints constraints) {
-    if (!mounted) return;
-    
-    double minX = double.infinity, minY = double.infinity;
-    double maxX = double.negativeInfinity, maxY = double.negativeInfinity;
-    
-    bool hasElements = widget.tables.isNotEmpty || widget.venueElements.isNotEmpty;
-
-    if (!hasElements) {
-      final targetX = constraints.maxWidth / 2 - _canvasOrigin;
-      final targetY = constraints.maxHeight / 2 - _canvasOrigin;
-      _transformController.value = Matrix4.identity()..setTranslationRaw(targetX, targetY, 0.0);
-      return;
-    }
-
-    for (var t in widget.tables) {
-      final pos = _dragPositions[t.id] ?? Offset(t.posX, t.posY);
-      final baseSize = 100.0 + (t.capacity * 5.0);
-      final w = t.width ?? (t.shape == TableShape.rectangular ? baseSize * 2 : baseSize);
-      final h = t.height ?? baseSize;
-      
-      if (pos.dx < minX) minX = pos.dx;
-      if (pos.dy < minY) minY = pos.dy;
-      if (pos.dx + w > maxX) maxX = pos.dx + w;
-      if (pos.dy + h > maxY) maxY = pos.dy + h;
-    }
-
-    for (var e in widget.venueElements) {
-      final pos = _dragPositions[e.id] ?? Offset(e.posX, e.posY);
-      if (pos.dx < minX) minX = pos.dx;
-      if (pos.dy < minY) minY = pos.dy;
-      if (pos.dx + e.width > maxX) maxX = pos.dx + e.width;
-      if (pos.dy + e.height > maxY) maxY = pos.dy + e.height;
-    }
-
-    final centerX = (minX + maxX) / 2 + _canvasOrigin;
-    final centerY = (minY + maxY) / 2 + _canvasOrigin;
-    
-    final targetX = constraints.maxWidth / 2 - centerX;
-    final targetY = constraints.maxHeight / 2 - centerY;
-    
-    _transformController.value = Matrix4.identity()..setTranslationRaw(targetX, targetY, 0.0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (_transformController.value.isIdentity()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _centerView(constraints));
-        }
-
-        return Stack(
-          children: [
-            Container(
-              color: const Color(0xFF1A1A1A),
-              child: InteractiveViewer(
-                transformationController: _transformController,
-                boundaryMargin: const EdgeInsets.all(double.infinity),
-                minScale: 0.05,
-                maxScale: 2.0,
-                constrained: false,
-                panEnabled: !_isDragging,
-                scaleEnabled: !_isDragging,
-                child: SizedBox(
-                  width: _canvasSize,
-                  height: _canvasSize,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned.fill(
-                        child: CustomPaint(painter: _GridPainter()),
-                      ),
-                      ...widget.venueElements.map((e) {
-                        final currentPos = _dragPositions[e.id] ?? Offset(e.posX, e.posY);
-                        return Positioned(
-                          left: currentPos.dx + _canvasOrigin,
-                          top: currentPos.dy + _canvasOrigin,
-                          child: _VenueElementItem(
-                            element: e,
-                            onDragUpdate: (delta) {
-                              if (!mounted) return;
-                              final scale = _transformController.value.getMaxScaleOnAxis();
-                              setState(() {
-                                _isDragging = true;
-                                _dragPositions[e.id] = Offset(
-                                  currentPos.dx + delta.dx / scale,
-                                  currentPos.dy + delta.dy / scale,
-                                );
-                              });
-                            },
-                            onDragEnd: () {
-                              if (!mounted) return;
-                              setState(() => _isDragging = false);
-                              final pos = _dragPositions[e.id]!;
-                              widget.service.updateVenueElementPosition(widget.eventId, e.id, pos.dx, pos.dy);
-                            },
-                            onEdit: () => _showVenueElementDialog(context, widget.eventId, e),
-                          ),
-                        );
-                      }),
-                      ...widget.tables.map((t) {
-                        final currentPos = _dragPositions[t.id] ?? Offset(t.posX, t.posY);
-                        return Positioned(
-                          left: currentPos.dx + _canvasOrigin,
-                          top: currentPos.dy + _canvasOrigin,
-                          child: _DraggableTable(
-                            table: t,
-                            onDragUpdate: (delta) {
-                              if (!mounted) return;
-                              final scale = _transformController.value.getMaxScaleOnAxis();
-                              setState(() {
-                                _isDragging = true;
-                                _dragPositions[t.id] = Offset(
-                                  currentPos.dx + delta.dx / scale,
-                                  currentPos.dy + delta.dy / scale,
-                                );
-                              });
-                            },
-                            onDragEnd: () {
-                              if (!mounted) return;
-                              setState(() => _isDragging = false);
-                              final pos = _dragPositions[t.id]!;
-                              widget.service.updateTablePosition(widget.eventId, t.id, pos.dx, pos.dy);
-                            },
-                            onEdit: () => _showTableDialog(context, widget.eventId, table: t, showDimensions: true),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 24,
-              bottom: 24,
-              child: FloatingActionButton.extended(
-                heroTag: 'center_fab',
-                onPressed: () => _centerView(constraints),
-                icon: const Icon(Icons.center_focus_strong),
-                label: const Text('Centrar'),
-                backgroundColor: AppColors.brushedGold.withValues(alpha: 0.8),
-                foregroundColor: AppColors.charcoal,
-              ),
-            ),
-            Positioned(
-              right: 24,
-              bottom: 24,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  FloatingActionButton.extended(
-                    heroTag: 'element_fab',
-                    onPressed: () => _showVenueElementDialog(context, widget.eventId),
-                    icon: const Icon(Icons.add_box_outlined),
-                    label: const Text('Agregar Elemento'),
-                    backgroundColor: AppColors.charcoal,
-                    foregroundColor: AppColors.brushedGold,
-                  ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton.extended(
-                    heroTag: 'table_fab',
-                    onPressed: () => _showTableDialog(context, widget.eventId, showDimensions: true),
-                    icon: const Icon(Icons.table_restaurant),
-                    label: const Text('Agregar Mesa'),
-                    backgroundColor: AppColors.brushedGold,
-                    foregroundColor: AppColors.charcoal,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _DraggableTable extends StatelessWidget {
-  final TableModel table;
-  final Function(Offset) onDragUpdate;
-  final VoidCallback onDragEnd;
-  final VoidCallback onEdit;
-
-  const _DraggableTable({
-    required this.table,
-    required this.onDragUpdate,
-    required this.onDragEnd,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final baseSize = 100.0 + (table.capacity * 5.0);
-    final isCircular = table.shape == TableShape.circular;
-    final isRectangular = table.shape == TableShape.rectangular;
-    
-    final width = table.width ?? (isRectangular ? baseSize * 2.0 : baseSize);
-    final height = table.height ?? baseSize;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanUpdate: (details) => onDragUpdate(details.delta),
-      onPanEnd: (_) => onDragEnd(),
-      onDoubleTap: onEdit,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: AppColors.charcoal.withValues(alpha: 0.9),
-          shape: isCircular ? BoxShape.circle : BoxShape.rectangle,
-          borderRadius: isCircular ? null : BorderRadius.circular(12),
-          border: Border.all(color: AppColors.brushedGold, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    table.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text(
-                    '${table.capacity}',
-                    style: TextStyle(
-                      color: AppColors.brushedGold.withValues(alpha: 0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: IconButton(
-                icon: const Icon(Icons.edit, size: 14, color: Colors.white24),
-                onPressed: onEdit,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                color: isSelected ? (isDark ? AppColors.charcoal : Colors.white) : (isDark ? Colors.white54 : Colors.black54),
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+                letterSpacing: 1,
               ),
             ),
           ],
@@ -507,32 +206,21 @@ class _TablesList extends StatelessWidget {
   final List<TableModel> tables;
   final FirestoreService service;
 
-  const _TablesList({
-    required this.eventId,
-    required this.tables,
-    required this.service,
-  });
+  const _TablesList({required this.eventId, required this.tables, required this.service});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
     if (tables.isEmpty) {
       return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.table_bar_outlined, size: 64, color: Colors.white24),
+            Icon(Icons.table_restaurant_outlined, size: 64, color: baseColor.withValues(alpha: 0.1)),
             const SizedBox(height: 16),
-            const Text('No hay mesas creadas', style: TextStyle(color: Colors.white60)),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _showTableDialog(context, eventId, showDimensions: false),
-              icon: const Icon(Icons.add),
-              label: const Text('Crear primera mesa'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brushedGold,
-                foregroundColor: AppColors.charcoal,
-              ),
-            ),
+            Text('No hay mesas creadas', style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -543,30 +231,34 @@ class _TablesList extends StatelessWidget {
       itemCount: tables.length,
       itemBuilder: (context, index) {
         final table = tables[index];
-        return Card(
-          color: Colors.white.withValues(alpha: 0.05),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return Container(
           margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: baseColor.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: baseColor.withValues(alpha: 0.05)),
+          ),
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.brushedGold,
-              child: Text(
-                table.name.substring(0, 1),
-                style: const TextStyle(color: AppColors.charcoal, fontWeight: FontWeight.bold),
-              ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            leading: Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(color: AppColors.brushedGold.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(Icons.table_bar_rounded, color: AppColors.brushedGold),
             ),
-            title: Text(table.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            subtitle: Text('Capacidad: ${table.capacity}', style: const TextStyle(color: Colors.white60)),
+            title: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w800, fontSize: 16)),
+            subtitle: Text('Capacidad: ${table.capacity} personas', style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 13)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white70),
-                  onPressed: () => _showTableDialog(context, eventId, table: table, showDimensions: false),
+                _ActionButton(
+                  icon: Icons.edit_rounded,
+                  onTap: () => showDialog(context: context, builder: (context) => _TableDialog(eventId: eventId, table: table)),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  onPressed: () => _confirmDeleteTable(context, eventId, table),
+                const SizedBox(width: 8),
+                _ActionButton(
+                  icon: Icons.delete_outline_rounded,
+                  isDelete: true,
+                  onTap: () => service.deleteTable(eventId, table.id),
                 ),
               ],
             ),
@@ -575,27 +267,214 @@ class _TablesList extends StatelessWidget {
       },
     );
   }
+}
 
-  void _confirmDeleteTable(BuildContext context, String eventId, TableModel table) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.charcoal,
-        title: const Text('Eliminar Mesa', style: TextStyle(color: Colors.white)),
-        content: Text('¿Estás seguro de eliminar la ${table.name}?', style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+class _LayoutCanvas extends StatefulWidget {
+  final String eventId;
+  final List<TableModel> tables;
+  final List<VenueElementModel> venueElements;
+  final FirestoreService service;
+
+  const _LayoutCanvas({required this.eventId, required this.tables, required this.venueElements, required this.service});
+
+  @override
+  State<_LayoutCanvas> createState() => _LayoutCanvasState();
+}
+
+class _LayoutCanvasState extends State<_LayoutCanvas> {
+  final TransformationController _transformController = TransformationController();
+  final Map<String, Offset> _dragPositions = {};
+  bool _isDragging = false;
+  static const double _canvasSize = 10000.0;
+  static const double _canvasOrigin = 5000.0;
+
+  void _centerView(BoxConstraints constraints) {
+    if (widget.tables.isEmpty && widget.venueElements.isEmpty) {
+      final initialX = constraints.maxWidth / 2 - _canvasOrigin;
+      final initialY = constraints.maxHeight / 2 - _canvasOrigin;
+      _transformController.value = Matrix4.identity()..setTranslationRaw(initialX, initialY, 0.0);
+      return;
+    }
+
+    double minX = double.infinity, minY = double.infinity, maxX = -double.infinity, maxY = -double.infinity;
+    for (var t in widget.tables) {
+      final pos = _dragPositions[t.id] ?? Offset(t.posX, t.posY);
+      final baseSize = 100.0 + (t.capacity * 5.0);
+      final w = t.width ?? (t.shape == TableShape.rectangular ? baseSize * 2 : baseSize);
+      final h = t.height ?? baseSize;
+      minX = math.min(minX, pos.dx); minY = math.min(minY, pos.dy);
+      maxX = math.max(maxX, pos.dx + w); maxY = math.max(maxY, pos.dy + h);
+    }
+    for (var e in widget.venueElements) {
+      final pos = _dragPositions[e.id] ?? Offset(e.posX, e.posY);
+      minX = math.min(minX, pos.dx); minY = math.min(minY, pos.dy);
+      maxX = math.max(maxX, pos.dx + e.width); maxY = math.max(maxY, pos.dy + e.height);
+    }
+
+    final centerX = (minX + maxX) / 2 + _canvasOrigin;
+    final centerY = (minY + maxY) / 2 + _canvasOrigin;
+    _transformController.value = Matrix4.identity()..setTranslationRaw(constraints.maxWidth / 2 - centerX, constraints.maxHeight / 2 - centerY, 0.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return LayoutBuilder(builder: (context, constraints) {
+      if (_transformController.value.isIdentity()) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _centerView(constraints));
+      }
+      return Stack(
+        children: [
+          Container(
+            color: isDark ? const Color(0xFF1A1A1A) : Colors.grey[200],
+            child: InteractiveViewer(
+              transformationController: _transformController,
+              boundaryMargin: const EdgeInsets.all(double.infinity),
+              minScale: 0.05, maxScale: 2.0, constrained: false,
+              panEnabled: !_isDragging, scaleEnabled: !_isDragging,
+              child: SizedBox(
+                width: _canvasSize, height: _canvasSize,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+                    ...widget.venueElements.map((e) {
+                      final currentPos = _dragPositions[e.id] ?? Offset(e.posX, e.posY);
+                      return Positioned(
+                        left: currentPos.dx + _canvasOrigin, top: currentPos.dy + _canvasOrigin,
+                        child: _VenueElementItem(
+                          element: e,
+                          onDragUpdate: (delta) {
+                            final scale = _transformController.value.getMaxScaleOnAxis();
+                            setState(() {
+                              _isDragging = true;
+                              _dragPositions[e.id] = Offset(currentPos.dx + delta.dx / scale, currentPos.dy + delta.dy / scale);
+                            });
+                          },
+                          onDragEnd: () {
+                            setState(() => _isDragging = false);
+                            final pos = _dragPositions[e.id]!;
+                            widget.service.updateVenueElementPosition(widget.eventId, e.id, pos.dx, pos.dy);
+                          },
+                          onEdit: () => _showVenueElementDialog(context, widget.eventId, e),
+                        ),
+                      );
+                    }),
+                    ...widget.tables.map((t) {
+                      final currentPos = _dragPositions[t.id] ?? Offset(t.posX, t.posY);
+                      return Positioned(
+                        left: currentPos.dx + _canvasOrigin, top: currentPos.dy + _canvasOrigin,
+                        child: _DraggableTable(
+                          table: t,
+                          onDragUpdate: (delta) {
+                            final scale = _transformController.value.getMaxScaleOnAxis();
+                            setState(() {
+                              _isDragging = true;
+                              _dragPositions[t.id] = Offset(currentPos.dx + delta.dx / scale, currentPos.dy + delta.dy / scale);
+                            });
+                          },
+                          onDragEnd: () {
+                            setState(() => _isDragging = false);
+                            final pos = _dragPositions[t.id]!;
+                            widget.service.updateTablePosition(widget.eventId, t.id, pos.dx, pos.dy);
+                          },
+                          onEdit: () => _showTableDialog(context, widget.eventId, table: t, showDimensions: true),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              service.deleteTable(eventId, table.id);
-              Navigator.pop(context);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+          Positioned(
+            left: 24, bottom: 24,
+            child: FloatingActionButton.extended(
+              heroTag: 'center_fab',
+              onPressed: () => _centerView(constraints),
+              icon: const Icon(Icons.center_focus_strong_rounded),
+              label: const Text('CENTRAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+              backgroundColor: AppColors.brushedGold.withValues(alpha: 0.9),
+              foregroundColor: AppColors.charcoal,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ),
+          ),
+          Positioned(
+            right: 24, bottom: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'element_fab',
+                  onPressed: () => _showVenueElementDialog(context, widget.eventId),
+                  icon: const Icon(Icons.add_box_rounded),
+                  label: const Text('ELEMENTO', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+                  foregroundColor: AppColors.brushedGold,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.3))),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'table_fab',
+                  onPressed: () => _showTableDialog(context, widget.eventId, showDimensions: true),
+                  icon: const Icon(Icons.table_restaurant_rounded),
+                  label: const Text('AGREGAR MESA', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  backgroundColor: AppColors.brushedGold,
+                  foregroundColor: AppColors.charcoal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+              ],
+            ),
           ),
         ],
+      );
+    });
+  }
+
+  void _showVenueElementDialog(BuildContext context, String eventId, [VenueElementModel? element]) {
+    showDialog(context: context, builder: (context) => _VenueElementDialog(eventId: eventId, element: element));
+  }
+
+  void _showTableDialog(BuildContext context, String eventId, {TableModel? table, bool showDimensions = false}) {
+    showDialog(context: context, builder: (context) => _TableDialog(eventId: eventId, table: table, showDimensions: showDimensions));
+  }
+}
+
+class _DraggableTable extends StatelessWidget {
+  final TableModel table;
+  final Function(Offset) onDragUpdate;
+  final VoidCallback onDragEnd;
+  final VoidCallback onEdit;
+
+  const _DraggableTable({required this.table, required this.onDragUpdate, required this.onDragEnd, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final baseSize = 100.0 + (table.capacity * 5.0);
+    final width = table.width ?? (table.shape == TableShape.rectangular ? baseSize * 2 : baseSize);
+    final height = table.height ?? baseSize;
+
+    return GestureDetector(
+      onPanUpdate: (details) => onDragUpdate(details.delta),
+      onPanEnd: (_) => onDragEnd(),
+      onDoubleTap: onEdit,
+      child: Container(
+        width: width, height: height,
+        decoration: BoxDecoration(
+          color: AppColors.brushedGold.withValues(alpha: 0.15),
+          shape: table.shape == TableShape.circular ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: table.shape == TableShape.circular ? null : BorderRadius.circular(table.shape == TableShape.square ? 8 : 4),
+          border: Border.all(color: AppColors.brushedGold, width: 2),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(table.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              Text('${table.capacity}', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -608,183 +487,129 @@ class _AssignmentView extends StatelessWidget {
   final List<SeatingAssignment> assignments;
   final FirestoreService service;
 
-  const _AssignmentView({
-    required this.eventId,
-    required this.tables,
-    required this.guests,
-    required this.assignments,
-    required this.service,
-  });
+  const _AssignmentView({required this.eventId, required this.tables, required this.guests, required this.assignments, required this.service});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
     final unassignedGuests = guests.where((g) {
       final guestAssignments = assignments.where((a) => a.guestId == g.id);
       final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
-      return totalAssigned < g.totalSeats;
+      final totalSeats = g.adults + g.children + g.teenagers + g.disabled;
+      return totalAssigned < totalSeats;
     }).toList();
     final totalSeats = tables.fold(0, (sum, t) => sum + t.capacity);
-    final occupiedSeats = assignments.length;
+    final occupiedSeats = assignments.fold(0, (sum, a) => sum + a.total);
     final occupancyPercent = totalSeats > 0 ? (occupiedSeats / totalSeats) : 0.0;
 
     return Column(
       children: [
-        // Premium Header Summary
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+            color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.2),
+            border: Border(bottom: BorderSide(color: baseColor.withValues(alpha: 0.05))),
           ),
           child: Row(
             children: [
-              _CircularProgress(
-                percent: occupancyPercent,
-                size: 50,
-                color: AppColors.brushedGold,
-                child: Center(
-                  child: Text(
-                    '${(occupancyPercent * 100).toInt()}%',
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(width: 56, height: 56, child: CircularProgressIndicator(value: occupancyPercent, strokeWidth: 6, backgroundColor: baseColor.withValues(alpha: 0.05), valueColor: AlwaysStoppedAnimation(AppColors.brushedGold))),
+                  Text('${(occupancyPercent * 100).toInt()}%', style: TextStyle(color: baseColor, fontSize: 12, fontWeight: FontWeight.w900)),
+                ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Estado de Asignación',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      '${unassignedGuests.length} personas sin mesa de ${guests.length} totales',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-                    ),
+                    Text('ESTADO DE ASIGNACIÓN', style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2)),
+                    const SizedBox(height: 4),
+                    Text('${unassignedGuests.length} grupos sin mesa', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ],
                 ),
               ),
               if (unassignedGuests.isNotEmpty)
                 ElevatedButton.icon(
                   onPressed: () => _autoAssign(context),
-                  icon: const Icon(Icons.bolt, size: 16),
-                  label: const Text('Auto', style: TextStyle(fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                  label: const Text('AUTO', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.brushedGold,
                     foregroundColor: AppColors.charcoal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
             ],
           ),
         ),
-
-        // Grid of Tables
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 320,
-              mainAxisExtent: 220,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85),
             itemCount: tables.length,
             itemBuilder: (context, index) {
               final table = tables[index];
               final tableAssignments = assignments.where((a) => a.tableId == table.id).toList();
-              final count = tableAssignments.fold(0, (sum, a) => sum + a.total);
-              final isFull = count >= table.capacity;
+              final currentOccupancy = tableAssignments.fold(0, (sum, a) => sum + a.total);
+              final isFull = currentOccupancy >= table.capacity;
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isFull 
-                        ? Colors.redAccent.withValues(alpha: 0.3) 
-                        : AppColors.brushedGold.withValues(alpha: 0.1),
-                    width: 1,
-                  ),
+                  color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: isFull ? Colors.redAccent.withValues(alpha: 0.3) : AppColors.brushedGold.withValues(alpha: 0.1)),
                 ),
-                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          table.name,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '$count / ${table.capacity}',
-                          style: TextStyle(
-                            color: isFull ? Colors.redAccent : Colors.white54,
-                            fontSize: 11,
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w900, fontSize: 13))),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: isFull ? Colors.redAccent.withValues(alpha: 0.1) : baseColor.withValues(alpha: 0.05), shape: BoxShape.circle),
+                            child: Icon(isFull ? Icons.block_flipped : Icons.person_add_alt_1_rounded, size: 14, color: isFull ? Colors.redAccent : baseColor.withValues(alpha: 0.6)),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: tableAssignments.map((assignment) {
-                            final guest = guests.firstWhere((g) => g.id == assignment.guestId,
-                                orElse: () => GuestModel(
-                                    id: '',
-                                    eventId: '',
-                                    firstName: '?',
-                                    lastName: '',
-                                    displayName: '?',
-                                    role: GuestRole.regular,
-                                    status: GuestStatus.pending,
-                                    adults: 0,
-                                    children: 0,
-                                    teenagers: 0,
-                                    disabled: 0));
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.person, size: 10, color: Colors.white.withValues(alpha: 0.5)),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      '${guest.displayName} (${assignment.total})',
-                                      style: const TextStyle(color: Colors.white, fontSize: 11),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  InkWell(
-                                    onTap: () => service.deleteAssignment(eventId, assignment.id),
-                                    child: Icon(Icons.close, size: 12, color: Colors.white.withValues(alpha: 0.3)),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                        ],
                       ),
                     ),
-                    Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: AppColors.brushedGold, size: 20),
-                        onPressed: () => _showAssignGuestPicker(context, table, unassignedGuests),
+                    Expanded(
+                      child: tableAssignments.isEmpty
+                        ? Center(child: Text('Vacía', style: TextStyle(color: baseColor.withValues(alpha: 0.2), fontSize: 11)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            itemCount: tableAssignments.length,
+                            itemBuilder: (context, i) {
+                              final a = tableAssignments[i];
+                              final guest = guests.firstWhere((g) => g.id == a.guestId);
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(color: baseColor.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: baseColor.withValues(alpha: 0.06))),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(guest.displayName, style: TextStyle(color: baseColor.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                                    Text('${a.total}', style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 11)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                    ),
+                    InkWell(
+                      onTap: isFull ? null : () => _showAssignDialog(context, table),
+                      child: Container(
+                        width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.1), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24))),
+                        child: Center(child: Text(isFull ? 'LLENA' : 'ASIGNAR', style: TextStyle(color: isFull ? Colors.redAccent.withValues(alpha: 0.5) : AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1))),
                       ),
                     ),
                   ],
@@ -797,234 +622,157 @@ class _AssignmentView extends StatelessWidget {
     );
   }
 
-  void _showAssignGuestPicker(BuildContext context, TableModel table, List<GuestModel> unassignedGuests) {
-    showDialog(
-      context: context,
-      builder: (context) => _AssignGuestDialog(
-        eventId: eventId,
-        table: table,
-        allGuests: guests,
-        allTables: tables,
-        allAssignments: assignments,
-        service: service,
-      ),
-    );
+  void _showAssignDialog(BuildContext context, TableModel table) {
+    showDialog(context: context, builder: (context) => _AssignGuestDialog(eventId: eventId, table: table, allGuests: guests, allTables: tables, allAssignments: assignments, service: service));
   }
 
   Future<void> _autoAssign(BuildContext context) async {
-    final pending = guests.where((g) {
+    final unassigned = guests.where((g) {
       final guestAssignments = assignments.where((a) => a.guestId == g.id);
       final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
-      return totalAssigned < g.totalSeats;
+      final totalSeats = g.adults + g.children + g.teenagers + g.disabled;
+      return totalAssigned < totalSeats;
     }).toList();
-    
-    if (pending.isEmpty) return;
 
-    final List<SeatingAssignment> newAssignments = [];
+    if (unassigned.isEmpty) return;
 
-    for (var guest in pending) {
-      final guestAssignments = assignments.where((a) => a.guestId == guest.id);
+    for (var g in unassigned) {
+      final totalSeats = g.adults + g.children + g.teenagers + g.disabled;
+      final guestAssignments = assignments.where((a) => a.guestId == g.id);
       final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
-      int remainingToAssign = guest.totalSeats - totalAssigned;
+      int remainingToAssign = totalSeats - totalAssigned;
 
-      for (var table in tables) {
+      for (var t in tables) {
         if (remainingToAssign <= 0) break;
+        
+        final tableAssignments = assignments.where((a) => a.tableId == t.id);
+        final currentOccupancy = tableAssignments.fold(0, (sum, a) => sum + a.total);
+        final available = t.capacity - currentOccupancy;
 
-        // Considerar también las nuevas asignaciones que aún no están en Firestore pero sí en nuestro lote local
-        final batchOccupiedInTable = newAssignments.where((a) => a.tableId == table.id).fold(0, (sum, a) => sum + a.total);
-        final tableAssignments = assignments.where((a) => a.tableId == table.id);
-        final occupiedInTable = tableAssignments.fold(0, (sum, a) => sum + a.total) + batchOccupiedInTable;
-        final freeInTable = table.capacity - occupiedInTable;
+        if (available > 0) {
+          final toAssign = math.min(remainingToAssign, available);
+          
+          final Map<String, int> counts = {};
+          int tempToAssign = toAssign;
+          
+          // Heuristic: try to assign adults first
+          final List<String> types = ['adults', 'children', 'teenagers', 'disabled'];
+          for (var type in types) {
+            if (tempToAssign <= 0) break;
+            int totalOfType = 0;
+            if (type == 'adults') totalOfType = g.adults;
+            else if (type == 'children') totalOfType = g.children;
+            else if (type == 'teenagers') totalOfType = g.teenagers;
+            else if (type == 'disabled') totalOfType = g.disabled;
 
-        if (freeInTable > 0) {
-          int toSit = remainingToAssign > freeInTable ? freeInTable : remainingToAssign;
-          
-          Map<String, int> assignedCounts = {};
-          int totalSat = 0;
-          
-          void tryFill(String type, int totalInGuest) {
-            final alreadySatType = guestAssignments.fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0)) +
-                                   newAssignments.where((a) => a.guestId == guest.id).fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0));
-            int stillNeeds = totalInGuest - alreadySatType;
-            if (stillNeeds > 0 && totalSat < toSit) {
-              int canSit = (toSit - totalSat) > stillNeeds ? stillNeeds : (toSit - totalSat);
-              if (canSit > 0) {
-                assignedCounts[type] = canSit;
-                totalSat += canSit;
-              }
+            final alreadyAssignedOfType = assignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts[type] ?? 0));
+            final remainingOfType = totalOfType - alreadyAssignedOfType;
+
+            if (remainingOfType > 0) {
+              final take = math.min(tempToAssign, remainingOfType);
+              counts[type] = take;
+              tempToAssign -= take;
             }
           }
 
-          tryFill('Adultos', guest.adults);
-          tryFill('Niños', guest.children);
-          tryFill('Jóvenes', guest.teenagers);
-          tryFill('Especial', guest.disabled);
-          guest.customCounts.forEach((k, v) => tryFill(k, v));
-
-          if (assignedCounts.isNotEmpty) {
-            newAssignments.add(SeatingAssignment(
-              id: '', 
-              tableId: table.id, 
-              guestId: guest.id,
-              counts: assignedCounts,
+          if (counts.isNotEmpty) {
+            await service.addAssignment(eventId, SeatingAssignment(
+              id: '',
+              guestId: g.id,
+              tableId: t.id,
+              counts: counts,
             ));
-            remainingToAssign -= totalSat;
+            remainingToAssign -= toAssign;
           }
         }
       }
     }
+  }
+}
 
-    if (newAssignments.isNotEmpty) {
-      await service.addAssignmentsBatch(eventId, newAssignments);
+class _TableDialog extends StatefulWidget {
+  final String eventId;
+  final TableModel? table;
+  final bool showDimensions;
+  const _TableDialog({required this.eventId, this.table, this.showDimensions = false});
+  @override
+  State<_TableDialog> createState() => _TableDialogState();
+}
+
+class _TableDialogState extends State<_TableDialog> {
+  final FirestoreService _service = FirestoreService();
+  late TextEditingController _nameController, _capacityController, _widthController, _heightController;
+  late TableShape _shape;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialCapacity = widget.table?.capacity ?? 10;
+    String? initialWidth = widget.table?.width?.toString();
+    String? initialHeight = widget.table?.height?.toString();
+    if (widget.showDimensions && widget.table == null) {
+      final baseSize = 100.0 + (initialCapacity * 5.0);
+      initialWidth = baseSize.toString(); initialHeight = baseSize.toString();
     }
-
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invitados asignados automáticamente'), backgroundColor: AppColors.brushedGold)
-    );
+    _nameController = TextEditingController(text: widget.table?.name ?? '');
+    _capacityController = TextEditingController(text: initialCapacity.toString());
+    _widthController = TextEditingController(text: initialWidth ?? '');
+    _heightController = TextEditingController(text: initialHeight ?? '');
+    _shape = widget.table?.shape ?? TableShape.circular;
   }
-}
-
-class _CircularProgress extends StatelessWidget {
-  final double percent;
-  final double size;
-  final Color color;
-  final Widget child;
-
-  const _CircularProgress({
-    required this.percent,
-    required this.size,
-    required this.color,
-    required this.child,
-  });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CircularProgressIndicator(
-              value: 1.0,
-              strokeWidth: 4,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.05)),
-            ),
-          ),
-          Positioned.fill(
-            child: CircularProgressIndicator(
-              value: percent,
-              strokeWidth: 4,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              strokeCap: StrokeCap.round,
-            ),
-          ),
-          child,
-        ],
-      ),
+    final l = AppLocalizations.of(context), theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return AlertDialog(
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      title: Row(children: [Icon(widget.table == null ? Icons.add_circle_outline_rounded : Icons.edit_rounded, color: AppColors.brushedGold), const SizedBox(width: 12), Text(widget.table == null ? 'Crear Mesa' : 'Editar Mesa', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))]),
+      content: SizedBox(width: 450, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const SizedBox(height: 16),
+        TextField(controller: _nameController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableName, Icons.badge_outlined, theme)),
+        const SizedBox(height: 16),
+        TextField(controller: _capacityController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableCapacity, Icons.groups_rounded, theme)),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<TableShape>(value: _shape, dropdownColor: isDark ? AppColors.charcoal : Colors.white, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableShape, Icons.shape_line_rounded, theme), items: [DropdownMenuItem(value: TableShape.circular, child: Text(l.shapeCircular)), DropdownMenuItem(value: TableShape.square, child: Text(l.shapeSquare)), DropdownMenuItem(value: TableShape.rectangular, child: Text(l.shapeRectangular))], onChanged: (val) { if (val != null) setState(() => _shape = val); }),
+        if (widget.showDimensions) ...[const SizedBox(height: 16), Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho (px)', Icons.width_normal_rounded, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto (px)', Icons.height_rounded, theme)))])]
+      ]))),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: Text(l.cancelButton)), const SizedBox(width: 8), ElevatedButton(onPressed: _saving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, elevation: 8, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12)))]
     );
   }
-}
 
-class _TableIndicator extends StatelessWidget {
-  final double percent;
-  final bool isFull;
-
-  const _TableIndicator({required this.percent, required this.isFull});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isFull ? Colors.redAccent : AppColors.brushedGold.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Center(
-        child: Container(
-          width: 14 * percent,
-          height: 14 * percent,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isFull ? Colors.redAccent : AppColors.brushedGold,
-          ),
-        ),
-      ),
-    );
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      final table = TableModel(id: widget.table?.id ?? '', eventId: widget.eventId, name: name, capacity: int.tryParse(_capacityController.text.trim()) ?? 10, shape: _shape, width: double.tryParse(_widthController.text.trim()), height: double.tryParse(_heightController.text.trim()), posX: widget.table?.posX ?? 0.0, posY: widget.table?.posY ?? 0.0);
+      if (widget.table == null) { await _service.addTable(widget.eventId, table); } else { await _service.updateTable(widget.eventId, table); }
+      if (mounted) Navigator.pop(context);
+    } finally { if (mounted) setState(() => _saving = false); }
   }
-}
 
-class _GuestPill extends StatelessWidget {
-  final String name;
-  final VoidCallback onDelete;
-
-  const _GuestPill({required this.name, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.person, size: 12, color: Colors.white38),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          GestureDetector(
-            onTap: onDelete,
-            child: Icon(Icons.close, size: 12, color: Colors.white.withValues(alpha: 0.2)),
-          ),
-        ],
-      ),
-    );
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)));
   }
-}
-
-void _showVenueElementDialog(BuildContext context, String eventId, [VenueElementModel? element]) {
-  showDialog(
-    context: context,
-    builder: (context) => _VenueElementDialog(eventId: eventId, element: element),
-  );
-}
-
-void _showTableDialog(BuildContext context, String eventId, {TableModel? table, bool showDimensions = false}) {
-  showDialog(
-    context: context,
-    builder: (context) => _TableDialog(eventId: eventId, table: table, showDimensions: showDimensions),
-  );
 }
 
 class _VenueElementDialog extends StatefulWidget {
   final String eventId;
   final VenueElementModel? element;
-
   const _VenueElementDialog({required this.eventId, this.element});
-
   @override
   State<_VenueElementDialog> createState() => _VenueElementDialogState();
 }
 
 class _VenueElementDialogState extends State<_VenueElementDialog> {
   final FirestoreService _service = FirestoreService();
-  late TextEditingController _nameController;
-  late TextEditingController _widthController;
-  late TextEditingController _heightController;
+  late TextEditingController _nameController, _widthController, _heightController;
   late VenueElementType _type;
   bool _saving = false;
 
@@ -1039,127 +787,38 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context), theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return AlertDialog(
-      backgroundColor: AppColors.charcoal,
-      title: Text(widget.element == null ? 'Agregar Elemento' : 'Editar Elemento', style: const TextStyle(color: Colors.white)),
-      content: SizedBox(
-        width: 450,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<VenueElementType>(
-                value: _type,
-                dropdownColor: AppColors.charcoal,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Elemento',
-                  labelStyle: TextStyle(color: Colors.white60),
-                ),
-                items: VenueElementType.values.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(_getLocalizedTypeName(type, l)),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _type = val);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Nombre (opcional)',
-                  labelStyle: TextStyle(color: Colors.white60),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _widthController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Ancho',
-                        labelStyle: TextStyle(color: Colors.white60),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _heightController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Alto',
-                        labelStyle: TextStyle(color: Colors.white60),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-        ),
-        if (widget.element != null)
-          TextButton(
-            onPressed: () async {
-              await _service.deleteVenueElement(widget.eventId, widget.element!.id);
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ElevatedButton(
-          onPressed: _saving ? null : _save,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.brushedGold,
-            foregroundColor: AppColors.charcoal,
-          ),
-          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar'),
-        ),
-      ],
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      title: Row(children: [Icon(widget.element == null ? Icons.add_box_rounded : Icons.edit_note_rounded, color: AppColors.brushedGold), const SizedBox(width: 12), Text(widget.element == null ? 'Agregar Elemento' : 'Editar Elemento', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))]),
+      content: SizedBox(width: 450, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const SizedBox(height: 16),
+        DropdownButtonFormField<VenueElementType>(value: _type, dropdownColor: isDark ? AppColors.charcoal : Colors.white, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Tipo', Icons.category_rounded, theme), items: VenueElementType.values.map((type) => DropdownMenuItem(value: type, child: Text(_getLocalizedTypeName(type, l)))).toList(), onChanged: (val) { if (val != null) setState(() => _type = val); }),
+        const SizedBox(height: 16),
+        TextField(controller: _nameController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Nombre', Icons.label_outline, theme)),
+        const SizedBox(height: 16),
+        Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho', Icons.width_normal, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto', Icons.height, theme)))])
+      ]))),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: const Text('Cancelar')), if (widget.element != null) TextButton(onPressed: () async { await _service.deleteVenueElement(widget.eventId, widget.element!.id); if (mounted) Navigator.pop(context); }, style: TextButton.styleFrom(foregroundColor: Colors.redAccent), child: const Text('Eliminar')), const SizedBox(width: 8), ElevatedButton(onPressed: _saving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, elevation: 8, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12)))]
     );
   }
 
   Future<void> _save() async {
-    final name = _nameController.text.trim();
-    final width = double.tryParse(_widthController.text.trim()) ?? 200.0;
-    final height = double.tryParse(_heightController.text.trim()) ?? 200.0;
-    
     setState(() => _saving = true);
     try {
-      final element = VenueElementModel(
-        id: widget.element?.id ?? '',
-        eventId: widget.eventId,
-        name: name.isEmpty ? _type.name : name,
-        type: _type,
-        width: width,
-        height: height,
-        posX: widget.element?.posX ?? 0.0,
-        posY: widget.element?.posY ?? 0.0,
-      );
-
-      if (widget.element == null) {
-        await _service.addVenueElement(widget.eventId, element);
-      } else {
-        await _service.updateVenueElement(widget.eventId, element);
-      }
+      final element = VenueElementModel(id: widget.element?.id ?? '', eventId: widget.eventId, name: _nameController.text.trim().isEmpty ? _type.name : _nameController.text.trim(), type: _type, width: double.tryParse(_widthController.text.trim()) ?? 200, height: double.tryParse(_heightController.text.trim()) ?? 200, posX: widget.element?.posX ?? 0.0, posY: widget.element?.posY ?? 0.0);
+      if (widget.element == null) { await _service.addVenueElement(widget.eventId, element); } else { await _service.updateVenueElement(widget.eventId, element); }
       if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+    } finally { if (mounted) setState(() => _saving = false); }
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5)));
   }
 
   String _getLocalizedTypeName(VenueElementType type, AppLocalizations l) {
@@ -1180,15 +839,22 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
 class _VenueElementItem extends StatelessWidget {
   final VenueElementModel element;
   final Function(Offset) onDragUpdate;
-  final VoidCallback onDragEnd;
-  final VoidCallback onEdit;
+  final VoidCallback onDragEnd, onEdit;
+  const _VenueElementItem({required this.element, required this.onDragUpdate, required this.onDragEnd, required this.onEdit});
 
-  const _VenueElementItem({
-    required this.element,
-    required this.onDragUpdate,
-    required this.onDragEnd,
-    required this.onEdit,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanUpdate: (details) => onDragUpdate(details.delta),
+      onPanEnd: (_) => onDragEnd(),
+      onDoubleTap: onEdit,
+      child: Container(
+        width: element.width, height: element.height,
+        decoration: BoxDecoration(color: _getColor(), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 2)),
+        child: Stack(children: [Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(_getIcon(), color: Colors.white70, size: 32), const SizedBox(height: 4), Text(element.name, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold), textAlign: TextAlign.center)]))]),
+      ),
+    );
+  }
 
   IconData _getIcon() {
     switch (element.type) {
@@ -1217,260 +883,20 @@ class _VenueElementItem extends StatelessWidget {
       default: return Colors.grey.withValues(alpha: 0.3);
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanUpdate: (details) => onDragUpdate(details.delta),
-      onPanEnd: (_) => onDragEnd(),
-      onDoubleTap: onEdit,
-      child: Container(
-        width: element.width,
-        height: element.height,
-        decoration: BoxDecoration(
-          color: _getColor(),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 2),
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(_getIcon(), color: Colors.white70, size: 32),
-                  const SizedBox(height: 4),
-                  Text(
-                    element.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: IconButton(
-                icon: const Icon(Icons.edit, size: 14, color: Colors.white24),
-                onPressed: onEdit,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 1;
-
-    const spacing = 50.0;
-
-    for (double i = 0; i <= size.width; i += spacing) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-    for (double i = 0; i <= size.height; i += spacing) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
-    }
-
-    final originPaint = Paint()
-      ..color = AppColors.brushedGold.withValues(alpha: 0.1)
-      ..strokeWidth = 2;
-    
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.05)..strokeWidth = 1;
+    for (double i = 0; i <= size.width; i += 50) { canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint); }
+    for (double i = 0; i <= size.height; i += 50) { canvas.drawLine(Offset(0, i), Offset(size.width, i), paint); }
+    final originPaint = Paint()..color = AppColors.brushedGold.withValues(alpha: 0.1)..strokeWidth = 2;
     canvas.drawLine(const Offset(0, 5000), const Offset(10000, 5000), originPaint);
     canvas.drawLine(const Offset(5000, 0), const Offset(5000, 10000), originPaint);
   }
-
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _TableDialog extends StatefulWidget {
-  final String eventId;
-  final TableModel? table;
-  final bool showDimensions;
-
-  const _TableDialog({
-    required this.eventId, 
-    this.table, 
-    this.showDimensions = false,
-  });
-
-  @override
-  State<_TableDialog> createState() => _TableDialogState();
-}
-
-class _TableDialogState extends State<_TableDialog> {
-  final FirestoreService _service = FirestoreService();
-  late TextEditingController _nameController;
-  late TextEditingController _capacityController;
-  late TextEditingController _widthController;
-  late TextEditingController _heightController;
-  late TableShape _shape;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final initialCapacity = widget.table?.capacity ?? 10;
-    
-    // Si estamos en modo plano y es mesa nueva, calculamos dimensiones por defecto
-    String? initialWidth = widget.table?.width?.toString();
-    String? initialHeight = widget.table?.height?.toString();
-    
-    if (widget.showDimensions && widget.table == null) {
-      final baseSize = 100.0 + (initialCapacity * 5.0);
-      initialWidth = baseSize.toString();
-      initialHeight = baseSize.toString();
-    }
-
-    _nameController = TextEditingController(text: widget.table?.name ?? '');
-    _capacityController = TextEditingController(text: initialCapacity.toString());
-    _widthController = TextEditingController(text: initialWidth ?? '');
-    _heightController = TextEditingController(text: initialHeight ?? '');
-    _shape = widget.table?.shape ?? TableShape.circular;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return AlertDialog(
-      backgroundColor: AppColors.charcoal,
-      title: Text(widget.table == null ? 'Crear Mesa' : 'Editar Mesa', style: const TextStyle(color: Colors.white)),
-      content: SizedBox(
-        width: 450,
-        child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: l.tableName,
-                labelStyle: const TextStyle(color: Colors.white60),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _capacityController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: l.tableCapacity,
-                labelStyle: const TextStyle(color: Colors.white60),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<TableShape>(
-              value: _shape,
-              dropdownColor: AppColors.charcoal,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: l.tableShape,
-                labelStyle: const TextStyle(color: Colors.white60),
-              ),
-              items: [
-                DropdownMenuItem(value: TableShape.circular, child: Text(l.shapeCircular)),
-                DropdownMenuItem(value: TableShape.square, child: Text(l.shapeSquare)),
-                DropdownMenuItem(value: TableShape.rectangular, child: Text(l.shapeRectangular)),
-              ],
-              onChanged: (val) {
-                if (val != null) setState(() => _shape = val);
-              },
-            ),
-            if (widget.showDimensions) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _widthController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Ancho (px)',
-                        labelStyle: TextStyle(color: Colors.white60),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _heightController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Alto (px)',
-                        labelStyle: TextStyle(color: Colors.white60),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.cancelButton, style: const TextStyle(color: Colors.white60)),
-        ),
-        ElevatedButton(
-          onPressed: _saving ? null : _save,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.brushedGold,
-            foregroundColor: AppColors.charcoal,
-          ),
-          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.saveButton),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _save() async {
-    final name = _nameController.text.trim();
-    final capacity = int.tryParse(_capacityController.text.trim()) ?? 10;
-    final width = double.tryParse(_widthController.text.trim());
-    final height = double.tryParse(_heightController.text.trim());
-
-    if (name.isEmpty) return;
-
-    setState(() => _saving = true);
-    try {
-      final table = TableModel(
-        id: widget.table?.id ?? '',
-        eventId: widget.eventId,
-        name: name,
-        capacity: capacity,
-        shape: _shape,
-        width: width,
-        height: height,
-        posX: widget.table?.posX ?? 0.0,
-        posY: widget.table?.posY ?? 0.0,
-      );
-
-      if (widget.table == null) {
-        await _service.addTable(widget.eventId, table);
-      } else {
-        await _service.updateTable(widget.eventId, table);
-      }
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class _AssignGuestDialog extends StatefulWidget {
@@ -1480,255 +906,73 @@ class _AssignGuestDialog extends StatefulWidget {
   final List<TableModel> allTables;
   final List<SeatingAssignment> allAssignments;
   final FirestoreService service;
-
-  const _AssignGuestDialog({
-    required this.eventId,
-    required this.table,
-    required this.allGuests,
-    required this.allTables,
-    required this.allAssignments,
-    required this.service,
-  });
-
+  const _AssignGuestDialog({required this.eventId, required this.table, required this.allGuests, required this.allTables, required this.allAssignments, required this.service});
   @override
   State<_AssignGuestDialog> createState() => _AssignGuestDialogState();
 }
 
 class _AssignGuestDialogState extends State<_AssignGuestDialog> {
-  String _searchQuery = '';
   GuestModel? _selectedGuest;
   final Map<String, int> _toAssign = {};
 
   @override
   Widget build(BuildContext context) {
-    final tableAssignments = widget.allAssignments.where((a) => a.tableId == widget.table.id).toList();
-    final occupiedInTable = tableAssignments.fold(0, (sum, a) => sum + a.total);
-    final remainingInTable = widget.table.capacity - occupiedInTable;
-
-    if (_selectedGuest != null) {
-      return _buildCountPicker(remainingInTable);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (_selectedGuest == null) {
+      final unassigned = widget.allGuests.where((g) {
+        final totalSeats = g.adults + g.children + g.teenagers + g.disabled;
+        final totalAssigned = widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + a.total);
+        return totalAssigned < totalSeats;
+      }).toList();
+      return AlertDialog(
+        backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text('Asignar Invitado', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SizedBox(width: 400, child: ListView.builder(shrinkWrap: true, itemCount: unassigned.length, itemBuilder: (context, i) {
+          final g = unassigned[i];
+          return ListTile(title: Text(g.displayName), subtitle: Text('${g.adults + g.children + g.teenagers + g.disabled} asientos'), onTap: () => setState(() { _selectedGuest = g; _toAssign['adults'] = 0; _toAssign['children'] = 0; _toAssign['teenagers'] = 0; _toAssign['disabled'] = 0; }));
+        })),
+      );
     }
+    
+    final g = _selectedGuest!;
+    final tableOccupancy = widget.allAssignments.where((a) => a.tableId == widget.table.id).fold(0, (sum, a) => sum + a.total);
+    final remainingInTable = widget.table.capacity - tableOccupancy;
+    final currentTotalToAssign = _toAssign.values.fold(0, (sum, v) => sum + v);
 
-    final availableGuests = widget.allGuests.where((g) {
-      final guestAssignments = widget.allAssignments.where((a) => a.guestId == g.id);
-      final totalAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
-      final matchesSearch = g.displayName.toLowerCase().contains(_searchQuery.toLowerCase());
-      return totalAssigned < g.totalSeats && matchesSearch;
-    }).toList();
+    final List<String> types = ['adults', 'children', 'teenagers', 'disabled'];
 
     return AlertDialog(
-      backgroundColor: AppColors.charcoal,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Asignar a ${widget.table.name}', style: const TextStyle(color: Colors.white, fontSize: 18)),
-          Text('$occupiedInTable / ${widget.table.capacity} asientos ocupados', 
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        ],
-      ),
-      content: SizedBox(
-        width: 450,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Buscar invitado...',
-                hintStyle: TextStyle(color: Colors.white24),
-                prefixIcon: Icon(Icons.search, color: Colors.white24),
-              ),
-              onChanged: (val) => setState(() => _searchQuery = val),
-            ),
-            const SizedBox(height: 16),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300),
-              child: availableGuests.isEmpty
-                  ? const Center(child: Text('No hay invitados pendientes', style: TextStyle(color: Colors.white24)))
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: availableGuests.length,
-                      itemBuilder: (context, index) {
-                        final guest = availableGuests[index];
-                        final guestAssignments = widget.allAssignments.where((a) => a.guestId == guest.id);
-                        final alreadyAssigned = guestAssignments.fold(0, (sum, a) => sum + a.total);
-                        
-                        return ListTile(
-                          title: Text(guest.displayName, style: const TextStyle(color: Colors.white)),
-                          subtitle: Text('Quedan ${guest.totalSeats - alreadyAssigned} boletos', 
-                            style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.group_add, color: AppColors.brushedGold),
-                                tooltip: 'Asignar todos',
-                                onPressed: () async {
-                                  final guestAssignments = widget.allAssignments.where((a) => a.guestId == guest.id);
-                                  final alreadyAssigned = guestAssignments.fold<int>(0, (sum, a) => sum + a.total);
-                                  int guestRemaining = guest.totalSeats - alreadyAssigned;
-                                  
-                                  if (guestRemaining <= remainingInTable) {
-                                    // Cerramos el diálogo primero para evitar colisiones gráficas en web
-                                    Navigator.pop(context);
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Text('Asignar ${g.displayName}'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: types.map((type) {
+        int totalOfType = 0;
+        if (type == 'adults') totalOfType = g.adults;
+        else if (type == 'children') totalOfType = g.children;
+        else if (type == 'teenagers') totalOfType = g.teenagers;
+        else if (type == 'disabled') totalOfType = g.disabled;
 
-                                    Map<String, int> toSit = {};
-                                    void fill(String type, int totalInGuest) {
-                                      final sat = guestAssignments.fold<int>(0, (sum, a) => sum + (a.counts[type] ?? 0));
-                                      if (totalInGuest - sat > 0) toSit[type] = totalInGuest - sat;
-                                    }
+        final assignedOfType = widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts[type] ?? 0));
+        final remainingForType = totalOfType - assignedOfType;
+        
+        if (totalOfType == 0) return const SizedBox.shrink();
 
-                                    fill('Adultos', guest.adults);
-                                    fill('Niños', guest.children);
-                                    fill('Jóvenes', guest.teenagers);
-                                    fill('Especial', guest.disabled);
-                                    guest.customCounts.forEach((k, v) => fill(k, v));
-
-                                    await widget.service.addAssignment(widget.eventId, SeatingAssignment(
-                                      id: '',
-                                      guestId: guest.id,
-                                      tableId: widget.table.id,
-                                      counts: toSit,
-                                    ));
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('No caben todos en esta mesa'))
-                                    );
-                                  }
-                                },
-                              ),
-                              const Icon(Icons.chevron_right, color: Colors.white24),
-                            ],
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _selectedGuest = guest;
-                              _toAssign.clear();
-                              _toAssign['Adultos'] = 0;
-                              if (guest.children > 0) _toAssign['Niños'] = 0;
-                              if (guest.teenagers > 0) _toAssign['Jóvenes'] = 0;
-                              if (guest.disabled > 0) _toAssign['Especial'] = 0;
-                              for (var key in guest.customCounts.keys) {
-                                _toAssign[key] = 0;
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cerrar', style: TextStyle(color: Colors.white60)),
-        ),
-      ],
+        return Row(children: [Expanded(child: Text(type.toUpperCase())), IconButton(icon: const Icon(Icons.remove), onPressed: _toAssign[type]! > 0 ? () => setState(() => _toAssign[type] = _toAssign[type]! - 1) : null), Text('${_toAssign[type]}'), IconButton(icon: const Icon(Icons.add), onPressed: (_toAssign[type]! < remainingForType && currentTotalToAssign < remainingInTable) ? () => setState(() => _toAssign[type] = _toAssign[type]! + 1) : null)]);
+      }).toList()),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), ElevatedButton(onPressed: currentTotalToAssign > 0 ? () async { await widget.service.addAssignment(widget.eventId, SeatingAssignment(id: '', guestId: g.id, tableId: widget.table.id, counts: Map.from(_toAssign)..removeWhere((k,v)=>v==0))); Navigator.pop(context); } : null, child: const Text('Asignar'))],
     );
   }
+}
 
-  Widget _buildCountPicker(int remainingInTable) {
-    final g = _selectedGuest!;
-    final guestAssignments = widget.allAssignments.where((a) => a.guestId == g.id);
-    
-    // Calcular cuánto se ha asignado de cada categoría en OTRAS mesas
-    Map<String, int> assignedPerType = {
-      'Adultos': 0, 'Niños': 0, 'Jóvenes': 0, 'Especial': 0,
-    };
-    for (var a in guestAssignments) {
-      a.counts.forEach((key, val) {
-        assignedPerType[key] = (assignedPerType[key] ?? 0) + val;
-      });
-    }
-
-    int currentTotalToAssign = _toAssign.values.fold(0, (sum, v) => sum + v);
-
-    return AlertDialog(
-      backgroundColor: AppColors.charcoal,
-      title: Text('¿Cuántos de ${g.displayName}?', style: const TextStyle(color: Colors.white, fontSize: 16)),
-      content: SizedBox(
-        width: 450,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _toAssign.keys.map((type) {
-          int maxForType = 0;
-          if (type == 'Adultos') {
-            maxForType = g.adults;
-          } else if (type == 'Niños') {
-            maxForType = g.children;
-          } else if (type == 'Jóvenes') {
-            maxForType = g.teenagers;
-          } else if (type == 'Especial') {
-            maxForType = g.disabled;
-          } else {
-            maxForType = g.customCounts[type] ?? 0;
-          }
-
-          int remainingForType = maxForType - (assignedPerType[type] ?? 0);
-          if (remainingForType <= 0) return const SizedBox.shrink();
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(type, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                      Text('$remainingForType disponibles', 
-                        style: const TextStyle(color: Colors.white38, fontSize: 11)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, color: Colors.white24),
-                  onPressed: _toAssign[type]! > 0 ? () => setState(() => _toAssign[type] = _toAssign[type]! - 1) : null,
-                ),
-                SizedBox(
-                  width: 30,
-                  child: Center(
-                    child: Text('${_toAssign[type]}', 
-                      style: const TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, color: AppColors.brushedGold),
-                  onPressed: (_toAssign[type]! < remainingForType && currentTotalToAssign < remainingInTable) 
-                      ? () => setState(() => _toAssign[type] = _toAssign[type]! + 1) 
-                      : null,
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => setState(() => _selectedGuest = null),
-          child: const Text('Atrás', style: TextStyle(color: Colors.white60)),
-        ),
-        ElevatedButton(
-          onPressed: currentTotalToAssign > 0 ? () async {
-            final counts = Map<String, int>.from(_toAssign)..removeWhere((k, v) => v == 0);
-            
-            // Cerrar primero para estabilidad en Web
-            Navigator.pop(context);
-
-            await widget.service.addAssignment(widget.eventId, SeatingAssignment(
-              id: '',
-              guestId: g.id,
-              tableId: widget.table.id,
-              counts: counts,
-            ));
-          } : null,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal),
-          child: const Text('Asignar'),
-        ),
-      ],
-    );
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDelete;
+  const _ActionButton({required this.icon, required this.onTap, this.isDelete = false});
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: isDelete ? Colors.redAccent.withValues(alpha: 0.1) : baseColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)), child: Icon(icon, size: 18, color: isDelete ? Colors.redAccent : baseColor.withValues(alpha: 0.6))));
   }
 }
