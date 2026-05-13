@@ -16,13 +16,15 @@ class SettingsScreen extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
     final localeProvider = context.watch<LocaleProvider>();
     final auth = context.read<AuthProvider>();
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
 
     return Scaffold(
-      backgroundColor: AppColors.charcoal,
       appBar: AppBar(
-        backgroundColor: AppColors.charcoal,
         elevation: 0,
-        title: Text(l.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        title: Text(l.settingsTitle, style: TextStyle(fontWeight: FontWeight.w800, color: baseColor)),
+        iconTheme: IconThemeData(color: baseColor),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
@@ -71,14 +73,14 @@ class SettingsScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: baseColor.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.verified_user_outlined, size: 20, color: Colors.white24),
+                  child: Icon(Icons.verified_user_outlined, size: 20, color: baseColor.withValues(alpha: 0.2)),
                 ),
                 const SizedBox(height: 12),
                 Text(l.versionLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white24, letterSpacing: 1)),
+                    style: theme.textTheme.bodySmall?.copyWith(color: baseColor.withValues(alpha: 0.2), letterSpacing: 1)),
               ],
             ),
           ),
@@ -99,7 +101,7 @@ class _LanguageTile extends StatelessWidget {
     final theme = Theme.of(context);
     final l = context.l10n;
     final isDark = theme.brightness == Brightness.dark;
-    final baseColor = isDark ? Colors.white : Colors.black;
+    final baseColor = isDark ? Colors.white : Colors.black87;
 
     final options = [
       _LangOption(code: 'auto', label: l.langAuto, flag: '🌐', icon: Icons.language_rounded),
@@ -114,9 +116,9 @@ class _LanguageTile extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: ListTile(
         leading: Container(
@@ -127,9 +129,9 @@ class _LanguageTile extends StatelessWidget {
           ),
           child: Text(current.flag, style: const TextStyle(fontSize: 20)),
         ),
-        title: Text(l.languageLabel, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
-        subtitle: Text(current.label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38)),
-        trailing: const Icon(Icons.expand_more_rounded, color: Colors.white24),
+        title: Text(l.languageLabel, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: baseColor)),
+        subtitle: Text(current.label, style: theme.textTheme.bodySmall?.copyWith(color: baseColor.withValues(alpha: 0.4))),
+        trailing: Icon(Icons.expand_more_rounded, color: baseColor.withValues(alpha: 0.2)),
         onTap: () => _showLanguagePicker(context, l, options),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
@@ -138,9 +140,13 @@ class _LanguageTile extends StatelessWidget {
 
   void _showLanguagePicker(BuildContext context, dynamic l, List<_LangOption> options) {
     final localeProvider = context.read<LocaleProvider>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.charcoal,
+      backgroundColor: theme.scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (_) {
         return Padding(
@@ -150,18 +156,18 @@ class _LanguageTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l.languageSection,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: baseColor, letterSpacing: 0.5)),
               const SizedBox(height: 24),
               ...options.map((opt) => Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: localeProvider.currentCode == opt.code ? AppColors.brushedGold.withValues(alpha: 0.1) : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: localeProvider.currentCode == opt.code ? AppColors.brushedGold.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05)),
+                  border: Border.all(color: localeProvider.currentCode == opt.code ? AppColors.brushedGold.withValues(alpha: 0.3) : baseColor.withValues(alpha: 0.05)),
                 ),
                 child: ListTile(
                   leading: Text(opt.flag, style: const TextStyle(fontSize: 24)),
-                  title: Text(opt.label, style: TextStyle(color: Colors.white, fontWeight: localeProvider.currentCode == opt.code ? FontWeight.w800 : FontWeight.w500)),
+                  title: Text(opt.label, style: TextStyle(color: baseColor, fontWeight: localeProvider.currentCode == opt.code ? FontWeight.w800 : FontWeight.w500)),
                   trailing: localeProvider.currentCode == opt.code ? const Icon(Icons.check_circle_rounded, color: AppColors.brushedGold) : null,
                   onTap: () {
                     localeProvider.setLocale(opt.code);
@@ -291,11 +297,14 @@ class _SettingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black87;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: baseColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
       ),
       child: ListTile(
         leading: Container(
@@ -306,8 +315,8 @@ class _SettingTile extends StatelessWidget {
           ),
           child: Icon(icon, color: iconColor ?? AppColors.brushedGold, size: 20),
         ),
-        title: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
-        trailing: trailing ?? const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+        title: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: baseColor)),
+        trailing: trailing ?? Icon(Icons.chevron_right_rounded, color: baseColor.withValues(alpha: 0.2)),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
