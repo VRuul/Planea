@@ -57,13 +57,18 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.charcoal : Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
         title: Text(
           l.tablesTitle,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
         actions: [
           Container(
@@ -170,28 +175,40 @@ class _ModeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.tightFor(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? (isDark ? AppColors.brushedGold : AppColors.charcoal) : Colors.transparent,
+          color: isSelected ? AppColors.brushedGold : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected ? [BoxShadow(color: (isDark ? AppColors.brushedGold : AppColors.charcoal).withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : [],
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppColors.brushedGold.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4)
+            )
+          ] : [],
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: isSelected ? (isDark ? AppColors.charcoal : Colors.white) : (isDark ? Colors.white54 : Colors.black54)),
+            Icon(
+              icon, 
+              size: 16, 
+              color: isSelected ? AppColors.charcoal : (isDark ? Colors.white54 : Colors.black45)
+            ),
             const SizedBox(width: 8),
             Text(
               label.toUpperCase(),
               style: TextStyle(
-                color: isSelected ? (isDark ? AppColors.charcoal : Colors.white) : (isDark ? Colors.white54 : Colors.black54),
+                color: isSelected ? AppColors.charcoal : (isDark ? Colors.white54 : Colors.black45),
                 fontWeight: FontWeight.w900,
                 fontSize: 10,
-                letterSpacing: 1,
+                letterSpacing: 1.2,
               ),
             ),
           ],
@@ -235,17 +252,20 @@ class _TablesList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: baseColor.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: baseColor.withValues(alpha: 0.05)),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             leading: Container(
               width: 48, height: 48,
-              decoration: BoxDecoration(color: AppColors.brushedGold.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: Icon(Icons.table_bar_rounded, color: AppColors.brushedGold),
+              decoration: BoxDecoration(
+                color: AppColors.brushedGold.withValues(alpha: 0.1), 
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(Icons.table_restaurant_rounded, color: AppColors.brushedGold, size: 22),
             ),
-            title: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w800, fontSize: 16)),
+            title: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.3)),
             subtitle: Text('Capacidad: ${table.capacity} personas', style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 13)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -318,7 +338,8 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return LayoutBuilder(builder: (context, constraints) {
       if (_transformController.value.isIdentity()) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _centerView(constraints));
@@ -326,7 +347,7 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
       return Stack(
         children: [
           Container(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.grey[200],
+            color: theme.scaffoldBackgroundColor,
             child: InteractiveViewer(
               transformationController: _transformController,
               boundaryMargin: const EdgeInsets.all(double.infinity),
@@ -392,11 +413,15 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
             child: FloatingActionButton.extended(
               heroTag: 'center_fab',
               onPressed: () => _centerView(constraints),
-              icon: const Icon(Icons.center_focus_strong_rounded),
-              label: const Text('CENTRAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
-              backgroundColor: AppColors.brushedGold.withValues(alpha: 0.9),
-              foregroundColor: AppColors.charcoal,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              icon: const Icon(Icons.center_focus_strong_rounded, size: 20),
+              label: const Text('CENTRAR', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
+              backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+              foregroundColor: AppColors.brushedGold,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+              ),
             ),
           ),
           Positioned(
@@ -407,21 +432,27 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
                 FloatingActionButton.extended(
                   heroTag: 'element_fab',
                   onPressed: () => _showVenueElementDialog(context, widget.eventId),
-                  icon: const Icon(Icons.add_box_rounded),
-                  label: const Text('ELEMENTO', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  icon: const Icon(Icons.add_box_rounded, size: 20),
+                  label: const Text('ELEMENTO', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
                   backgroundColor: isDark ? AppColors.charcoal : Colors.white,
                   foregroundColor: AppColors.brushedGold,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.3))),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.extended(
                   heroTag: 'table_fab',
                   onPressed: () => _showTableDialog(context, widget.eventId, showDimensions: true),
-                  icon: const Icon(Icons.table_restaurant_rounded),
-                  label: const Text('AGREGAR MESA', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  icon: const Icon(Icons.table_restaurant_rounded, size: 20),
+                  label: const Text('AGREGAR MESA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
                   backgroundColor: AppColors.brushedGold,
                   foregroundColor: AppColors.charcoal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 8,
+                  shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ],
             ),
@@ -461,17 +492,32 @@ class _DraggableTable extends StatelessWidget {
       child: Container(
         width: width, height: height,
         decoration: BoxDecoration(
-          color: AppColors.brushedGold.withValues(alpha: 0.15),
+          color: AppColors.brushedGold.withValues(alpha: 0.08),
           shape: table.shape == TableShape.circular ? BoxShape.circle : BoxShape.rectangle,
-          borderRadius: table.shape == TableShape.circular ? null : BorderRadius.circular(table.shape == TableShape.square ? 8 : 4),
-          border: Border.all(color: AppColors.brushedGold, width: 2),
+          borderRadius: table.shape == TableShape.circular ? null : BorderRadius.circular(table.shape == TableShape.square ? 12 : 8),
+          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 1.5),
         ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(table.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-              Text('${table.capacity}', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+              Text(
+                table.name, 
+                style: const TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: -0.2),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.brushedGold.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${table.capacity}', 
+                  style: const TextStyle(color: AppColors.brushedGold, fontSize: 9, fontWeight: FontWeight.w900),
+                ),
+              ),
             ],
           ),
         ),
@@ -510,26 +556,52 @@ class _AssignmentView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.2),
-            border: Border(bottom: BorderSide(color: baseColor.withValues(alpha: 0.05))),
+            color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.02),
+            border: Border(bottom: BorderSide(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05))),
           ),
           child: Row(
             children: [
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  SizedBox(width: 56, height: 56, child: CircularProgressIndicator(value: occupancyPercent, strokeWidth: 6, backgroundColor: baseColor.withValues(alpha: 0.05), valueColor: AlwaysStoppedAnimation(AppColors.brushedGold))),
-                  Text('${(occupancyPercent * 100).toInt()}%', style: TextStyle(color: baseColor, fontSize: 12, fontWeight: FontWeight.w900)),
+                  SizedBox(
+                    width: 56, 
+                    height: 56, 
+                    child: CircularProgressIndicator(
+                      value: occupancyPercent, 
+                      strokeWidth: 4, 
+                      backgroundColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05), 
+                      valueColor: const AlwaysStoppedAnimation(AppColors.brushedGold),
+                    ),
+                  ),
+                  Text(
+                    '${(occupancyPercent * 100).toInt()}%', 
+                    style: TextStyle(color: AppColors.brushedGold, fontSize: 12, fontWeight: FontWeight.w900),
+                  ),
                 ],
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ESTADO DE ASIGNACIÓN', style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2)),
-                    const SizedBox(height: 4),
-                    Text('${unassignedGuests.length} grupos sin mesa', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(
+                      'ESTADO DE ASIGNACIÓN', 
+                      style: TextStyle(
+                        color: AppColors.brushedGold, 
+                        fontWeight: FontWeight.w900, 
+                        fontSize: 10, 
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${unassignedGuests.length} grupos sin mesa', 
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -541,8 +613,10 @@ class _AssignmentView extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.brushedGold,
                     foregroundColor: AppColors.charcoal,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 8,
+                    shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
             ],
@@ -561,9 +635,13 @@ class _AssignmentView extends StatelessWidget {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: isFull ? Colors.redAccent.withValues(alpha: 0.3) : AppColors.brushedGold.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: isFull 
+                        ? Colors.redAccent.withValues(alpha: 0.3) 
+                        : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,18 +650,47 @@ class _AssignmentView extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          Expanded(child: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w900, fontSize: 13))),
+                          Expanded(
+                            child: Text(
+                              table.name.toUpperCase(), 
+                              style: TextStyle(
+                                color: isFull ? Colors.redAccent : AppColors.brushedGold, 
+                                fontWeight: FontWeight.w900, 
+                                fontSize: 11,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
                           Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(color: isFull ? Colors.redAccent.withValues(alpha: 0.1) : baseColor.withValues(alpha: 0.05), shape: BoxShape.circle),
-                            child: Icon(isFull ? Icons.block_flipped : Icons.person_add_alt_1_rounded, size: 14, color: isFull ? Colors.redAccent : baseColor.withValues(alpha: 0.6)),
+                            decoration: BoxDecoration(
+                              color: isFull 
+                                  ? Colors.redAccent.withValues(alpha: 0.1) 
+                                  : AppColors.brushedGold.withValues(alpha: 0.1), 
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isFull ? Icons.block_flipped : Icons.person_add_alt_1_rounded, 
+                              size: 14, 
+                              color: isFull ? Colors.redAccent : AppColors.brushedGold,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: tableAssignments.isEmpty
-                        ? Center(child: Text('Vacía', style: TextStyle(color: baseColor.withValues(alpha: 0.2), fontSize: 11)))
+                        ? Center(
+                            child: Text(
+                              'VACÍA', 
+                              style: TextStyle(
+                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.15), 
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             itemCount: tableAssignments.length,
@@ -592,12 +699,33 @@ class _AssignmentView extends StatelessWidget {
                               final guest = guests.firstWhere((g) => g.id == a.guestId);
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(color: baseColor.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: baseColor.withValues(alpha: 0.06))),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03), 
+                                  borderRadius: BorderRadius.circular(12), 
+                                  border: Border.all(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05)),
+                                ),
                                 child: Row(
                                   children: [
-                                    Expanded(child: Text(guest.displayName, style: TextStyle(color: baseColor.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
-                                    Text('${a.total}', style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 11)),
+                                    Expanded(
+                                      child: Text(
+                                        guest.displayName, 
+                                        style: TextStyle(
+                                          color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.7), 
+                                          fontSize: 11, 
+                                          fontWeight: FontWeight.w700,
+                                        ), 
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${a.total}', 
+                                      style: const TextStyle(
+                                        color: AppColors.brushedGold, 
+                                        fontWeight: FontWeight.w900, 
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -606,10 +734,24 @@ class _AssignmentView extends StatelessWidget {
                     ),
                     InkWell(
                       onTap: isFull ? null : () => _showAssignDialog(context, table),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                       child: Container(
-                        width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.1), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24))),
-                        child: Center(child: Text(isFull ? 'LLENA' : 'ASIGNAR', style: TextStyle(color: isFull ? Colors.redAccent.withValues(alpha: 0.5) : AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1))),
+                        width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.05), 
+                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            isFull ? 'CAPACIDAD MÁXIMA' : 'ASIGNAR INVITADOS', 
+                            style: TextStyle(
+                              color: isFull ? Colors.redAccent.withValues(alpha: 0.3) : AppColors.brushedGold, 
+                              fontWeight: FontWeight.w900, 
+                              fontSize: 10, 
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -727,21 +869,106 @@ class _TableDialogState extends State<_TableDialog> {
     final l = AppLocalizations.of(context), theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return AlertDialog(
-      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      title: Row(children: [Icon(widget.table == null ? Icons.add_circle_outline_rounded : Icons.edit_rounded, color: AppColors.brushedGold), const SizedBox(width: 12), Text(widget.table == null ? 'Crear Mesa' : 'Editar Mesa', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))]),
-      content: SizedBox(width: 450, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(height: 16),
-        TextField(controller: _nameController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableName, Icons.badge_outlined, theme)),
-        const SizedBox(height: 16),
-        TextField(controller: _capacityController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableCapacity, Icons.groups_rounded, theme)),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<TableShape>(value: _shape, dropdownColor: isDark ? AppColors.charcoal : Colors.white, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.tableShape, Icons.shape_line_rounded, theme), items: [DropdownMenuItem(value: TableShape.circular, child: Text(l.shapeCircular)), DropdownMenuItem(value: TableShape.square, child: Text(l.shapeSquare)), DropdownMenuItem(value: TableShape.rectangular, child: Text(l.shapeRectangular))], onChanged: (val) { if (val != null) setState(() => _shape = val); }),
-        if (widget.showDimensions) ...[const SizedBox(height: 16), Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho (px)', Icons.width_normal_rounded, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto (px)', Icons.height_rounded, theme)))])]
-      ]))),
+      title: Row(
+        children: [
+          Icon(
+            widget.table == null ? Icons.add_circle_outline_rounded : Icons.edit_rounded, 
+            color: AppColors.brushedGold, 
+            size: 28,
+          ), 
+          const SizedBox(width: 12), 
+          Text(
+            widget.table == null ? 'Crear Mesa' : 'Editar Mesa', 
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 450, 
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min, 
+            children: [
+              const SizedBox(height: 24),
+              TextField(
+                controller: _nameController, 
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
+                decoration: _inputDecoration(l.tableName, Icons.badge_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _capacityController, 
+                keyboardType: TextInputType.number, 
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
+                decoration: _inputDecoration(l.tableCapacity, Icons.groups_rounded, theme),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<TableShape>(
+                value: _shape, 
+                dropdownColor: isDark ? AppColors.charcoal : Colors.white, 
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
+                decoration: _inputDecoration(l.tableShape, Icons.shape_line_rounded, theme), 
+                items: [
+                  DropdownMenuItem(value: TableShape.circular, child: Text(l.shapeCircular)), 
+                  DropdownMenuItem(value: TableShape.square, child: Text(l.shapeSquare)), 
+                  DropdownMenuItem(value: TableShape.rectangular, child: Text(l.shapeRectangular)),
+                ], 
+                onChanged: (val) { if (val != null) setState(() => _shape = val); },
+              ),
+              if (widget.showDimensions) ...[
+                const SizedBox(height: 16), 
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _widthController, 
+                        keyboardType: TextInputType.number, 
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
+                        decoration: _inputDecoration('Ancho (px)', Icons.width_normal_rounded, theme),
+                      ),
+                    ), 
+                    const SizedBox(width: 16), 
+                    Expanded(
+                      child: TextField(
+                        controller: _heightController, 
+                        keyboardType: TextInputType.number, 
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
+                        decoration: _inputDecoration('Alto (px)', Icons.height_rounded, theme),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
       actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: Text(l.cancelButton)), const SizedBox(width: 8), ElevatedButton(onPressed: _saving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, elevation: 8, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12)))]
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context), 
+          style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), 
+          child: Text(l.cancelButton),
+        ), 
+        const SizedBox(width: 8), 
+        ElevatedButton(
+          onPressed: _saving ? null : _save, 
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold, 
+            foregroundColor: AppColors.charcoal, 
+            elevation: 12, 
+            shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16), 
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ), 
+          child: _saving 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) 
+              : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+        ),
+      ],
     );
   }
 
@@ -841,17 +1068,43 @@ class _VenueElementItem extends StatelessWidget {
   final Function(Offset) onDragUpdate;
   final VoidCallback onDragEnd, onEdit;
   const _VenueElementItem({required this.element, required this.onDragUpdate, required this.onDragEnd, required this.onEdit});
-
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onPanUpdate: (details) => onDragUpdate(details.delta),
       onPanEnd: (_) => onDragEnd(),
       onDoubleTap: onEdit,
       child: Container(
         width: element.width, height: element.height,
-        decoration: BoxDecoration(color: _getColor(), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 2)),
-        child: Stack(children: [Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(_getIcon(), color: Colors.white70, size: 32), const SizedBox(height: 4), Text(element.name, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold), textAlign: TextAlign.center)]))]),
+        decoration: BoxDecoration(
+          color: _getColor(isDark), 
+          borderRadius: BorderRadius.circular(12), 
+          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.3), width: 1.5),
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min, 
+                children: [
+                  Icon(_getIcon(), color: AppColors.brushedGold.withValues(alpha: 0.8), size: 32), 
+                  const SizedBox(height: 8), 
+                  Text(
+                    element.name.toUpperCase(), 
+                    style: const TextStyle(
+                      color: AppColors.brushedGold, 
+                      fontSize: 10, 
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ), 
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -870,18 +1123,8 @@ class _VenueElementItem extends StatelessWidget {
     }
   }
 
-  Color _getColor() {
-    switch (element.type) {
-      case VenueElementType.danceFloor: return Colors.purple.withValues(alpha: 0.3);
-      case VenueElementType.dj: return Colors.blue.withValues(alpha: 0.3);
-      case VenueElementType.candyBar: return Colors.pink.withValues(alpha: 0.3);
-      case VenueElementType.entrance: return Colors.green.withValues(alpha: 0.3);
-      case VenueElementType.reception: return Colors.amber.withValues(alpha: 0.3);
-      case VenueElementType.bar: return Colors.red.withValues(alpha: 0.3);
-      case VenueElementType.bathrooms: return Colors.cyan.withValues(alpha: 0.3);
-      case VenueElementType.kitchen: return Colors.orange.withValues(alpha: 0.3);
-      default: return Colors.grey.withValues(alpha: 0.3);
-    }
+  Color _getColor(bool isDark) {
+    return AppColors.brushedGold.withValues(alpha: isDark ? 0.05 : 0.02);
   }
 }
 
