@@ -27,6 +27,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
   GuestRole? _filterRole;
   String? _filterCustomRole;
   String? _filterGuestType;
+  String? _filterSeatingStatus; // 'Completos', 'Parciales', 'Sin Asignar'
   String _search = '';
   List<GuestModel> _allGuestsCached = [];
 
@@ -103,6 +104,11 @@ class _GuestsScreenState extends State<GuestsScreen> {
                           label: _filterGuestType!,
                           onRemove: () => setState(() => _filterGuestType = null),
                         ),
+                      if (_filterSeatingStatus != null)
+                        _FilterChip(
+                          label: _filterSeatingStatus!,
+                          onRemove: () => setState(() => _filterSeatingStatus = null),
+                        ),
                     ],
                   ),
                 ),
@@ -158,11 +164,13 @@ class _GuestsScreenState extends State<GuestsScreen> {
         currentRole: _filterRole,
         currentCustomRole: _filterCustomRole,
         currentGuestType: _filterGuestType,
-        onApply: (status, role, customRole, type) => setState(() {
+        currentSeatingStatus: _filterSeatingStatus,
+        onApply: (status, role, customRole, type, seating) => setState(() {
           _filterStatus = status;
           _filterRole = role;
           _filterCustomRole = customRole;
           _filterGuestType = type;
+          _filterSeatingStatus = seating;
         }),
       ),
     );
@@ -196,7 +204,21 @@ class _GuestsScreenState extends State<GuestsScreen> {
         }
       }
 
-      return matchSearch && matchStatus && matchRole && matchType;
+      bool matchSeating = true;
+      if (_filterSeatingStatus != null) {
+        final guestAssig = assignments.where((a) => a.guestId == g.id);
+        final totalAssigned = guestAssig.fold<int>(0, (sum, a) => sum + a.total);
+        
+        if (_filterSeatingStatus == 'Completos') {
+          matchSeating = totalAssigned >= g.totalSeats;
+        } else if (_filterSeatingStatus == 'Parciales') {
+          matchSeating = totalAssigned > 0 && totalAssigned < g.totalSeats;
+        } else if (_filterSeatingStatus == 'Sin Asignar') {
+          matchSeating = totalAssigned == 0;
+        }
+      }
+
+      return matchSearch && matchStatus && matchRole && matchType && matchSeating;
     }).toList();
 
     if (filtered.isEmpty) {
@@ -647,7 +669,8 @@ class _FilterSheet extends StatefulWidget {
   final GuestRole? currentRole;
   final String? currentCustomRole;
   final String? currentGuestType;
-  final Function(GuestStatus?, GuestRole?, String?, String?) onApply;
+  final String? currentSeatingStatus;
+  final Function(GuestStatus?, GuestRole?, String?, String?, String?) onApply;
 
   const _FilterSheet({
     required this.allGuests,
@@ -655,6 +678,7 @@ class _FilterSheet extends StatefulWidget {
     this.currentRole,
     this.currentCustomRole,
     this.currentGuestType,
+    this.currentSeatingStatus,
     required this.onApply,
   });
 
@@ -667,6 +691,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   GuestRole? _role;
   String? _customRole;
   String? _guestType;
+  String? _seatingStatus;
 
   @override
   void initState() {
@@ -675,6 +700,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     _role = widget.currentRole;
     _customRole = widget.currentCustomRole;
     _guestType = widget.currentGuestType;
+    _seatingStatus = widget.currentSeatingStatus;
   }
 
   @override
@@ -782,12 +808,38 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
+          const SizedBox(height: 16),
+          Text("Asignación de Mesa", style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _TypeChip(
+                  label: 'Completos',
+                  selected: _seatingStatus == 'Completos',
+                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Completos' : null),
+                ),
+                _TypeChip(
+                  label: 'Parciales',
+                  selected: _seatingStatus == 'Parciales',
+                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Parciales' : null),
+                ),
+                _TypeChip(
+                  label: 'Sin Asignar',
+                  selected: _seatingStatus == 'Sin Asignar',
+                  onSelected: (v) => setState(() => _seatingStatus = v ? 'Sin Asignar' : null),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                widget.onApply(_status, _role, _customRole, _guestType);
+                widget.onApply(_status, _role, _customRole, _guestType, _seatingStatus);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
