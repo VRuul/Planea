@@ -82,7 +82,7 @@ class _DesktopShell extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Divider(alpha: 0.05),
+                  child: Divider(color: Colors.white10),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -186,6 +186,8 @@ class _EventSwitcher extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final eventProvider = context.watch<EventProvider>();
     final userId = auth.currentUser?.uid ?? '';
+
+    final isDark = theme.brightness == Brightness.dark;
 
     return StreamBuilder<List<EventModel>>(
       stream: eventProvider.watchUserEvents(userId),
