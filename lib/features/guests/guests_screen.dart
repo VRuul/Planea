@@ -67,7 +67,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
               IconButton(
                 icon: const Icon(
                   Icons.message_rounded,
-                  color: Colors.greenAccent,
+                  color: AppColors.brushedGold,
                 ),
                 tooltip: 'Configurar Mensaje',
                 onPressed: () =>
@@ -331,79 +331,265 @@ class _GuestsScreenState extends State<GuestsScreen> {
     String eventId,
     EventModel event,
   ) {
-    int activeTab = 0; // 0 for WhatsApp, 1 for Email
-    final waController = TextEditingController(text: event.whatsappTemplate ?? 'Hola {nombre}, te contacto para saludarte.');
-    final emailController = TextEditingController(text: event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.');
-    final subjectController = TextEditingController(text: event.emailSubject ?? 'Información de tu invitación');
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.charcoal,
-          title: Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => setDialogState(() => activeTab = 0),
-                  child: Text('WhatsApp', style: TextStyle(color: activeTab == 0 ? AppColors.brushedGold : Colors.white54)),
-                ),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: () => setDialogState(() => activeTab = 1),
-                  child: Text('Correo', style: TextStyle(color: activeTab == 1 ? AppColors.brushedGold : Colors.white54)),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Etiquetas: {nombre}, {mesa}, {total}',
-                style: TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              if (activeTab == 0) ...[
-                TextField(
-                  controller: waController,
-                  maxLines: 5,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(hintText: 'Mensaje de WhatsApp...'),
-                ),
-              ] else ...[
-                TextField(
-                  controller: subjectController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(hintText: 'Asunto del correo...'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  maxLines: 5,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(hintText: 'Cuerpo del correo...'),
+      builder: (context) => _MessageTemplateDialog(
+        eventId: eventId,
+        event: event,
+        service: _service,
+      ),
+    );
+  }
+
+  Future<void> _showGuestDialog(
+    BuildContext context,
+    String eventId, [
+    GuestModel? guest,
+    List<GuestModel>? allGuests,
+  ]) async {
+    await showDialog(
+      context: context,
+      builder: (_) =>
+          _GuestDialog(eventId: eventId, guest: guest, allGuests: allGuests),
+    );
+  }
+}
+
+class _MessageTemplateDialog extends StatefulWidget {
+  final String eventId;
+  final EventModel event;
+  final FirestoreService service;
+
+  const _MessageTemplateDialog({
+    required this.eventId,
+    required this.event,
+    required this.service,
+  });
+
+  @override
+  State<_MessageTemplateDialog> createState() => _MessageTemplateDialogState();
+}
+
+class _MessageTemplateDialogState extends State<_MessageTemplateDialog> {
+  int activeTab = 0; // 0 for WhatsApp, 1 for Email
+  late TextEditingController waController;
+  late TextEditingController emailController;
+  late TextEditingController subjectController;
+
+  @override
+  void initState() {
+    super.initState();
+    waController = TextEditingController(text: widget.event.whatsappTemplate ?? 'Hola {nombre}, te contacto para saludarte.');
+    emailController = TextEditingController(text: widget.event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.');
+    subjectController = TextEditingController(text: widget.event.emailSubject ?? 'Información de tu invitación');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return AlertDialog(
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.all(0),
+      title: Container(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome_motion_rounded, color: AppColors.brushedGold, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  "Configurar Mensajes",
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
                 ),
               ],
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-            ElevatedButton(
-              onPressed: () async {
-                if (activeTab == 0) {
-                  await _service.updateEventTemplate(eventId, waController.text.trim());
-                } else {
-                  await _service.updateEventEmailConfig(eventId, emailController.text.trim(), subjectController.text.trim());
-                }
-                if (context.mounted) Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal),
-              child: const Text('Guardar'),
+            ),
+            const SizedBox(height: 24),
+            // Custom Segmented Control
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: baseColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  _TabButton(
+                    label: "WhatsApp",
+                    icon: Icons.chat_bubble_outline_rounded,
+                    selected: activeTab == 0,
+                    onTap: () => setState(() => activeTab = 0),
+                  ),
+                  _TabButton(
+                    label: "Correo",
+                    icon: Icons.alternate_email_rounded,
+                    selected: activeTab == 1,
+                    onTap: () => setState(() => activeTab = 1),
+                  ),
+                ],
+              ),
             ),
           ],
+        ),
+      ),
+      content: SizedBox(
+        width: 500,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _TagChip(label: "{nombre}"),
+                _TagChip(label: "{mesa}"),
+                _TagChip(label: "{total}"),
+              ],
+            ),
+            const SizedBox(height: 24),
+            if (activeTab == 0) ...[
+              TextField(
+                controller: waController,
+                maxLines: 6,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Mensaje de WhatsApp", Icons.chat_bubble_outline_rounded, theme),
+              ),
+            ] else ...[
+              TextField(
+                controller: subjectController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Asunto del correo", Icons.subject_rounded, theme),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                maxLines: 6,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Cuerpo del correo", Icons.email_outlined, theme),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45),
+          child: const Text("Cancelar"),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton(
+          onPressed: () async {
+            if (activeTab == 0) {
+              await widget.service.updateEventTemplate(widget.eventId, waController.text.trim());
+            } else {
+              await widget.service.updateEventEmailConfig(widget.eventId, emailController.text.trim(), subjectController.text.trim());
+            }
+            if (context.mounted) Navigator.pop(context);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+            elevation: 8,
+            shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
+          child: Text(
+            "GUARDAR",
+            style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.5, fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14),
+      prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20),
+      filled: true,
+      fillColor: baseColor.withValues(alpha: 0.03),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5)),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabButton({required this.label, required this.icon, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.brushedGold : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: selected ? AppColors.charcoal : (isDark ? Colors.white54 : Colors.black45)),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? AppColors.charcoal : (isDark ? Colors.white54 : Colors.black45),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  final String label;
+  const _TagChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.brushedGold.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.brushedGold,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -1199,80 +1385,94 @@ class _FilterSheetState extends State<_FilterSheet> {
         .toSet()
         .toList();
 
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l.filterGuests,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              Icon(Icons.filter_list_rounded, color: AppColors.brushedGold, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                l.filterGuests,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          Text(l.filterStatus, style: theme.textTheme.labelLarge),
+          Text(l.filterStatus.toUpperCase(), 
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isDark ? Colors.white38 : Colors.black38,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w800,
+            )),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: GuestStatus.values
                   .map(
-                    (s) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(_statusLabel(l, s)),
-                        selected: _status == s,
-                        onSelected: (v) =>
-                            setState(() => _status = v ? s : null),
-                      ),
+                    (s) => _TypeChip(
+                      label: _statusLabel(l, s),
+                      selected: _status == s,
+                      onSelected: (v) =>
+                          setState(() => _status = v ? s : null),
                     ),
                   )
                   .toList(),
             ),
           ),
 
-          const SizedBox(height: 16),
-          Text(l.filterRole, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 20),
+          Text(l.filterRole.toUpperCase(), 
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isDark ? Colors.white38 : Colors.black38,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w800,
+            )),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 ...GuestRole.values.map(
-                  (r) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(_roleLabel(l, r)),
-                      selected: _role == r && _customRole == null,
-                      onSelected: (v) => setState(() {
-                        _role = v ? r : null;
-                        _customRole = null;
-                      }),
-                    ),
+                  (r) => _TypeChip(
+                    label: _roleLabel(l, r),
+                    selected: _role == r && _customRole == null,
+                    onSelected: (v) => setState(() {
+                      _role = v ? r : null;
+                      _customRole = null;
+                    }),
                   ),
                 ),
                 ...customRoles.map(
-                  (cr) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(cr),
-                      selected: _customRole == cr,
-                      onSelected: (v) => setState(() {
-                        _customRole = v ? cr : null;
-                        _role = null;
-                      }),
-                    ),
+                  (cr) => _TypeChip(
+                    label: cr,
+                    selected: _customRole == cr,
+                    onSelected: (v) => setState(() {
+                      _customRole = v ? cr : null;
+                      _role = null;
+                    }),
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 16),
-          Text("Categoría de Invitado", style: theme.textTheme.labelLarge),
+          const SizedBox(height: 20),
+          Text("Categoría de Invitado".toUpperCase(), 
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isDark ? Colors.white38 : Colors.black38,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w800,
+            )),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1308,8 +1508,13 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 16),
-          Text("Asignación de Mesa", style: theme.textTheme.labelLarge),
+          const SizedBox(height: 20),
+          Text("Asignación de Mesa".toUpperCase(), 
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isDark ? Colors.white38 : Colors.black38,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w800,
+            )),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1337,7 +1542,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1354,9 +1559,19 @@ class _FilterSheetState extends State<_FilterSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.brushedGold,
                 foregroundColor: AppColors.charcoal,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 8,
+                shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-              child: Text(l.applyFilters),
+              child: Text(
+                l.applyFilters.toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],
@@ -1377,12 +1592,32 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(label),
         selected: selected,
         onSelected: onSelected,
+        selectedColor: AppColors.brushedGold,
+        labelStyle: TextStyle(
+          color: selected 
+              ? AppColors.charcoal 
+              : (isDark ? Colors.white70 : Colors.black87),
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected 
+                ? AppColors.brushedGold 
+                : (isDark ? Colors.white10 : Colors.black12),
+          ),
+        ),
       ),
     );
   }

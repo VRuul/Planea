@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Default Premium Palette
-  static const Color charcoal = Color(0xFF2D2D2D);
-  static const Color brushedGold = Color(0xFFD4AF37);
-  static const Color brushedGoldLight = Color(0xFFE8CB5A);
-  static const Color brushedGoldDark = Color(0xFFB8931F);
+  // Champagne Gold Premium Palette (Refined)
+  static const Color charcoal = Color(0xFF1E1E1E); // Un poco más profundo
+  static const Color brushedGold = Color(0xFFDBC18D); // Champagne Gold Base
+  static const Color brushedGoldLight = Color(0xFFF1E4C3); // Champagne Light
+  static const Color brushedGoldDark = Color(0xFFB5965E); // Champagne Dark
 
   // Neutral Palette
   static const Color surface = Color(0xFF1A1A1A);
@@ -20,7 +20,7 @@ class AppColors {
   static const Color declined = Color(0xFFF44336);
 
   // Role Colors
-  static const Color padrino = Color(0xFFD4AF37);
+  static const Color padrino = brushedGold;
   static const Color vip = Color(0xFF9C27B0);
   static const Color regular = Color(0xFF2196F3);
 
