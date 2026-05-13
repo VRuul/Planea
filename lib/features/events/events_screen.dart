@@ -200,9 +200,6 @@ class _EventDialogState extends State<EventDialog> {
   EventType _type = EventType.wedding;
   String? _selectedCustomType;
   int? _selectedCustomTypeIcon;
-  Color _primaryColor = AppColors.charcoal;
-  Color _secondaryColor = AppColors.brushedGold;
-  
   DateTime _date = DateTime.now().add(const Duration(days: 30));
   bool _saving = false;
   bool _isAdvancedExpanded = false;
@@ -220,8 +217,6 @@ class _EventDialogState extends State<EventDialog> {
       _type = e.type;
       _selectedCustomType = e.customType;
       _selectedCustomTypeIcon = e.customTypeIcon;
-      _primaryColor = e.primaryColor;
-      _secondaryColor = e.secondaryColor;
       _date = e.date;
     }
   }
@@ -261,8 +256,8 @@ class _EventDialogState extends State<EventDialog> {
         customType: _selectedCustomType,
         customTypeIcon: _selectedCustomTypeIcon,
         date: _date,
-        primaryColor: _primaryColor,
-        secondaryColor: _secondaryColor,
+        primaryColor: AppColors.charcoal,
+        secondaryColor: AppColors.brushedGold,
         venue: _venueController.text.trim().isEmpty ? null : _venueController.text.trim(),
         budget: double.tryParse(_budgetController.text) ?? 0,
         guestGoal: int.tryParse(_goalController.text) ?? 0,
@@ -303,106 +298,56 @@ class _EventDialogState extends State<EventDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
     return AlertDialog(
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(widget.event == null ? l.newEvent : "Editar Evento", 
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      title: Row(
+        children: [
+          Icon(widget.event == null ? Icons.add_circle_outline_rounded : Icons.edit_rounded, color: AppColors.brushedGold),
+          const SizedBox(width: 12),
+          Text(widget.event == null ? l.newEvent : "Editar Evento", style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        ],
+      ),
       content: SizedBox(
         width: 450,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── CAMPOS BÁSICOS ──────────────────────────────────────────
-              // ── TIPO DE EVENTO (Primero para definir los labels de abajo) ────────
+              const SizedBox(height: 16),
               _buildTypeSelector(l, theme),
               const SizedBox(height: 16),
-
-              // ── PROTAGONISTAS (Ahora el campo principal de identificación) ───────
-              TextField(
-                controller: _celebrantController,
-                decoration: InputDecoration(
-                  labelText: getEventTypeInfo(context, _type).protagonistLabel,
-                  prefixIcon: const Icon(Icons.people_outline_rounded),
-                ),
-              ),
+              TextField(controller: _celebrantController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(getEventTypeInfo(context, _type).protagonistLabel, Icons.people_outline_rounded, theme)),
               const SizedBox(height: 16),
-
-              // ── FECHA ────────────────────────────────────────────────────────
               GestureDetector(
                 onTap: _pickDate,
                 child: AbsorbPointer(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: l.eventDateLabel(
-                          '${_date.day}/${_date.month}/${_date.year}'),
-                      prefixIcon: const Icon(Icons.calendar_today_outlined),
-                    ),
-                  ),
+                  child: TextField(style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.eventDateLabel('${_date.day}/${_date.month}/${_date.year}'), Icons.calendar_today_outlined, theme)),
                 ),
               ),
-              
-              // ── SECCIÓN AVANZADA ────────────────────────────────────────
               const SizedBox(height: 12),
               Theme(
                 data: theme.copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  title: Text("Más información", style: theme.textTheme.labelMedium?.copyWith(color: AppColors.brushedGold)),
+                  title: Text("Más información", style: theme.textTheme.labelMedium?.copyWith(color: AppColors.brushedGold, fontWeight: FontWeight.w700)),
                   trailing: Icon(_isAdvancedExpanded ? Icons.expand_less : Icons.expand_more, color: AppColors.brushedGold),
                   onExpansionChanged: (v) => setState(() => _isAdvancedExpanded = v),
                   childrenPadding: const EdgeInsets.only(top: 8),
                   children: [
-                    TextField(
-                      controller: _venueController,
-                      decoration: InputDecoration(
-                        labelText: l.venueOptional,
-                        prefixIcon: const Icon(Icons.location_on_outlined),
-                      ),
-                    ),
+                    TextField(controller: _venueController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration(l.venueOptional, Icons.location_on_outlined, theme)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _budgetController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: "Presupuesto",
-                              prefixIcon: Icon(Icons.monetization_on_outlined),
-                            ),
-                          ),
-                        ),
+                        Expanded(child: TextField(controller: _budgetController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration("Presupuesto", Icons.monetization_on_outlined, theme))),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _goalController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: "Meta de invitados",
-                              prefixIcon: Icon(Icons.group_outlined),
-                            ),
-                          ),
-                        ),
+                        Expanded(child: TextField(controller: _goalController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration("Meta de invitados", Icons.group_outlined, theme))),
                       ],
                     ),
-                    const Divider(height: 32),
-                    const Text("Colores del Evento", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _ColorPickerButton(
-                          label: "Primario",
-                          color: _primaryColor,
-                          onTap: () => _showColorPicker(true),
-                        ),
-                        const SizedBox(width: 16),
-                        _ColorPickerButton(
-                          label: "Secundario",
-                          color: _secondaryColor,
-                          onTap: () => _showColorPicker(false),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -410,11 +355,20 @@ class _EventDialogState extends State<EventDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancelButton)),
+        TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: Text(l.cancelButton)),
+        const SizedBox(width: 8),
         ElevatedButton(
           onPressed: _saving ? null : () => _save(l),
-          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.createEvent),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+            elevation: 8,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) : Text(widget.event == null ? l.createEvent : "GUARDAR", style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12)),
         ),
       ],
     );
@@ -423,14 +377,7 @@ class _EventDialogState extends State<EventDialog> {
   Widget _buildTypeSelector(AppLocalizations l, ThemeData theme) {
     return DropdownButtonFormField<String>(
       value: _selectedCustomType ?? _type.name,
-      decoration: InputDecoration(
-        labelText: l.eventTypeLabel,
-        prefixIcon: Icon(
-          _selectedCustomType != null 
-            ? (_selectedCustomTypeIcon != null ? IconData(_selectedCustomTypeIcon!, fontFamily: 'MaterialIcons') : Icons.celebration)
-            : getEventTypeInfo(context, _type).icon,
-        ),
-      ),
+      decoration: _inputDecoration(l.eventTypeLabel, _selectedCustomType != null ? (_selectedCustomTypeIcon != null ? IconData(_selectedCustomTypeIcon!, fontFamily: 'MaterialIcons') : Icons.celebration) : getEventTypeInfo(context, _type).icon, theme),
       items: [
         ...EventType.values.map((t) {
           final info = getEventTypeInfo(context, t);
@@ -469,18 +416,21 @@ class _EventDialogState extends State<EventDialog> {
     final controller = TextEditingController();
     int? selectedIconCode;
     final icons = [Icons.favorite, Icons.auto_awesome, Icons.cake, Icons.school, Icons.business_center, Icons.celebration, Icons.music_note, Icons.restaurant, Icons.beach_access, Icons.nightlife];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text("Nuevo Tipo de Evento"),
+          backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text("Nuevo Tipo de Evento", style: TextStyle(fontWeight: FontWeight.w800)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: controller, autofocus: true, decoration: const InputDecoration(hintText: "Ej: Baby Shower, Bautizo...")),
-              const SizedBox(height: 20),
-              const Text("Elige un icono:"),
+              TextField(controller: controller, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration("Ej: Baby Shower, Bautizo...", Icons.edit_note_rounded, Theme.of(context))),
+              const SizedBox(height: 24),
+              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12, runSpacing: 12,
@@ -490,12 +440,8 @@ class _EventDialogState extends State<EventDialog> {
                     onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.2) : Colors.transparent,
-                        border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey),
+                      decoration: BoxDecoration(color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.withValues(alpha: 0.2)), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey, size: 20),
                     ),
                   );
                 }).toList(),
@@ -503,18 +449,11 @@ class _EventDialogState extends State<EventDialog> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-            TextButton(
-              onPressed: () {
-                if (controller.text.trim().isNotEmpty) {
-                  setState(() {
-                    _selectedCustomType = controller.text.trim();
-                    _selectedCustomTypeIcon = selectedIconCode;
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text("Añadir"),
+            TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: const Text("Cancelar")),
+            ElevatedButton(
+              onPressed: () { if (controller.text.trim().isNotEmpty) { setState(() { _selectedCustomType = controller.text.trim(); _selectedCustomTypeIcon = selectedIconCode; }); } Navigator.pop(context); },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: const Text("Añadir", style: TextStyle(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -522,69 +461,8 @@ class _EventDialogState extends State<EventDialog> {
     );
   }
 
-  void _showColorPicker(bool isPrimary) {
-    final colors = [
-      AppColors.charcoal, AppColors.brushedGold,
-      const Color(0xFF1A1A1A), const Color(0xFFD4AF37),
-      const Color(0xFF722F37), const Color(0xFF5D3FD3),
-      const Color(0xFF0047AB), const Color(0xFF008080),
-      const Color(0xFFE0115F), const Color(0xFFFFD700),
-      const Color(0xFFC0C0C0), const Color(0xFF50C878),
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Color ${isPrimary ? 'Primario' : 'Secundario'}"),
-        content: SizedBox(
-          width: 300,
-          child: Wrap(
-            spacing: 12, runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: colors.map((c) => InkWell(
-              onTap: () {
-                setState(() => isPrimary ? _primaryColor = c : _secondaryColor = c);
-                Navigator.pop(context);
-              },
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: Border.all(color: Colors.white24)),
-              ),
-            )).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ColorPickerButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ColorPickerButton({required this.label, required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(width: 20, height: 20, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
-      ),
-    );
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)));
   }
 }
