@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import './widgets/event_utils.dart';
 import './join_event_dialog.dart';
+import '../shared/widgets/premium_picker.dart';
 
 
 class EventsScreen extends StatelessWidget {
@@ -375,32 +376,31 @@ class _EventDialogState extends State<EventDialog> {
   }
 
   Widget _buildTypeSelector(AppLocalizations l, ThemeData theme) {
-    return DropdownButtonFormField<String>(
-      value: _selectedCustomType ?? _type.name,
-      decoration: _inputDecoration(l.eventTypeLabel, _selectedCustomType != null ? (_selectedCustomTypeIcon != null ? IconData(_selectedCustomTypeIcon!, fontFamily: 'MaterialIcons') : Icons.celebration) : getEventTypeInfo(context, _type).icon, theme),
+    final currentVal = _selectedCustomType ?? _type.name;
+    final currentIcon = _selectedCustomType != null 
+        ? (_selectedCustomTypeIcon != null ? IconData(_selectedCustomTypeIcon!, fontFamily: 'MaterialIcons') : Icons.celebration) 
+        : getEventTypeInfo(context, _type).icon;
+
+    return PremiumPicker<String>(
+      label: l.eventTypeLabel,
+      icon: currentIcon,
+      value: currentVal,
       items: [
         ...EventType.values.map((t) {
           final info = getEventTypeInfo(context, t);
-          return DropdownMenuItem(
-            value: t.name,
-            child: Row(
-              children: [
-                Icon(info.icon, size: 18, color: AppColors.brushedGold),
-                const SizedBox(width: 12),
-                Text(info.label),
-              ],
-            ),
-          );
+          return PremiumPickerItem(value: t.name, label: info.label, icon: info.icon);
         }),
-        const DropdownMenuItem(
-          value: "ADD_NEW",
-          child: Text("+ Añadir nuevo tipo...", style: TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.bold)),
+        PremiumPickerItem(
+          value: "ADD_NEW", 
+          label: "+ Añadir nuevo tipo...", 
+          icon: Icons.add_circle_outline_rounded,
+          isSpecial: true,
         ),
       ],
       onChanged: (val) {
         if (val == "ADD_NEW") {
           _showAddNewTypeDialog();
-        } else {
+        } else if (val != null) {
           final standardType = EventType.values.firstWhere((t) => t.name == val, orElse: () => EventType.other);
           setState(() {
             _type = standardType;
@@ -423,37 +423,48 @@ class _EventDialogState extends State<EventDialog> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: isDark ? AppColors.charcoal : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text("Nuevo Tipo de Evento", style: TextStyle(fontWeight: FontWeight.w800)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          title: Text("Nuevo Tipo de Evento", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5, color: isDark ? Colors.white : Colors.black87)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 16),
               TextField(controller: controller, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration("Ej: Baby Shower, Bautizo...", Icons.edit_note_rounded, Theme.of(context))),
               const SizedBox(height: 24),
-              const Text("Elige un icono:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12, runSpacing: 12,
-                children: icons.map((icon) {
-                  final isSelected = selectedIconCode == icon.codePoint;
-                  return InkWell(
-                    onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSelected ? AppColors.brushedGold : Colors.grey.withValues(alpha: 0.2)), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(icon, color: isSelected ? AppColors.brushedGold : Colors.grey, size: 20),
-                    ),
-                  );
-                }).toList(),
+              const Text("ELIGE UN ICONO", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.brushedGold, letterSpacing: 1.5)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 300,
+                child: Wrap(
+                  spacing: 12, runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: icons.map((icon) {
+                    final isSelected = selectedIconCode == icon.codePoint;
+                    return InkWell(
+                      onTap: () => setDialogState(() => selectedIconCode = icon.codePoint),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.1) : Colors.transparent, 
+                          border: Border.all(color: isSelected ? AppColors.brushedGold : (isDark ? Colors.white10 : Colors.black12)), 
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(icon, color: isSelected ? AppColors.brushedGold : (isDark ? Colors.white30 : Colors.black38), size: 20),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: const Text("Cancelar")),
+            const SizedBox(width: 8),
             ElevatedButton(
               onPressed: () { if (controller.text.trim().isNotEmpty) { setState(() { _selectedCustomType = controller.text.trim(); _selectedCustomTypeIcon = selectedIconCode; }); } Navigator.pop(context); },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text("Añadir", style: TextStyle(fontWeight: FontWeight.w800)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 8, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+              child: const Text("Añadir", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ],
         ),
