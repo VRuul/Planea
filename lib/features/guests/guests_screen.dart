@@ -86,7 +86,27 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: l.searchGuest,
-                    prefixIcon: const Icon(Icons.search_rounded),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.brushedGold),
+                    filled: true,
+                    fillColor: theme.brightness == Brightness.dark 
+                        ? Colors.white.withValues(alpha: 0.03) 
+                        : Colors.black.withValues(alpha: 0.03),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(
+                        color: theme.brightness == Brightness.dark 
+                            ? Colors.white.withValues(alpha: 0.05) 
+                            : Colors.black.withValues(alpha: 0.05)
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(
+                        color: theme.brightness == Brightness.dark 
+                            ? Colors.white.withValues(alpha: 0.05) 
+                            : Colors.black.withValues(alpha: 0.05)
+                      ),
+                    ),
                   ),
                   onChanged: (v) => setState(() => _search = v),
                 ),
@@ -540,6 +560,7 @@ class _GuestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
     final statusColor = guest.status == GuestStatus.confirmed
         ? AppColors.confirmed
         : guest.status == GuestStatus.pending
@@ -547,172 +568,183 @@ class _GuestCard extends StatelessWidget {
         : AppColors.declined;
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
+        color: isDark 
+            ? theme.cardTheme.color?.withValues(alpha: 0.6)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (guest.phone != null && guest.phone!.isNotEmpty)
-              IconButton(
-                icon: const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: Colors.greenAccent,
-                  size: 18,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          backgroundColor: Colors.transparent,
+          collapsedBackgroundColor: Colors.transparent,
+          iconColor: AppColors.brushedGold,
+          collapsedIconColor: Colors.white30,
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 2),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => _launchWhatsApp(guest.phone!),
-              ),
-            if (guest.email != null && guest.email!.isNotEmpty)
-              IconButton(
-                icon: const Icon(
-                  Icons.email_outlined,
-                  color: Colors.blueAccent,
-                  size: 18,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => _launchEmail(guest.email!),
-              ),
-            const SizedBox(width: 4),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: statusColor.withValues(alpha: 0.15),
-              child: Text(
-                guest.displayName.isNotEmpty
-                    ? guest.displayName[0].toUpperCase()
-                    : '?',
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-        ),
-        title: Text(
-          guest.displayName,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Wrap(
-          spacing: 6,
-          runSpacing: 4,
-          children: [
-            if (guest.customRole != null)
-              _CustomRoleChip(
-                label: guest.customRole!,
-                iconCode: guest.customRoleIcon,
-              )
-            else
-              GuestRoleChip(role: guest.role),
-
-            // Reemplazamos guest.tableId por los datos reales de assignments
-            ...() {
-              final guestAssig =
-                  assignments?.where((a) => a.guestId == guest.id).toList() ??
-                  [];
-              if (guestAssig.isEmpty && guest.tableId != null) {
-                // Fallback para legacy
-                return [
-                  _SmallTag(
-                    label: tables?.any((t) => t.id == guest.tableId) ?? false
-                        ? l.tableLabel(
-                            tables!
-                                .firstWhere((t) => t.id == guest.tableId)
-                                .name,
-                          )
-                        : l.tableLabel(guest.tableId!),
-                    color: Colors.blue.shade300,
+                child: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: statusColor.withValues(alpha: isDark ? 0.1 : 0.2),
+                  child: Text(
+                    guest.displayName.isNotEmpty ? guest.displayName[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      color: isDark ? statusColor : statusColor.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ];
-              }
-              return guestAssig.map((a) {
-                final t = tables?.firstWhere(
-                  (t) => t.id == a.tableId,
-                  orElse: () =>
-                      TableModel(id: '', eventId: '', name: '?', capacity: 0),
-                );
-                return _SmallTag(
-                  label: l.tableLabel("${t?.name ?? 'Mesa'} (${a.total})"),
-                  color: Colors.blue.shade300,
-                );
-              }).toList();
-            }(),
-
-            _SmallTag(
-              label: 'Total: ${guest.totalSeats}',
-              color: Colors.purple.shade300,
-            ),
-          ],
-        ),
-        trailing: InkWell(
-          onTap: () => _showStatusDialog(context, l),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: statusColor.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              _statusLabel(l, guest.status),
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                ),
               ),
+              if (guest.phone != null && guest.phone!.isNotEmpty)
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.charcoal : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: () => _launchWhatsApp(guest.phone!),
+                      child: Icon(
+                        Icons.chat_bubble_rounded, 
+                        color: isDark ? Colors.greenAccent : Colors.green.shade600, 
+                        size: 14
+                      ),
+                    ),
+                  ),
+                ),
+              if (guest.email != null && guest.email!.isNotEmpty)
+                Positioned(
+                  left: -4,
+                  bottom: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.charcoal : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: () => _launchEmail(guest.email!),
+                      child: Icon(
+                        Icons.email_rounded, 
+                        color: isDark ? Colors.blueAccent : Colors.blue.shade600, 
+                        size: 14
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  guest.displayName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              _StatusPill(status: guest.status, color: statusColor, l: l),
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (guest.customRole != null)
+                  _CustomRoleChip(
+                    label: guest.customRole!,
+                    iconCode: guest.customRoleIcon,
+                  )
+                else
+                  GuestRoleChip(role: guest.role),
+                
+                ...() {
+                  final guestAssig = assignments?.where((a) => a.guestId == guest.id).toList() ?? [];
+                  return guestAssig.map((a) {
+                    final t = tables?.firstWhere(
+                      (t) => t.id == a.tableId,
+                      orElse: () => TableModel(id: '', eventId: '', name: '?', capacity: 0),
+                    );
+                    return _PremiumTag(
+                      label: "${t?.name ?? 'Mesa'} (${a.total})",
+                      icon: Icons.table_restaurant_rounded,
+                      color: Colors.blueAccent.withValues(alpha: 0.8),
+                    );
+                  }).toList();
+                }(),
+                _PremiumTag(
+                  label: 'Total: ${guest.totalSeats}',
+                  icon: Icons.people_alt_rounded,
+                  color: Colors.purpleAccent.withValues(alpha: 0.8),
+                ),
+              ],
             ),
           ),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     if (guest.adults > 0)
-                      _CountIndicator(
+                      _PremiumCounter(
                         label: l.countAdults,
                         count: guest.adults,
-                        icon: Icons.person,
+                        icon: Icons.person_rounded,
                       ),
                     if (guest.children > 0)
-                      _CountIndicator(
+                      _PremiumCounter(
                         label: l.countChildren,
                         count: guest.children,
-                        icon: Icons.child_care,
-                      ),
-                    if (guest.disabled > 0)
-                      _CountIndicator(
-                        label: l.countDisabled,
-                        count: guest.disabled,
-                        icon: Icons.accessible,
+                        icon: Icons.child_care_rounded,
                       ),
                     ...guest.customCounts.entries.where((e) => e.value > 0).map(
                       (e) {
                         final iconCode = guest.customIcons[e.key];
                         final icon = iconCode != null
                             ? IconData(iconCode, fontFamily: 'MaterialIcons')
-                            : Icons.star_border_rounded;
-                        return _CountIndicator(
+                            : Icons.star_rounded;
+                        return _PremiumCounter(
                           label: e.key,
                           count: e.value,
                           icon: icon,
@@ -721,108 +753,73 @@ class _GuestCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Divider(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Divider(color: isDark ? Colors.white10 : Colors.black12),
+                ),
                 if (guest.phone != null ||
                     guest.email != null ||
                     guest.socialMedia != null) ...[
-                  Text(l.contactInfoSection, style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(l.contactInfoSection.toUpperCase(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: isDark ? AppColors.brushedGold : AppColors.charcoal.withValues(alpha: 0.6),
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w800,
+                          )),
+                      const Spacer(),
+                      if (guest.email != null)
+                        IconButton(
+                          onPressed: () => _launchEmail(guest.email!),
+                          icon: const Icon(Icons.alternate_email_rounded, color: Colors.blueAccent, size: 20),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   if (guest.phone != null)
-                    _ContactRow(
-                      icon: Icons.phone_outlined,
+                    _ContactItem(
+                      icon: Icons.phone_android_rounded,
                       value: guest.phone!,
                     ),
                   if (guest.email != null)
-                    _ContactRow(
-                      icon: Icons.email_outlined,
+                    _ContactItem(
+                      icon: Icons.email_rounded,
                       value: guest.email!,
                     ),
-                  if (guest.socialMedia != null)
-                    _ContactRow(
-                      icon: Icons.link_rounded,
-                      value: guest.socialMedia!,
-                    ),
-                  const SizedBox(height: 16),
                 ],
-                if (guest.notes != null && guest.notes!.isNotEmpty) ...[
-                  Text(l.notesLabel, style: theme.textTheme.labelLarge),
-                  Text(guest.notes!, style: theme.textTheme.bodySmall),
-                  const SizedBox(height: 12),
-                ],
-                if (guest.dietaryRestrictions != null &&
-                    guest.dietaryRestrictions!.isNotEmpty) ...[
-                  Text(
-                    l.dietaryLabel,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: Colors.orange.shade700,
-                    ),
-                  ),
-                  Text(
-                    guest.dietaryRestrictions!,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton.icon(
-                      onPressed: () => _showDeleteDialog(context, l),
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.red,
-                        size: 18,
-                      ),
-                      label: Text(
-                        l.deleteButton,
-                        style: const TextStyle(color: Colors.red),
-                      ),
+                    _ActionButton(
+                      label: l.deleteButton,
+                      icon: Icons.delete_outline_rounded,
+                      color: Colors.redAccent.withValues(alpha: 0.8),
+                      onTap: () => _showDeleteDialog(context, l),
                     ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: () {
-                        // Using a private method from the parent state is tricky,
-                        // so we'll trigger it via a callback or find another way.
-                        // Actually, since _GuestCard is inside _GuestsScreenState's build,
-                        // we can pass the function.
-                        final state = context
-                            .findAncestorStateOfType<_GuestsScreenState>();
-                        state?._showGuestDialog(
-                          context,
-                          eventId,
-                          guest,
-                          allGuests,
-                        );
+                    const SizedBox(width: 12),
+                    _ActionButton(
+                      label: l.editButton,
+                      icon: Icons.edit_rounded,
+                      color: AppColors.brushedGold,
+                      onTap: () {
+                        final state = context.findAncestorStateOfType<_GuestsScreenState>();
+                        state?._showGuestDialog(context, eventId, guest, allGuests);
                       },
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        color: AppColors.brushedGold,
-                        size: 18,
-                      ),
-                      label: Text(
-                        l.editButton,
-                        style: const TextStyle(color: AppColors.brushedGold),
-                      ),
                     ),
-                    ElevatedButton(
-                      onPressed: () => _showStatusDialog(context, l),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: statusColor,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text("Estatus"),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _showTablePicker(context, l),
-                      icon: const Icon(
-                        Icons.table_restaurant_rounded,
-                        size: 18,
-                      ),
-                      label: const Text("Mesa"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brushedGold,
-                        foregroundColor: AppColors.charcoal,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showTablePicker(context, l),
+                        icon: const Icon(Icons.table_restaurant_rounded, size: 18),
+                        label: const Text("ASIGNAR MESA"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.brushedGold,
+                          foregroundColor: AppColors.charcoal,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
                       ),
                     ),
                   ],
@@ -832,8 +829,9 @@ class _GuestCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showStatusDialog(BuildContext context, AppLocalizations l) {
     showDialog(
@@ -960,48 +958,143 @@ class _GuestCard extends StatelessWidget {
   }
 }
 
-class _CountIndicator extends StatelessWidget {
-  final String label;
-  final int count;
-  final IconData icon;
-  const _CountIndicator({
-    required this.label,
-    required this.count,
-    required this.icon,
-  });
+class _StatusPill extends StatelessWidget {
+  final GuestStatus status;
+  final Color color;
+  final AppLocalizations l;
+  const _StatusPill({required this.status, required this.color, required this.l});
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 4, spreadRadius: 0),
+        ],
+      ),
+      child: Text(
+        _statusLabel(l, status).toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+class _PremiumTag extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _PremiumTag({required this.label, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumCounter extends StatelessWidget {
+  final String label;
+  final int count;
+  final IconData icon;
+  const _PremiumCounter({required this.label, required this.count, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: count > 0 ? AppColors.brushedGold : Colors.grey.shade400,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+            shape: BoxShape.circle,
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+          ),
+          child: Icon(icon, size: 20, color: AppColors.brushedGold),
         ),
-        const SizedBox(height: 4),
-        Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+        const SizedBox(height: 8),
+        Text('$count', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 8, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)),
       ],
     );
   }
 }
 
-class _ContactRow extends StatelessWidget {
+class _ContactItem extends StatelessWidget {
   final IconData icon;
   final String value;
-  const _ContactRow({required this.icon, required this.value});
+  const _ContactItem({required this.icon, required this.value});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.grey),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+          Icon(icon, size: 16, color: isDark ? Colors.white30 : Colors.black38),
+          const SizedBox(width: 12),
+          Text(value, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
         ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionButton({required this.label, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          ],
+        ),
       ),
     );
   }
