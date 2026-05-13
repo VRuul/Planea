@@ -181,7 +181,7 @@ class _ModeButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.tightFor(),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.brushedGold : Colors.transparent,
@@ -451,7 +451,6 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
                   backgroundColor: AppColors.brushedGold,
                   foregroundColor: AppColors.charcoal,
                   elevation: 8,
-                  shadowColor: AppColors.brushedGold.withValues(alpha: 0.3),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ],
