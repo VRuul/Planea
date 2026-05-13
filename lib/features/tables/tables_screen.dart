@@ -11,6 +11,7 @@ import 'package:planea/data/services/firestore_service.dart';
 import 'package:planea/providers/event_provider.dart';
 import 'package:planea/l10n/app_localizations.dart';
 import 'package:planea/core/constants/app_colors.dart';
+import '../shared/widgets/premium_picker.dart';
 
 class TablesScreen extends StatefulWidget {
   const TablesScreen({super.key});
@@ -905,16 +906,15 @@ class _TableDialogState extends State<_TableDialog> {
                 decoration: _inputDecoration(l.tableCapacity, Icons.groups_rounded, theme),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<TableShape>(
-                value: _shape, 
-                dropdownColor: isDark ? AppColors.charcoal : Colors.white, 
-                style: TextStyle(color: isDark ? Colors.white : Colors.black87), 
-                decoration: _inputDecoration(l.tableShape, Icons.shape_line_rounded, theme), 
+              PremiumPicker<TableShape>(
+                label: l.tableShape,
+                icon: Icons.shape_line_rounded,
+                value: _shape,
                 items: [
-                  DropdownMenuItem(value: TableShape.circular, child: Text(l.shapeCircular)), 
-                  DropdownMenuItem(value: TableShape.square, child: Text(l.shapeSquare)), 
-                  DropdownMenuItem(value: TableShape.rectangular, child: Text(l.shapeRectangular)),
-                ], 
+                  PremiumPickerItem(value: TableShape.circular, label: l.shapeCircular, icon: Icons.circle_outlined),
+                  PremiumPickerItem(value: TableShape.square, label: l.shapeSquare, icon: Icons.crop_square_rounded),
+                  PremiumPickerItem(value: TableShape.rectangular, label: l.shapeRectangular, icon: Icons.rectangle_outlined),
+                ],
                 onChanged: (val) { if (val != null) setState(() => _shape = val); },
               ),
               if (widget.showDimensions) ...[
@@ -1022,7 +1022,17 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
       title: Row(children: [Icon(widget.element == null ? Icons.add_box_rounded : Icons.edit_note_rounded, color: AppColors.brushedGold), const SizedBox(width: 12), Text(widget.element == null ? 'Agregar Elemento' : 'Editar Elemento', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))]),
       content: SizedBox(width: 450, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const SizedBox(height: 16),
-        DropdownButtonFormField<VenueElementType>(value: _type, dropdownColor: isDark ? AppColors.charcoal : Colors.white, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Tipo', Icons.category_rounded, theme), items: VenueElementType.values.map((type) => DropdownMenuItem(value: type, child: Text(_getLocalizedTypeName(type, l)))).toList(), onChanged: (val) { if (val != null) setState(() => _type = val); }),
+        PremiumPicker<VenueElementType>(
+          label: 'Tipo',
+          icon: Icons.category_rounded,
+          value: _type,
+          items: VenueElementType.values.map((type) => PremiumPickerItem(
+            value: type, 
+            label: _getLocalizedTypeName(type, l), 
+            icon: _getIconForType(type),
+          )).toList(),
+          onChanged: (val) { if (val != null) setState(() => _type = val); },
+        ),
         const SizedBox(height: 16),
         TextField(controller: _nameController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Nombre', Icons.label_outline, theme)),
         const SizedBox(height: 16),
@@ -1058,6 +1068,20 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
       case VenueElementType.bathrooms: return l.venueElementBathrooms;
       case VenueElementType.kitchen: return l.venueElementKitchen;
       default: return l.venueElementOther;
+    }
+  }
+
+  IconData _getIconForType(VenueElementType type) {
+    switch (type) {
+      case VenueElementType.danceFloor: return Icons.curtains_rounded;
+      case VenueElementType.dj: return Icons.album_rounded;
+      case VenueElementType.candyBar: return Icons.restaurant_rounded;
+      case VenueElementType.entrance: return Icons.login_rounded;
+      case VenueElementType.reception: return Icons.theater_comedy_rounded;
+      case VenueElementType.bar: return Icons.local_bar_rounded;
+      case VenueElementType.bathrooms: return Icons.wc_rounded;
+      case VenueElementType.kitchen: return Icons.outdoor_grill_rounded;
+      default: return Icons.miscellaneous_services_rounded;
     }
   }
 }

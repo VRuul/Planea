@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -14,6 +15,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../shared/widgets/guest_role_chip.dart';
+import '../shared/widgets/premium_picker.dart';
 
 class GuestsScreen extends StatefulWidget {
   const GuestsScreen({super.key});
@@ -994,7 +996,7 @@ class _GuestCard extends StatelessWidget {
                     _ActionButton(
                       label: l.editButton,
                       icon: Icons.edit_rounded,
-                      color: baseColor.withValues(alpha: 0.5),
+                      color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                       onTap: () {
                         final state = context.findAncestorStateOfType<_GuestsScreenState>();
                         state?._showGuestDialog(context, eventId, guest, allGuests);
@@ -1218,6 +1220,7 @@ class _PremiumCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Container(
@@ -1244,6 +1247,7 @@ class _ContactItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -1330,7 +1334,7 @@ class _FilterChip extends StatelessWidget {
         backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+          side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
         ),
       ),
     );
@@ -2051,25 +2055,15 @@ class _GuestDialogState extends State<_GuestDialog> {
                       stream: _service.watchTables(widget.eventId),
                       builder: (context, snap) {
                         final tables = snap.data ?? [];
-                        return DropdownButtonFormField<String?>(
+                        return PremiumPicker<String?>(
+                          label: l.navTables,
+                          icon: Icons.table_restaurant_rounded,
                           value: _selectedTableId,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                          dropdownColor: isDark ? AppColors.charcoal : Colors.white,
-                          decoration: _inputDecoration(l.navTables, Icons.table_restaurant_rounded, theme),
                           items: [
-                            DropdownMenuItem(
-                              value: null,
-                              child: Text(l.tableOptional),
-                            ),
-                            ...tables.map(
-                              (t) => DropdownMenuItem(
-                                value: t.id,
-                                child: Text(t.name),
-                              ),
-                            ),
+                            PremiumPickerItem(value: null, label: l.tableOptional, icon: Icons.block_rounded),
+                            ...tables.map((t) => PremiumPickerItem(value: t.id, label: t.name, icon: Icons.table_bar_rounded)),
                           ],
-                          onChanged: (v) =>
-                              setState(() => _selectedTableId = v),
+                          onChanged: (v) => setState(() => _selectedTableId = v),
                         );
                       },
                     ),
@@ -2152,7 +2146,6 @@ class _GuestDialogState extends State<_GuestDialog> {
   }
 
   Widget _buildRoleSelector(AppLocalizations l, ThemeData theme) {
-    // Collect unique custom roles from all guests
     final uniqueCustomRoles = <String, int?>{};
     if (widget.allGuests != null) {
       for (final g in widget.allGuests!) {
@@ -2162,85 +2155,55 @@ class _GuestDialogState extends State<_GuestDialog> {
       }
     }
 
-    final isDark = theme.brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DropdownButtonFormField<String>(
-          value: _selectedCustomRole ?? _role.name,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-          dropdownColor: isDark ? AppColors.charcoal : Colors.white,
-          decoration: _inputDecoration(l.roleLabel, Icons.star_rounded, theme).copyWith(
-            prefixIcon: Icon(
-              _selectedCustomRole != null
-                  ? (_selectedCustomRoleIcon != null
-                        ? IconData(
-                            _selectedCustomRoleIcon!,
-                            fontFamily: 'MaterialIcons',
-                          )
-                        : Icons.star_rounded)
-                  : Icons.star_rounded,
-              color: AppColors.brushedGold,
-              size: 20,
-            ),
+    final currentVal = _selectedCustomRole ?? _role.name;
+    final currentIcon = _selectedCustomRole != null
+        ? (_selectedCustomRoleIcon != null
+            ? IconData(_selectedCustomRoleIcon!, fontFamily: 'MaterialIcons')
+            : Icons.star_rounded)
+        : Icons.star_rounded;
+
+    return PremiumPicker<String>(
+      label: l.roleLabel,
+      icon: currentIcon,
+      value: currentVal,
+      items: [
+        ...GuestRole.values.map(
+          (r) => PremiumPickerItem(value: r.name, label: _roleLabel(l, r), icon: Icons.verified_user_rounded),
+        ),
+        ...uniqueCustomRoles.entries.map(
+          (e) => PremiumPickerItem(
+            value: e.key, 
+            label: e.key, 
+            icon: e.value != null ? IconData(e.value!, fontFamily: 'MaterialIcons') : Icons.star_rounded
           ),
-          items: [
-            ...GuestRole.values.map(
-              (r) => DropdownMenuItem(
-                value: r.name,
-                child: Text(_roleLabel(l, r)),
-              ),
-            ),
-            ...uniqueCustomRoles.entries.map(
-              (e) => DropdownMenuItem(
-                value: e.key,
-                child: Row(
-                  children: [
-                    if (e.value != null)
-                      Icon(
-                        IconData(e.value!, fontFamily: 'MaterialIcons'),
-                        size: 18,
-                        color: AppColors.brushedGold,
-                      ),
-                    if (e.value != null) const SizedBox(width: 8),
-                    Text(e.key),
-                  ],
-                ),
-              ),
-            ),
-            const DropdownMenuItem(
-              value: "ADD_NEW",
-              child: Text(
-                "+ Añadir nuevo rol...",
-                style: TextStyle(
-                  color: AppColors.brushedGold,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-          onChanged: (val) {
-            if (val == "ADD_NEW") {
-              _showAddNewRoleDialog();
-            } else {
-              final standardRole = GuestRole.values.firstWhere(
-                (r) => r.name == val,
-                orElse: () => GuestRole.regular,
-              );
-              setState(() {
-                if (GuestRole.values.any((r) => r.name == val)) {
-                  _role = standardRole;
-                  _selectedCustomRole = null;
-                  _selectedCustomRoleIcon = null;
-                } else {
-                  _selectedCustomRole = val;
-                  _selectedCustomRoleIcon = uniqueCustomRoles[val];
-                }
-              });
-            }
-          },
+        ),
+        PremiumPickerItem(
+          value: "ADD_NEW", 
+          label: "+ Añadir nuevo rol...", 
+          icon: Icons.add_circle_outline_rounded,
+          isSpecial: true,
         ),
       ],
+      onChanged: (val) {
+        if (val == "ADD_NEW") {
+          _showAddNewRoleDialog();
+        } else if (val != null) {
+          final standardRole = GuestRole.values.firstWhere(
+            (r) => r.name == val,
+            orElse: () => GuestRole.regular,
+          );
+          setState(() {
+            if (GuestRole.values.any((r) => r.name == val)) {
+              _role = standardRole;
+              _selectedCustomRole = null;
+              _selectedCustomRoleIcon = null;
+            } else {
+              _selectedCustomRole = val;
+              _selectedCustomRoleIcon = uniqueCustomRoles[val];
+            }
+          });
+        }
+      },
     );
   }
 
