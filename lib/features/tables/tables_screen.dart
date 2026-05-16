@@ -1245,11 +1245,13 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tableOccupancy = widget.allAssignments.where((a) => a.tableId == widget.table.id).fold(0, (sum, a) => sum + a.total);
+    final remainingInTable = widget.table.capacity - tableOccupancy;
+
     if (_selectedGuest == null) {
       final unassigned = widget.allGuests.where((g) {
-        final totalSeats = g.adults + g.children + g.teenagers + g.disabled;
         final totalAssigned = widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + a.total);
-        return totalAssigned < totalSeats;
+        return totalAssigned < g.totalSeats;
       }).toList();
       return AlertDialog(
         backgroundColor: isDark ? AppColors.charcoal : Colors.white,
@@ -1257,14 +1259,55 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
         title: const Text('Asignar Invitado', style: TextStyle(fontWeight: FontWeight.bold)),
         content: SizedBox(width: 400, child: ListView.builder(shrinkWrap: true, itemCount: unassigned.length, itemBuilder: (context, i) {
           final g = unassigned[i];
-          return ListTile(title: Text(g.displayName), subtitle: Text('${g.adults + g.children + g.teenagers + g.disabled} asientos'), onTap: () => setState(() { _selectedGuest = g; _toAssign['adults'] = 0; _toAssign['children'] = 0; _toAssign['teenagers'] = 0; _toAssign['disabled'] = 0; }));
+          final totalAssigned = widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + a.total);
+          final remainingForG = g.totalSeats - totalAssigned;
+          final canAssignAll = remainingForG <= remainingInTable;
+
+          return ListTile(
+            title: Text(g.displayName, style: const TextStyle(fontWeight: FontWeight.bold)), 
+            subtitle: Text('$remainingForG asientos pendientes'), 
+            trailing: canAssignAll ? TextButton(
+              onPressed: () async {
+                final Map<String, int> counts = {
+                  'adults': g.adults - widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts['adults'] ?? 0)),
+                  'children': g.children - widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts['children'] ?? 0)),
+                  'teenagers': g.teenagers - widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts['teenagers'] ?? 0)),
+                  'disabled': g.disabled - widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts['disabled'] ?? 0)),
+                };
+                g.customCounts.forEach((key, total) {
+                  counts[key] = total - widget.allAssignments.where((a) => a.guestId == g.id).fold(0, (sum, a) => sum + (a.counts[key] ?? 0));
+                });
+                counts.removeWhere((k, v) => v <= 0);
+
+                await widget.service.addAssignment(widget.eventId, SeatingAssignment(
+                  id: '',
+                  eventId: widget.eventId,
+                  guestId: g.id,
+                  tableId: widget.table.id,
+                  counts: counts,
+                ));
+                if (mounted) Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.brushedGold.withValues(alpha: 0.1),
+                foregroundColor: AppColors.brushedGold,
+              ),
+              child: const Text('ASIGNAR TODO'),
+            ) : const Icon(Icons.chevron_right_rounded),
+            onTap: () => setState(() { 
+              _selectedGuest = g; 
+              _toAssign['adults'] = 0; 
+              _toAssign['children'] = 0; 
+              _toAssign['teenagers'] = 0; 
+              _toAssign['disabled'] = 0; 
+              g.customCounts.forEach((k, v) => _toAssign[k] = 0);
+            })
+          );
         })),
       );
     }
     
     final g = _selectedGuest!;
-    final tableOccupancy = widget.allAssignments.where((a) => a.tableId == widget.table.id).fold(0, (sum, a) => sum + a.total);
-    final remainingInTable = widget.table.capacity - tableOccupancy;
     final currentTotalToAssign = _toAssign.values.fold(0, (sum, v) => sum + v);
 
     final List<String> types = ['adults', 'children', 'teenagers', 'disabled'];
