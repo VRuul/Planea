@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/auth_provider.dart';
 import '../../data/models/event_model.dart';
+import '../../data/models/collaborator_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
@@ -19,6 +20,10 @@ class EventsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final userId = context.read<AuthProvider>().currentUser?.id ?? '';
+
+    final userEmail = context.read<AuthProvider>().currentUser?.email ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
       appBar: AppBar(
@@ -43,22 +48,29 @@ class EventsScreen extends StatelessWidget {
         label: Text(l.newEvent, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
-      body: StreamBuilder<List<EventModel>>(
-        stream: SupabaseService().watchUserEvents(userId),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.brushedGold));
-          }
-          final events = snap.data ?? [];
-          if (events.isEmpty) return _EmptyEvents(userId: userId);
-          return ListView.separated(
-            padding: const EdgeInsets.all(20),
-            itemCount: events.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, i) => _EventCard(event: events[i]),
-          );
-        },
+      body: Column(
+        children: [
+          _ReceivedInvitationsSection(email: userEmail),
+          Expanded(
+            child: StreamBuilder<List<EventModel>>(
+              stream: SupabaseService().watchUserEvents(userId),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator(color: AppColors.brushedGold));
+                }
+                final events = snap.data ?? [];
+                if (events.isEmpty) return _EmptyEvents(userId: userId);
+                return ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: events.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, i) => _EventCard(event: events[i]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -475,5 +487,180 @@ class _EventDialogState extends State<EventDialog> {
   InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
     return InputDecoration(labelText: label, labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 14), prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20), filled: true, fillColor: baseColor.withValues(alpha: 0.03), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)));
+  }
+}
+
+class _ReceivedInvitationsSection extends StatelessWidget {
+  final String email;
+  const _ReceivedInvitationsSection({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    if (email.isEmpty) return const SizedBox.shrink();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService().watchReceivedInvitations(email),
+      builder: (context, snap) {
+        final invitations = snap.data ?? [];
+        if (invitations.isEmpty) return const SizedBox.shrink();
+
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final baseColor = isDark ? Colors.white : Colors.black;
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.brushedGold.withValues(alpha: 0.15),
+                AppColors.brushedGold.withValues(alpha: 0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.mail_outline_rounded, color: AppColors.brushedGold, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Invitaciones Recibidas',
+                    style: TextStyle(
+                      color: baseColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.brushedGold,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      invitations.length.toString(),
+                      style: const TextStyle(
+                        color: AppColors.charcoal,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...invitations.map((inv) {
+                final collab = inv['collaborator'] as CollaboratorModel;
+                return _InvitationItem(
+                  id: collab.id,
+                  eventName: inv['event_name'],
+                  inviterName: collab.invitedBy ?? 'Alguien',
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InvitationItem extends StatelessWidget {
+  final String id;
+  final String eventName;
+  final String inviterName;
+
+  const _InvitationItem({
+    required this.id,
+    required this.eventName,
+    required this.inviterName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    final auth = context.read<AuthProvider>();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      eventName,
+                      style: TextStyle(
+                        color: baseColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      'Invitado por: $inviterName',
+                      style: TextStyle(
+                        color: baseColor.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => SupabaseService().rejectCollaborator(id),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => SupabaseService().acceptInvitation(
+                    id: id,
+                    userId: auth.currentUser?.id ?? '',
+                    displayName: auth.userDisplayName ?? 'Colaborador',
+                    photoUrl: auth.currentUser?.userMetadata?['avatar_url'],
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brushedGold,
+                    foregroundColor: AppColors.charcoal,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -39,17 +39,25 @@ class SupabaseService {
     return _client
         .from('events')
         .stream(primaryKey: ['id'])
-        .eq('id', eventId)
-        .map((list) => list.isEmpty ? null : EventModel.fromJson(list.first));
+        .map((list) => list
+            .where((json) => json['id'] == eventId)
+            .map((json) => EventModel.fromJson(json))
+            .firstOrNull);
   }
 
   Stream<List<EventModel>> watchUserEvents(String userId) {
     return _client
         .from('events')
         .stream(primaryKey: ['id'])
-        .eq('organizer_id', userId)
-        .order('date_ms', ascending: true)
-        .map((list) => list.map((json) => EventModel.fromJson(json)).toList());
+        .map((list) {
+          final filtered = list.where((json) => 
+            json['organizer_id'] == userId || 
+            (json['collaborator_ids'] as List?)?.contains(userId) == true
+          ).toList();
+          // Ordenar manualmente por date_ms
+          filtered.sort((a, b) => (a['date_ms'] ?? 0).compareTo(b['date_ms'] ?? 0));
+          return filtered.map((json) => EventModel.fromJson(json)).toList();
+        });
   }
 
   Future<void> updateEventTemplate(String eventId, String template) async {
@@ -85,8 +93,10 @@ class SupabaseService {
     return _client
         .from('guests')
         .stream(primaryKey: ['id'])
-        .eq('event_id', eventId)
-        .map((list) => list.map((json) => GuestModel.fromJson(json)).toList());
+        .map((list) => list
+            .where((json) => json['event_id'] == eventId)
+            .map((json) => GuestModel.fromJson(json))
+            .toList());
   }
 
   // ─── Table CRUD ──────────────────────────────────────────────
@@ -111,8 +121,10 @@ class SupabaseService {
     return _client
         .from('tables')
         .stream(primaryKey: ['id'])
-        .eq('event_id', eventId)
-        .map((list) => list.map((json) => TableModel.fromJson(json)).toList());
+        .map((list) => list
+            .where((json) => json['event_id'] == eventId)
+            .map((json) => TableModel.fromJson(json))
+            .toList());
   }
 
   // ─── Venue Element CRUD ──────────────────────────────────────
@@ -137,8 +149,10 @@ class SupabaseService {
     return _client
         .from('venue_elements')
         .stream(primaryKey: ['id'])
-        .eq('event_id', eventId)
-        .map((list) => list.map((json) => VenueElementModel.fromJson(json)).toList());
+        .map((list) => list
+            .where((json) => json['event_id'] == eventId)
+            .map((json) => VenueElementModel.fromJson(json))
+            .toList());
   }
 
   // ─── Seating Assignment ──────────────────────────
@@ -146,8 +160,10 @@ class SupabaseService {
     return _client
         .from('seating_assignments')
         .stream(primaryKey: ['id'])
-        .eq('event_id', eventId)
-        .map((list) => list.map((json) => SeatingAssignment.fromJson(json)).toList());
+        .map((list) => list
+            .where((json) => json['event_id'] == eventId)
+            .map((json) => SeatingAssignment.fromJson(json))
+            .toList());
   }
 
   Future<void> addAssignment(String eventId, SeatingAssignment assignment) async {
@@ -169,28 +185,28 @@ class SupabaseService {
     return code;
   }
 
-  Future<void> approveCollaborator(String eventId, String userId, CollaboratorRole role) async {
+  Future<void> approveCollaborator(String id, CollaboratorRole role) async {
     await _client.from('collaborators').update({
       'status': 'approved',
       'role': role.name,
       'approved_at': DateTime.now().toIso8601String(),
-    }).match({'event_id': eventId, 'user_id': userId});
+    }).eq('id', id);
   }
 
-  Future<void> rejectCollaborator(String eventId, String userId) async {
+  Future<void> rejectCollaborator(String id) async {
     await _client.from('collaborators').update({
       'status': 'rejected',
-    }).match({'event_id': eventId, 'user_id': userId});
+    }).eq('id', id);
   }
 
-  Future<void> removeCollaborator(String eventId, String userId) async {
-    await _client.from('collaborators').delete().match({'event_id': eventId, 'user_id': userId});
+  Future<void> removeCollaborator(String id) async {
+    await _client.from('collaborators').delete().eq('id', id);
   }
 
-  Future<void> updateCollaboratorRole(String eventId, String userId, CollaboratorRole role) async {
+  Future<void> updateCollaboratorRole(String id, CollaboratorRole role) async {
     await _client.from('collaborators').update({
       'role': role.name,
-    }).match({'event_id': eventId, 'user_id': userId});
+    }).eq('id', id);
   }
 
   Stream<List<CollaboratorModel>> watchCollaborators(String eventId) {
@@ -201,13 +217,67 @@ class SupabaseService {
         .map((list) => list.map((json) => CollaboratorModel.fromJson(json)).toList());
   }
 
+  Stream<List<Map<String, dynamic>>> watchReceivedInvitations(String email) {
+    // Escuchamos cambios en colaboradores invitados con este correo
+    return _client
+        .from('collaborators')
+        .stream(primaryKey: ['id'])
+        .asyncMap((list) async {
+          final filtered = list.where((json) => 
+            json['email'] == email && json['status'] == 'invited'
+          ).toList();
+          final enriched = <Map<String, dynamic>>[];
+          for (var item in filtered) {
+            final eventId = item['event_id'];
+            String eventName = 'Evento Desconocido';
+            try {
+              final eventRes = await _client.from('events').select('name').eq('id', eventId).maybeSingle();
+              if (eventRes != null) eventName = eventRes['name'];
+            } catch (_) {}
+            
+            enriched.add({
+              'collaborator': CollaboratorModel.fromJson(item),
+              'event_name': eventName,
+            });
+          }
+          return enriched;
+        });
+  }
+
+  Future<void> acceptInvitation({
+    required String id,
+    required String userId,
+    required String displayName,
+    String? photoUrl,
+  }) async {
+    // 1. Obtener el event_id de la invitación
+    final collabRes = await _client.from('collaborators').select('event_id').eq('id', id).single();
+    final eventId = collabRes['event_id'];
+
+    // 2. Actualizar el registro del colaborador
+    await _client.from('collaborators').update({
+      'user_id': userId,
+      'display_name': displayName,
+      'photo_url': photoUrl,
+      'status': 'approved',
+      'approved_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+
+    // 3. Sincronizar con la tabla de eventos (añadir al array de IDs)
+    final eventRes = await _client.from('events').select('collaborator_ids').eq('id', eventId).single();
+    List<String> ids = List<String>.from(eventRes['collaborator_ids'] ?? []);
+    if (!ids.contains(userId)) {
+      ids.add(userId);
+      await _client.from('events').update({'collaborator_ids': ids}).eq('id', eventId);
+    }
+  }
+
   Stream<List<CollaboratorModel>> watchPendingRequests(String eventId) {
     return _client
         .from('collaborators')
         .stream(primaryKey: ['id'])
-        .eq('event_id', eventId)
         .map((list) => list
-            .where((json) => json['status'] == 'pending')
+            .where((json) => json['event_id'] == eventId && json['status'] == 'pending')
             .map((json) => CollaboratorModel.fromJson(json))
             .toList());
   }
@@ -222,8 +292,9 @@ class SupabaseService {
       'event_id': eventId,
       'email': email,
       'role': role.name,
-      'status': 'pending',
-      'display_name': 'Pendiente',
+      'status': 'invited',
+      'display_name': email.split('@').first,
+      'invited_by': inviterName,
     });
   }
 

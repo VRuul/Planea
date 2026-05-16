@@ -145,7 +145,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                   );
                 }
                 final all = (snap.data ?? [])
-                    .where((c) => c.isApproved)
+                    .where((c) => c.status == CollaboratorStatus.approved || c.status == CollaboratorStatus.invited)
                     .toList();
                 if (all.isEmpty) {
                   return Container(
@@ -261,12 +261,12 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
               onPressed: () async {
                 if (emailController.text.trim().isEmpty) return;
                 final auth = context.read<AuthProvider>();
-                final userName = auth.userDisplayName ?? 'Admin';
+                final inviterEmail = auth.currentUser?.email ?? 'Admin';
                 await _service.inviteByEmail(
                   eventId: event.id,
                   email: emailController.text.trim(),
                   role: selectedRole,
-                  inviterName: userName,
+                  inviterName: inviterEmail,
                 );
                 if (context.mounted) {
                   Navigator.pop(context);
@@ -556,7 +556,7 @@ class _PendingRequestCard extends StatelessWidget {
             icon: const Icon(Icons.cancel_rounded, color: AppColors.declined),
             tooltip: 'Rechazar',
             onPressed: () {
-              SupabaseService().rejectCollaborator(eventId, collaborator.userId);
+              SupabaseService().rejectCollaborator(collaborator.id);
             },
           ),
         ],
@@ -621,7 +621,7 @@ class _PendingRequestCard extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                SupabaseService().approveCollaborator(eventId, collaborator.userId, selectedRole);
+                SupabaseService().approveCollaborator(collaborator.id, selectedRole);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -654,11 +654,12 @@ class _CollaboratorCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final baseColor = isDark ? Colors.white : Colors.black87;
-    final roleColor = collaborator.isAdmin ? AppColors.brushedGold : Colors.blueGrey;
-    final roleLabel = collaborator.isAdmin ? 'Administrador' : 'Visualizador';
-    final roleIcon = collaborator.isAdmin
-        ? Icons.admin_panel_settings_rounded
-        : Icons.visibility_rounded;
+    final isInvited = collaborator.status == CollaboratorStatus.invited;
+    final roleColor = isInvited ? Colors.orange : (collaborator.isAdmin ? AppColors.brushedGold : Colors.blueGrey);
+    final roleLabel = isInvited ? 'Invitado - Pendiente' : (collaborator.isAdmin ? 'Administrador' : 'Visualizador');
+    final roleIcon = isInvited 
+        ? Icons.mail_outline_rounded 
+        : (collaborator.isAdmin ? Icons.admin_panel_settings_rounded : Icons.visibility_rounded);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -713,11 +714,11 @@ class _CollaboratorCard extends StatelessWidget {
               icon: Icon(Icons.more_vert_rounded, color: baseColor.withValues(alpha: 0.3)),
               onSelected: (val) {
                 if (val == 'remove') {
-                  SupabaseService().removeCollaborator(eventId, collaborator.userId);
+                  SupabaseService().removeCollaborator(collaborator.id);
                 } else if (val == 'admin') {
-                  SupabaseService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.admin);
+                  SupabaseService().updateCollaboratorRole(collaborator.id, CollaboratorRole.admin);
                 } else if (val == 'viewer') {
-                  SupabaseService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.viewer);
+                  SupabaseService().updateCollaboratorRole(collaborator.id, CollaboratorRole.viewer);
                 }
               },
               itemBuilder: (_) => [

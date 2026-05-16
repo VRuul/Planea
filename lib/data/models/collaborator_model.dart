@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 enum CollaboratorRole { owner, admin, viewer }
 
-enum CollaboratorStatus { pending, approved, rejected }
+enum CollaboratorStatus { pending, approved, rejected, invited }
 
 class CollaboratorModel extends Equatable {
   final String id; // Document ID (usually = userId)
@@ -14,6 +14,7 @@ class CollaboratorModel extends Equatable {
   final CollaboratorStatus status;
   final DateTime requestedAt;
   final DateTime? approvedAt;
+  final String? invitedBy;
 
   const CollaboratorModel({
     required this.id,
@@ -25,6 +26,7 @@ class CollaboratorModel extends Equatable {
     required this.status,
     required this.requestedAt,
     this.approvedAt,
+    this.invitedBy,
   });
 
   factory CollaboratorModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class CollaboratorModel extends Equatable {
       approvedAt: json['approved_at'] != null
           ? DateTime.parse(json['approved_at'])
           : null,
+      invitedBy: json['invited_by'],
     );
   }
 
@@ -58,6 +61,7 @@ class CollaboratorModel extends Equatable {
     'status': status.name,
     'requested_at': requestedAt.toIso8601String(),
     'approved_at': approvedAt?.toIso8601String(),
+    'invited_by': invitedBy,
   };
 
   CollaboratorModel copyWith({
@@ -70,6 +74,7 @@ class CollaboratorModel extends Equatable {
     CollaboratorStatus? status,
     DateTime? requestedAt,
     DateTime? approvedAt,
+    String? invitedBy,
   }) {
     return CollaboratorModel(
       id: id ?? this.id,
@@ -81,6 +86,7 @@ class CollaboratorModel extends Equatable {
       status: status ?? this.status,
       requestedAt: requestedAt ?? this.requestedAt,
       approvedAt: approvedAt ?? this.approvedAt,
+      invitedBy: invitedBy ?? this.invitedBy,
     );
   }
 
@@ -92,6 +98,6 @@ class CollaboratorModel extends Equatable {
 
   @override
   List<Object?> get props => [
-    id, userId, email, displayName, photoUrl, role, status, requestedAt, approvedAt
+    id, userId, email, displayName, photoUrl, role, status, requestedAt, approvedAt, invitedBy
   ];
 }
