@@ -42,6 +42,17 @@ class SupabaseService {
         .map((list) => list.map((json) => EventModel.fromJson(json)).toList());
   }
 
+  Future<void> updateEventTemplate(String eventId, String template) async {
+    await _client.from('events').update({'whatsapp_template': template}).eq('id', eventId);
+  }
+
+  Future<void> updateEventEmailConfig(String eventId, String email, String subject) async {
+    await _client.from('events').update({
+      'email_template': email,
+      'email_subject': subject,
+    }).eq('id', eventId);
+  }
+
   // ─── Guest CRUD ──────────────────────────────────────────────
   Future<String> addGuest(String eventId, GuestModel guest) async {
     final data = await _client.from('guests').insert(guest.toJson()).select('id').single();
@@ -50,6 +61,10 @@ class SupabaseService {
 
   Future<void> updateGuest(String eventId, GuestModel guest) async {
     await _client.from('guests').update(guest.toJson()).eq('id', guest.id);
+  }
+
+  Future<void> updateGuestStatus(String eventId, String guestId, GuestStatus status) async {
+    await _client.from('guests').update({'status': status.name}).eq('id', guestId);
   }
 
   Future<void> deleteGuest(String eventId, String guestId) async {
@@ -74,6 +89,10 @@ class SupabaseService {
     await _client.from('tables').update(table.toJson()).eq('id', table.id);
   }
 
+  Future<void> updateTablePosition(String eventId, String tableId, double x, double y) async {
+    await _client.from('tables').update({'pos_x': x, 'pos_y': y}).eq('id', tableId);
+  }
+
   Future<void> deleteTable(String eventId, String tableId) async {
     await _client.from('tables').delete().eq('id', tableId);
   }
@@ -87,12 +106,20 @@ class SupabaseService {
   }
 
   // ─── Venue Element CRUD ──────────────────────────────────────
-  Future<String> addVenueElement(VenueElementModel element) async {
+  Future<String> addVenueElement(String eventId, VenueElementModel element) async {
     final data = await _client.from('venue_elements').insert(element.toJson()).select('id').single();
     return data['id'];
   }
 
-  Future<void> deleteVenueElement(String elementId) async {
+  Future<void> updateVenueElement(String eventId, VenueElementModel element) async {
+    await _client.from('venue_elements').update(element.toJson()).eq('id', element.id);
+  }
+
+  Future<void> updateVenueElementPosition(String eventId, String elementId, double x, double y) async {
+    await _client.from('venue_elements').update({'pos_x': x, 'pos_y': y}).eq('id', elementId);
+  }
+
+  Future<void> deleteVenueElement(String eventId, String elementId) async {
     await _client.from('venue_elements').delete().eq('id', elementId);
   }
 
@@ -113,11 +140,15 @@ class SupabaseService {
         .map((list) => list.map((json) => SeatingAssignment.fromJson(json)).toList());
   }
 
-  Future<void> addAssignment(SeatingAssignment assignment) async {
+  Future<void> addAssignment(String eventId, SeatingAssignment assignment) async {
     await _client.from('seating_assignments').insert(assignment.toJson());
   }
 
-  Future<void> deleteAssignment(String assignmentId) async {
+  Future<void> updateAssignment(String eventId, SeatingAssignment assignment) async {
+    await _client.from('seating_assignments').update(assignment.toJson()).eq('id', assignment.id);
+  }
+
+  Future<void> deleteAssignment(String eventId, String assignmentId) async {
     await _client.from('seating_assignments').delete().eq('id', assignmentId);
   }
 
@@ -165,8 +196,10 @@ class SupabaseService {
         .from('collaborators')
         .stream(primaryKey: ['id'])
         .eq('event_id', eventId)
-        .eq('status', 'pending')
-        .map((list) => list.map((json) => CollaboratorModel.fromJson(json)).toList());
+        .map((list) => list
+            .where((json) => json['status'] == 'pending')
+            .map((json) => CollaboratorModel.fromJson(json))
+            .toList());
   }
 
   Future<void> inviteByEmail({
