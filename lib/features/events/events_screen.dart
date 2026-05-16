@@ -630,7 +630,7 @@ class _InvitationItem extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => SupabaseService().rejectCollaborator(id),
+                  onPressed: () => SupabaseService().rejectInvitation(id),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),

@@ -250,26 +250,18 @@ class SupabaseService {
     required String displayName,
     String? photoUrl,
   }) async {
-    // 1. Obtener el event_id de la invitación
-    final collabRes = await _client.from('collaborators').select('event_id').eq('id', id).single();
-    final eventId = collabRes['event_id'];
+    await _client.rpc('accept_event_invitation', params: {
+      'invitation_id': id,
+      'p_user_id': userId,
+      'p_display_name': displayName,
+      'p_photo_url': photoUrl,
+    });
+  }
 
-    // 2. Actualizar el registro del colaborador
-    await _client.from('collaborators').update({
-      'user_id': userId,
-      'display_name': displayName,
-      'photo_url': photoUrl,
-      'status': 'approved',
-      'approved_at': DateTime.now().toIso8601String(),
-    }).eq('id', id);
-
-    // 3. Sincronizar con la tabla de eventos (añadir al array de IDs)
-    final eventRes = await _client.from('events').select('collaborator_ids').eq('id', eventId).single();
-    List<String> ids = List<String>.from(eventRes['collaborator_ids'] ?? []);
-    if (!ids.contains(userId)) {
-      ids.add(userId);
-      await _client.from('events').update({'collaborator_ids': ids}).eq('id', eventId);
-    }
+  Future<void> rejectInvitation(String id) async {
+    await _client.rpc('reject_event_invitation', params: {
+      'invitation_id': id,
+    });
   }
 
   Stream<List<CollaboratorModel>> watchPendingRequests(String eventId) {
