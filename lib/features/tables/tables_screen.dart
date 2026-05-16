@@ -352,7 +352,7 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+                    Positioned.fill(child: CustomPaint(painter: _GridPainter(isDark: isDark))),
                     ...widget.venueElements.map((e) {
                       final currentPos = _dragPositions[e.id] ?? Offset(e.posX, e.posY);
                       return Positioned(
@@ -477,6 +477,9 @@ class _DraggableTable extends StatelessWidget {
     final baseSize = 100.0 + (table.capacity * 5.0);
     final width = table.width ?? (table.shape == TableShape.rectangular ? baseSize * 2 : baseSize);
     final height = table.height ?? baseSize;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final customColor = table.color != null ? Color(table.color!) : null;
+    final primaryColor = customColor ?? AppColors.brushedGold;
 
     return GestureDetector(
       onPanUpdate: (details) => onDragUpdate(details.delta),
@@ -485,10 +488,24 @@ class _DraggableTable extends StatelessWidget {
       child: Container(
         width: width, height: height,
         decoration: BoxDecoration(
-          color: AppColors.brushedGold.withValues(alpha: 0.08),
+          color: isDark 
+              ? primaryColor.withValues(alpha: 0.1) 
+              : primaryColor.withValues(alpha: 0.05),
           shape: table.shape == TableShape.circular ? BoxShape.circle : BoxShape.rectangle,
           borderRadius: table.shape == TableShape.circular ? null : BorderRadius.circular(table.shape == TableShape.square ? 12 : 8),
-          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.5), width: 1.5),
+          border: Border.all(
+            color: isDark 
+                ? primaryColor.withValues(alpha: 0.6) 
+                : primaryColor.withValues(alpha: 0.8), 
+            width: 1.5
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Center(
           child: Column(
@@ -496,19 +513,19 @@ class _DraggableTable extends StatelessWidget {
             children: [
               Text(
                 table.name, 
-                style: const TextStyle(color: AppColors.brushedGold, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: -0.2),
+                style: TextStyle(color: isDark ? Colors.white : primaryColor, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: -0.2),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 2),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.brushedGold.withValues(alpha: 0.1),
+                  color: primaryColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '${table.capacity}', 
-                  style: const TextStyle(color: AppColors.brushedGold, fontSize: 9, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: isDark ? Colors.white : primaryColor, fontSize: 9, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -871,6 +888,7 @@ class _TableDialogState extends State<_TableDialog> {
   late TextEditingController _nameController, _capacityController, _widthController, _heightController;
   late TableShape _shape;
   bool _saving = false;
+  Color? _selectedColor;
 
   @override
   void initState() {
@@ -887,6 +905,7 @@ class _TableDialogState extends State<_TableDialog> {
     _widthController = TextEditingController(text: initialWidth ?? '');
     _heightController = TextEditingController(text: initialHeight ?? '');
     _shape = widget.table?.shape ?? TableShape.circular;
+    _selectedColor = widget.table?.color != null ? Color(widget.table!.color!) : null;
   }
 
   @override
@@ -942,7 +961,7 @@ class _TableDialogState extends State<_TableDialog> {
                 ],
                 onChanged: (val) { if (val != null) setState(() => _shape = val); },
               ),
-              if (widget.showDimensions) ...[
+               if (widget.showDimensions) ...[
                 const SizedBox(height: 16), 
                 Row(
                   children: [
@@ -966,6 +985,8 @@ class _TableDialogState extends State<_TableDialog> {
                   ],
                 ),
               ],
+              const SizedBox(height: 24),
+              _buildColorPicker(),
             ],
           ),
         ),
@@ -1001,10 +1022,64 @@ class _TableDialogState extends State<_TableDialog> {
     if (name.isEmpty) return;
     setState(() => _saving = true);
     try {
-      final table = TableModel(id: widget.table?.id ?? '', eventId: widget.eventId, name: name, capacity: int.tryParse(_capacityController.text.trim()) ?? 10, shape: _shape, width: double.tryParse(_widthController.text.trim()), height: double.tryParse(_heightController.text.trim()), posX: widget.table?.posX ?? 0.0, posY: widget.table?.posY ?? 0.0);
-      if (widget.table == null) { await _service.addTable(widget.eventId, table); } else { await _service.updateTable(widget.eventId, table); }
+      final table = TableModel(
+        id: widget.table?.id ?? '', 
+        eventId: widget.eventId, 
+        name: name, 
+        capacity: int.tryParse(_capacityController.text.trim()) ?? 10, 
+        shape: _shape, 
+        width: double.tryParse(_widthController.text.trim()), 
+        height: double.tryParse(_heightController.text.trim()), 
+        posX: widget.table?.posX ?? 0.0, 
+        posY: widget.table?.posY ?? 0.0,
+        color: _selectedColor?.toARGB32(),
+      );
+      if (widget.table == null) { 
+        await _service.addTable(widget.eventId, table); 
+      } else { 
+        await _service.updateTable(widget.eventId, table); 
+      }
       if (mounted) Navigator.pop(context);
     } finally { if (mounted) setState(() => _saving = false); }
+  }
+
+  Widget _buildColorPicker() {
+    final colors = [
+      null, 
+      const Color(0xFF448AFF), 
+      const Color(0xFFE57373), 
+      const Color(0xFF81C784), 
+      const Color(0xFFBA68C8), 
+      const Color(0xFF424242), 
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('COLOR PERSONALIZADO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: colors.map((c) => GestureDetector(
+            onTap: () => setState(() => _selectedColor = c),
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: c ?? AppColors.brushedGold,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _selectedColor == c ? Colors.white : Colors.transparent,
+                  width: 2,
+                ),
+                boxShadow: [
+                  if (_selectedColor == c) BoxShadow(color: (c ?? AppColors.brushedGold).withValues(alpha: 0.4), blurRadius: 8)
+                ],
+              ),
+              child: _selectedColor == c ? const Icon(Icons.check, size: 20, color: Colors.white) : null,
+            ),
+          )).toList(),
+        ),
+      ],
+    );
   }
 
   InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
@@ -1026,6 +1101,7 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
   late TextEditingController _nameController, _widthController, _heightController;
   late VenueElementType _type;
   bool _saving = false;
+  Color? _selectedColor;
 
   @override
   void initState() {
@@ -1034,6 +1110,7 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
     _widthController = TextEditingController(text: (widget.element?.width ?? 200.0).toString());
     _heightController = TextEditingController(text: (widget.element?.height ?? 200.0).toString());
     _type = widget.element?.type ?? VenueElementType.danceFloor;
+    _selectedColor = widget.element?.color;
   }
 
   @override
@@ -1061,7 +1138,9 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
         const SizedBox(height: 16),
         TextField(controller: _nameController, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Nombre', Icons.label_outline, theme)),
         const SizedBox(height: 16),
-        Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho', Icons.width_normal, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto', Icons.height, theme)))])
+        Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho', Icons.width_normal, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto', Icons.height, theme)))]),
+        const SizedBox(height: 24),
+        _buildColorPicker(),
       ]))),
       actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       actions: [
@@ -1100,10 +1179,63 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final element = VenueElementModel(id: widget.element?.id ?? '', eventId: widget.eventId, name: _nameController.text.trim().isEmpty ? _type.name : _nameController.text.trim(), type: _type, width: double.tryParse(_widthController.text.trim()) ?? 200, height: double.tryParse(_heightController.text.trim()) ?? 200, posX: widget.element?.posX ?? 0.0, posY: widget.element?.posY ?? 0.0);
-      if (widget.element == null) { await _service.addVenueElement(widget.eventId, element); } else { await _service.updateVenueElement(widget.eventId, element); }
+      final element = VenueElementModel(
+        id: widget.element?.id ?? '', 
+        eventId: widget.eventId, 
+        name: _nameController.text.trim().isEmpty ? _type.name : _nameController.text.trim(), 
+        type: _type, 
+        width: double.tryParse(_widthController.text.trim()) ?? 200, 
+        height: double.tryParse(_heightController.text.trim()) ?? 200, 
+        posX: widget.element?.posX ?? 0.0, 
+        posY: widget.element?.posY ?? 0.0,
+        color: _selectedColor,
+      );
+      if (widget.element == null) { 
+        await _service.addVenueElement(widget.eventId, element); 
+      } else { 
+        await _service.updateVenueElement(widget.eventId, element); 
+      }
       if (mounted) Navigator.pop(context);
     } finally { if (mounted) setState(() => _saving = false); }
+  }
+
+  Widget _buildColorPicker() {
+    final colors = [
+      null, 
+      const Color(0xFF448AFF), 
+      const Color(0xFFE57373), 
+      const Color(0xFF81C784), 
+      const Color(0xFFBA68C8), 
+      const Color(0xFF424242), 
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('COLOR PERSONALIZADO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: colors.map((c) => GestureDetector(
+            onTap: () => setState(() => _selectedColor = c),
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: c ?? AppColors.brushedGold,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _selectedColor == c ? Colors.white : Colors.transparent,
+                  width: 2,
+                ),
+                boxShadow: [
+                  if (_selectedColor == c) BoxShadow(color: (c ?? AppColors.brushedGold).withValues(alpha: 0.4), blurRadius: 8)
+                ],
+              ),
+              child: _selectedColor == c ? const Icon(Icons.check, size: 20, color: Colors.white) : null,
+            ),
+          )).toList(),
+        ),
+      ],
+    );
   }
 
   InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
@@ -1148,6 +1280,9 @@ class _VenueElementItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final customColor = element.color;
+    final primaryColor = customColor ?? (element.type == VenueElementType.entrance ? Colors.blue : AppColors.brushedGold);
+
     return GestureDetector(
       onPanUpdate: (details) => onDragUpdate(details.delta),
       onPanEnd: (_) => onDragEnd(),
@@ -1155,9 +1290,21 @@ class _VenueElementItem extends StatelessWidget {
       child: Container(
         width: element.width, height: element.height,
         decoration: BoxDecoration(
-          color: _getColor(isDark), 
+          color: _getColor(isDark, primaryColor), 
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.3), width: 1.5),
+          border: Border.all(
+            color: isDark 
+                ? primaryColor.withValues(alpha: 0.6) 
+                : primaryColor.withValues(alpha: 0.8), 
+            width: 1.5
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Stack(
           children: [
@@ -1165,12 +1312,12 @@ class _VenueElementItem extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min, 
                 children: [
-                  Icon(_getIcon(), color: AppColors.brushedGold.withValues(alpha: 0.8), size: 32), 
+                  Icon(_getIcon(), color: isDark ? Colors.white : primaryColor, size: 32), 
                   const SizedBox(height: 8), 
                   Text(
                     element.name.toUpperCase(), 
-                    style: const TextStyle(
-                      color: AppColors.brushedGold, 
+                    style: TextStyle(
+                      color: isDark ? Colors.white : primaryColor, 
                       fontSize: 10, 
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1,
@@ -1200,18 +1347,30 @@ class _VenueElementItem extends StatelessWidget {
     }
   }
 
-  Color _getColor(bool isDark) {
-    return AppColors.brushedGold.withValues(alpha: isDark ? 0.05 : 0.02);
+  Color _getColor(bool isDark, Color primaryColor) {
+    return isDark 
+        ? primaryColor.withValues(alpha: 0.1) 
+        : primaryColor.withValues(alpha: 0.05);
   }
 }
 
 class _GridPainter extends CustomPainter {
+  final bool isDark;
+  _GridPainter({required this.isDark});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.05)..strokeWidth = 1;
+    final gridColor = isDark 
+        ? Colors.white.withValues(alpha: 0.05) 
+        : Colors.black.withValues(alpha: 0.03);
+    final paint = Paint()..color = gridColor..strokeWidth = 1;
+    
     for (double i = 0; i <= size.width; i += 50) { canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint); }
     for (double i = 0; i <= size.height; i += 50) { canvas.drawLine(Offset(0, i), Offset(size.width, i), paint); }
-    final originPaint = Paint()..color = AppColors.brushedGold.withValues(alpha: 0.1)..strokeWidth = 2;
+    
+    final originPaint = Paint()
+        ..color = AppColors.brushedGold.withValues(alpha: isDark ? 0.1 : 0.2)
+        ..strokeWidth = 2;
     canvas.drawLine(const Offset(0, 5000), const Offset(10000, 5000), originPaint);
     canvas.drawLine(const Offset(5000, 0), const Offset(5000, 10000), originPaint);
   }

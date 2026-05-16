@@ -9,6 +9,7 @@ class TableModel {
   final double posY;
   final double? width;
   final double? height;
+  final int? color;
 
   TableModel({
     required this.id,
@@ -20,6 +21,7 @@ class TableModel {
     this.posY = 0.0,
     this.width,
     this.height,
+    this.color,
   });
 
   factory TableModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class TableModel {
       posY: (json['pos_y'] ?? 0.0).toDouble(),
       width: json['width'] != null ? (json['width'] as num).toDouble() : null,
       height: json['height'] != null ? (json['height'] as num).toDouble() : null,
+      color: json['color'],
     );
   }
 
@@ -49,6 +52,7 @@ class TableModel {
       'pos_y': posY,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      if (color != null) 'color': color,
     };
   }
 }
