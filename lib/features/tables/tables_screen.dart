@@ -1,14 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:planea/data/models/event_model.dart';
 import 'package:planea/data/models/guest_model.dart';
 import 'package:planea/data/models/table_model.dart';
 import 'package:planea/data/models/venue_element_model.dart';
 import 'package:planea/data/models/seating_assignment_model.dart';
-import 'package:planea/data/models/seating_data_model.dart';
 import 'package:planea/data/services/supabase_service.dart';
 import 'package:planea/providers/event_provider.dart';
+import 'package:planea/providers/seating_provider.dart';
 import 'package:planea/l10n/app_localizations.dart';
 import 'package:planea/core/constants/app_colors.dart';
 import '../shared/widgets/premium_picker.dart';

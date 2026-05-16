@@ -184,31 +184,24 @@ class _EventSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final auth = context.watch<AuthProvider>();
     final eventProvider = context.watch<EventProvider>();
-    final userId = auth.currentUser?.id ?? '';
 
     final isDark = theme.brightness == Brightness.dark;
 
-    return StreamBuilder<List<EventModel>>(
-      stream: eventProvider.watchUserEvents(userId),
-      builder: (context, snapshot) {
-        final events = snapshot.data ?? [];
-        if (events.isEmpty) return const SizedBox.shrink();
+    final events = eventProvider.userEvents;
+    if (events.isEmpty) {
+      return eventProvider.isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : const SizedBox.shrink();
+    }
 
-        if (eventProvider.currentEventId == null && events.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            eventProvider.setCurrentEventId(events.first.id);
-          });
-        }
+    final currentEvent = events.firstWhere(
+      (e) => e.id == eventProvider.currentEventId,
+      orElse: () => events.first,
+    );
 
-        final currentEvent = events.firstWhere(
-          (e) => e.id == eventProvider.currentEventId,
-          orElse: () => events.first,
-        );
-
-        return InkWell(
-          onTap: () => _showEventPicker(context, events, eventProvider),
+    return InkWell(
+      onTap: () => _showEventPicker(context, events, eventProvider),
           borderRadius: BorderRadius.circular(20),
           child: Container(
             width: 260,
@@ -281,8 +274,6 @@ class _EventSwitcher extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
     );
   }
 

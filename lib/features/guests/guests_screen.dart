@@ -9,12 +9,11 @@ import '../../data/models/guest_model.dart';
 import '../../data/models/event_model.dart';
 import '../../data/models/table_model.dart';
 import '../../data/models/seating_assignment_model.dart';
-import '../../data/models/seating_data_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../shared/widgets/guest_role_chip.dart';
+import '../../providers/seating_provider.dart';
 import '../shared/widgets/premium_picker.dart';
 
 class GuestsScreen extends StatefulWidget {
@@ -38,10 +37,9 @@ class _GuestsScreenState extends State<GuestsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    final auth = context.read<AuthProvider>();
+    final eventProvider = context.watch<EventProvider>();
     final seatingProvider = context.watch<SeatingProvider>();
     final seatingData = seatingProvider.data;
-    final events = eventProvider.userEvents;
     final currentEventId = eventProvider.currentEventId;
     final currentEvent = eventProvider.currentEvent;
 
