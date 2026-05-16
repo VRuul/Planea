@@ -1039,7 +1039,36 @@ class _VenueElementDialogState extends State<_VenueElementDialog> {
         Row(children: [Expanded(child: TextField(controller: _widthController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Ancho', Icons.width_normal, theme))), const SizedBox(width: 16), Expanded(child: TextField(controller: _heightController, keyboardType: TextInputType.number, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: _inputDecoration('Alto', Icons.height, theme)))])
       ]))),
       actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45), child: const Text('Cancelar')), if (widget.element != null) TextButton(onPressed: () async { await _service.deleteVenueElement(widget.eventId, widget.element!.id); if (mounted) Navigator.pop(context); }, style: TextButton.styleFrom(foregroundColor: Colors.redAccent), child: const Text('Eliminar')), const SizedBox(width: 8), ElevatedButton(onPressed: _saving ? null : _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.brushedGold, foregroundColor: AppColors.charcoal, elevation: 8, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal)) : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12)))]
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white54 : Colors.black45),
+          child: const Text('Cancelar')
+        ),
+        if (widget.element != null)
+          TextButton(
+            onPressed: () async {
+              await _service.deleteVenueElement(widget.eventId, widget.element!.id);
+              if (mounted) Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('Eliminar')
+          ),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: _saving ? null : _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+            elevation: 8,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+          ),
+          child: _saving
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal))
+              : Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 12))
+        )
+      ]
     );
   }
 

@@ -2713,8 +2713,7 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
                     } else {
                       await widget.service.updateAssignment(
                         widget.eventId,
-                        newAssignment.id,
-                        newAssignment.toJson(),
+                        newAssignment,
                       );
                     }
                   }
