@@ -39,169 +39,87 @@ class _GuestsScreenState extends State<GuestsScreen> {
     final theme = Theme.of(context);
     final l = context.l10n;
     final auth = context.read<AuthProvider>();
-    final eventProvider = context.watch<EventProvider>();
-    final userId = auth.currentUser?.id ?? '';
+    final seatingProvider = context.watch<SeatingProvider>();
+    final seatingData = seatingProvider.data;
+    final events = eventProvider.userEvents;
+    final currentEventId = eventProvider.currentEventId;
+    final currentEvent = eventProvider.currentEvent;
 
-    return StreamBuilder<List<EventModel>>(
-      stream: _service.watchUserEvents(userId),
-      builder: (context, eventSnap) {
-        final events = eventSnap.data ?? [];
+    if (currentEventId == null || currentEvent == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l.guestsTitle)),
+        body: eventProvider.isLoading 
+            ? const Center(child: CircularProgressIndicator(color: AppColors.brushedGold))
+            : _EmptyGuestsNoEvent(),
+      );
+    }
 
-        // Validamos el currentEventId contra la lista real de Firestore
-        final currentEventId =
-            events.any((e) => e.id == eventProvider.currentEventId)
-            ? eventProvider.currentEventId
-            : (events.isNotEmpty ? events.first.id : null);
-
-        if (currentEventId == null) {
-          return Scaffold(
-            appBar: AppBar(title: Text(l.guestsTitle)),
-            body: _EmptyGuestsNoEvent(),
-          );
-        }
-
-        final currentEvent = events.firstWhere((e) => e.id == currentEventId);
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(l.guestsTitle),
-            actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.message_rounded,
-                  color: AppColors.brushedGold,
-                ),
-                tooltip: 'Configurar Mensaje',
-                onPressed: () =>
-                    _showTemplateDialog(context, currentEventId, currentEvent),
-              ),
-              IconButton(
-                icon: const Icon(Icons.filter_list_rounded),
-                onPressed: () => _showFilterSheet(context, l),
-              ),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l.guestsTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.message_rounded, color: AppColors.brushedGold),
+            tooltip: 'Configurar Mensaje',
+            onPressed: () => _showTemplateDialog(context, currentEventId, currentEvent),
           ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: TextField(
-                  style: TextStyle(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    hintText: l.searchGuest,
-                    hintStyle: TextStyle(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.brushedGold),
-                    filled: true,
-                    fillColor: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.03),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5),
-                    ),
-                  ),
-                  onChanged: (v) => setState(() => _search = v),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_filterStatus != null || _filterRole != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      if (_filterStatus != null)
-                        _FilterChip(
-                          label: _statusLabel(l, _filterStatus!),
-                          onRemove: () => setState(() => _filterStatus = null),
-                        ),
-                      if (_filterRole != null)
-                        _FilterChip(
-                          label: _roleLabel(l, _filterRole!),
-                          onRemove: () => setState(() => _filterRole = null),
-                        ),
-                      if (_filterCustomRole != null)
-                        _FilterChip(
-                          label: _filterCustomRole!,
-                          onRemove: () =>
-                              setState(() => _filterCustomRole = null),
-                        ),
-                      if (_filterGuestType != null)
-                        _FilterChip(
-                          label: _filterGuestType!,
-                          onRemove: () =>
-                              setState(() => _filterGuestType = null),
-                        ),
-                      if (_filterSeatingStatus != null)
-                        _FilterChip(
-                          label: _filterSeatingStatus!,
-                          onRemove: () =>
-                              setState(() => _filterSeatingStatus = null),
-                        ),
-                    ],
-                  ),
-                ),
-              Expanded(
-                child: StreamBuilder<SeatingData>(
-                  stream: _service.watchSeatingData(currentEventId),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          "Error: ${snapshot.error}",
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      );
-                    }
-
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        !snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final data = snapshot.data;
-                    final tables = data?.tables ?? [];
-                    final assignments = data?.assignments ?? [];
-                    _allGuestsCached = data?.guests ?? [];
-
-                    return Scaffold(
-                      backgroundColor: Colors.transparent,
-                      floatingActionButton: FloatingActionButton.extended(
-                        onPressed: () => _showGuestDialog(
-                          context,
-                          currentEventId,
-                          null,
-                          _allGuestsCached,
-                        ),
-                        backgroundColor: AppColors.brushedGold,
-                        foregroundColor: AppColors.charcoal,
-                        icon: const Icon(Icons.person_add_rounded),
-                        label: Text(l.addGuest),
-                      ),
-                      body: _buildGuestList(
-                        context,
-                        _allGuestsCached,
-                        currentEventId,
-                        l,
-                        theme,
-                        tables,
-                        assignments,
-                        currentEvent,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.filter_list_rounded),
+            onPressed: () => _showFilterSheet(context, l),
           ),
-        );
-      },
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: TextField(
+              style: TextStyle(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: l.searchGuest,
+                hintStyle: TextStyle(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.brushedGold),
+                filled: true,
+                fillColor: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.03),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.08))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: AppColors.brushedGold, width: 1.5)),
+              ),
+              onChanged: (v) => setState(() => _search = v),
+            ),
+          ),
+          if (_filterStatus != null || _filterRole != null || _filterCustomRole != null || _filterGuestType != null || _filterSeatingStatus != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  if (_filterStatus != null) _FilterChip(label: _statusLabel(l, _filterStatus!), onRemove: () => setState(() => _filterStatus = null)),
+                  if (_filterRole != null) _FilterChip(label: _roleLabel(l, _filterRole!), onRemove: () => setState(() => _filterRole = null)),
+                  if (_filterCustomRole != null) _FilterChip(label: _filterCustomRole!, onRemove: () => setState(() => _filterCustomRole = null)),
+                  if (_filterGuestType != null) _FilterChip(label: _filterGuestType!, onRemove: () => setState(() => _filterGuestType = null)),
+                  if (_filterSeatingStatus != null) _FilterChip(label: _filterSeatingStatus!, onRemove: () => setState(() => _filterSeatingStatus = null)),
+                ],
+              ),
+            ),
+          Expanded(
+            child: (seatingProvider.isLoading || seatingData == null)
+                ? const Center(child: CircularProgressIndicator(color: AppColors.brushedGold))
+                : Scaffold(
+                    backgroundColor: Colors.transparent,
+                    floatingActionButton: FloatingActionButton.extended(
+                      onPressed: () => _showGuestDialog(context, currentEventId, null, seatingData.guests),
+                      backgroundColor: AppColors.brushedGold,
+                      foregroundColor: AppColors.charcoal,
+                      icon: const Icon(Icons.person_add_rounded),
+                      label: Text(l.addGuest),
+                    ),
+                    body: _buildGuestList(context, seatingData.guests, currentEventId, l, theme, seatingData.tables, seatingData.assignments, currentEvent),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

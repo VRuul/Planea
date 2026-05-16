@@ -57,6 +57,9 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
       );
     }
 
+    final seatingProvider = context.watch<SeatingProvider>();
+    final data = seatingProvider.data;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -99,53 +102,44 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
           ),
         ],
       ),
-      body: StreamBuilder<SeatingData>(
-        stream: _service.watchSeatingData(eventId),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-          if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: AppColors.brushedGold));
-
-          final data = snapshot.data!;
-          if (_isLayoutMode) {
-            return _LayoutCanvas(
-              eventId: eventId,
-              tables: data.tables,
-              venueElements: data.venueElements,
-              service: _service,
-            );
-          }
-
-          return Column(
-            children: [
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.brushedGold,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelColor: AppColors.brushedGold,
-                unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 13),
-                tabs: const [Tab(text: "MESAS"), Tab(text: "ASIGNAR")],
-              ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
+      body: (seatingProvider.isLoading || data == null)
+          ? const Center(child: CircularProgressIndicator(color: AppColors.brushedGold))
+          : _isLayoutMode
+              ? _LayoutCanvas(
+                  eventId: eventId,
+                  tables: data.tables,
+                  venueElements: data.venueElements,
+                  service: _service,
+                )
+              : Column(
                   children: [
-                    _TablesList(eventId: eventId, tables: data.tables, service: _service),
-                    _AssignmentView(
-                      eventId: eventId,
-                      tables: data.tables,
-                      guests: data.guests,
-                      assignments: data.assignments,
-                      service: _service,
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppColors.brushedGold,
+                      indicatorWeight: 3,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelColor: AppColors.brushedGold,
+                      unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 13),
+                      tabs: const [Tab(text: "MESAS"), Tab(text: "ASIGNAR")],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _TablesList(eventId: eventId, tables: data.tables, service: _service),
+                          _AssignmentView(
+                            eventId: eventId,
+                            tables: data.tables,
+                            guests: data.guests,
+                            assignments: data.assignments,
+                            service: _service,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
-      ),
       floatingActionButton: _isLayoutMode ? null : FloatingActionButton.extended(
         onPressed: () => _showTableDialog(context, eventId),
         backgroundColor: AppColors.brushedGold,

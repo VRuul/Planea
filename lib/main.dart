@@ -10,6 +10,7 @@ import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/seating_provider.dart';
 import 'app/app_router.dart';
 
 void main() async {
@@ -37,7 +38,14 @@ class PlaneaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, EventProvider>(
+          create: (_) => EventProvider(),
+          update: (_, auth, event) => event!..updateUserId(auth.currentUser?.id),
+        ),
+        ChangeNotifierProxyProvider<EventProvider, SeatingProvider>(
+          create: (_) => SeatingProvider(),
+          update: (_, event, seating) => seating!..updateEventId(event.currentEventId),
+        ),
         ChangeNotifierProvider.value(value: localeProvider),
         // Creamos el router una sola vez, pero le pasamos el AuthProvider para que reaccione
         ProxyProvider<AuthProvider, GoRouter>(
