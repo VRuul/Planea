@@ -11,6 +11,16 @@ import '../models/venue_element_model.dart';
 class SupabaseService {
   final _client = Supabase.instance.client;
 
+  // ─── Profile CRUD ──────────────────────────────────────────
+  Future<Map<String, dynamic>?> getProfile(String userId) async {
+    final data = await _client.from('profiles').select().eq('id', userId).maybeSingle();
+    return data;
+  }
+
+  Future<void> updateProfile(String userId, Map<String, dynamic> updates) async {
+    await _client.from('profiles').update(updates).eq('id', userId);
+  }
+
   // ─── Event CRUD ──────────────────────────────────────────────
   Future<String> createEvent(EventModel event) async {
     final data = await _client.from('events').insert(event.toJson()).select('id').single();

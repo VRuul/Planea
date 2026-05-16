@@ -1,15 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_colors.dart';
+import '../data/services/supabase_service.dart';
 
 class ThemeProvider extends ChangeNotifier {
+  static const _themePrefKey = 'theme_mode';
+  final _service = SupabaseService();
+  
   Color _primaryColor = AppColors.charcoal;
   Color _secondaryColor = AppColors.brushedGold;
   ThemeMode _themeMode = ThemeMode.dark;
+  String? _userId;
 
   Color get primaryColor => _primaryColor;
   Color get secondaryColor => _secondaryColor;
   ThemeMode get themeMode => _themeMode;
+
+  /// Actualiza el userId y sincroniza con la base de datos si es necesario
+  void updateUserId(String? id) {
+    if (_userId == id) return;
+    _userId = id;
+    if (_userId != null) {
+      _syncWithDatabase();
+    }
+  }
+
+  Future<void> _syncWithDatabase() async {
+    if (_userId == null) return;
+    final profile = await _service.getProfile(_userId!);
+    if (profile != null && profile['theme_mode'] != null) {
+      final modeStr = profile['theme_mode'] as String;
+      final mode = ThemeMode.values.firstWhere((e) => e.name == modeStr, orElse: () => ThemeMode.dark);
+      if (mode != _themeMode) {
+        _themeMode = mode;
+        notifyListeners();
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(_themePrefKey, _themeMode.index);
+      }
+    }
+  }
+
+  /// Carga el modo de tema guardado al iniciar la app
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeIndex = prefs.getInt(_themePrefKey);
+    if (themeIndex != null) {
+      _themeMode = ThemeMode.values[themeIndex];
+      notifyListeners();
+    }
+  }
 
   void setPrimaryColor(Color color) {
     _primaryColor = color;
@@ -21,10 +62,16 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleThemeMode() {
-    _themeMode =
-        _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+  Future<void> toggleThemeMode() async {
+    _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     notifyListeners();
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_themePrefKey, _themeMode.index);
+
+    if (_userId != null) {
+      await _service.updateProfile(_userId!, {'theme_mode': _themeMode.name});
+    }
   }
 
   void applyEventColors(Color primary, Color secondary) {

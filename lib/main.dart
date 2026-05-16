@@ -23,21 +23,39 @@ void main() async {
   );
 
   final localeProvider = LocaleProvider();
-  await localeProvider.load(); // restore persisted locale before first frame
+  await localeProvider.load();
 
-  runApp(PlaneaApp(localeProvider: localeProvider));
+  final themeProvider = ThemeProvider();
+  await themeProvider.load();
+
+  runApp(PlaneaApp(
+    localeProvider: localeProvider,
+    themeProvider: themeProvider,
+  ));
 }
 
 class PlaneaApp extends StatelessWidget {
   final LocaleProvider localeProvider;
-  const PlaneaApp({super.key, required this.localeProvider});
+  final ThemeProvider themeProvider;
+  const PlaneaApp({
+    super.key, 
+    required this.localeProvider,
+    required this.themeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, ThemeProvider>(
+          create: (_) => themeProvider,
+          update: (_, auth, theme) => theme!..updateUserId(auth.currentUser?.id),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, LocaleProvider>(
+          create: (_) => localeProvider,
+          update: (_, auth, loc) => loc!..updateUserId(auth.currentUser?.id),
+        ),
         ChangeNotifierProxyProvider<AuthProvider, EventProvider>(
           create: (_) => EventProvider(),
           update: (_, auth, event) => event!..updateUserId(auth.currentUser?.id),
@@ -46,7 +64,6 @@ class PlaneaApp extends StatelessWidget {
           create: (_) => SeatingProvider(),
           update: (_, event, seating) => seating!..updateEventId(event.currentEventId),
         ),
-        ChangeNotifierProvider.value(value: localeProvider),
         // Creamos el router una sola vez, pero le pasamos el AuthProvider para que reaccione
         ProxyProvider<AuthProvider, GoRouter>(
           update: (context, auth, previous) =>
