@@ -23,31 +23,31 @@ class TableModel {
     this.height,
   });
 
-  factory TableModel.fromMap(String id, Map<String, dynamic> map) {
+  factory TableModel.fromJson(Map<String, dynamic> json) {
     return TableModel(
-      id: id,
-      eventId: map['eventId'] ?? '',
-      name: map['name'] ?? '',
-      capacity: map['capacity'] ?? 10,
+      id: json['id'] ?? '',
+      eventId: json['event_id'] ?? '',
+      name: json['name'] ?? '',
+      capacity: json['capacity'] ?? 10,
       shape: TableShape.values.firstWhere(
-        (e) => e.name == (map['shape'] ?? 'circular'),
+        (e) => e.name == (json['shape'] ?? 'circular'),
         orElse: () => TableShape.circular,
       ),
-      posX: (map['posX'] ?? 0.0).toDouble(),
-      posY: (map['posY'] ?? 0.0).toDouble(),
-      width: map['width'] != null ? (map['width'] as num).toDouble() : null,
-      height: map['height'] != null ? (map['height'] as num).toDouble() : null,
+      posX: (json['pos_x'] ?? 0.0).toDouble(),
+      posY: (json['pos_y'] ?? 0.0).toDouble(),
+      width: json['width'] != null ? (json['width'] as num).toDouble() : null,
+      height: json['height'] != null ? (json['height'] as num).toDouble() : null,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'eventId': eventId,
+      'event_id': eventId,
       'name': name,
       'capacity': capacity,
       'shape': shape.name,
-      'posX': posX,
-      'posY': posY,
+      'pos_x': posX,
+      'pos_y': posY,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
     };

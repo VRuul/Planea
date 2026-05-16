@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/event_model.dart';
 import '../../data/models/collaborator_model.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
@@ -17,7 +17,7 @@ class CollaboratorsPanel extends StatefulWidget {
 }
 
 class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
-  final _service = FirestoreService();
+  final _service = SupabaseService();
   bool _codeLoading = false;
 
   @override
@@ -35,7 +35,7 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
   Widget _buildBody(BuildContext context, EventModel event) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
+    final userId = context.read<AuthProvider>().currentUser?.id ?? '';
     final isOwner = event.organizerId == userId;
     final isDark = theme.brightness == Brightness.dark;
     final baseColor = isDark ? Colors.white : Colors.black87;
@@ -413,7 +413,7 @@ class _ShareCard extends StatelessWidget {
                   icon: Icons.refresh_rounded,
                   label: 'Regenerar',
                   onTap: () async {
-                    await FirestoreService().generateInviteCode(event.id);
+                    await SupabaseService().generateInviteCode(event.id);
                   },
                 ),
               ],
@@ -555,7 +555,7 @@ class _PendingRequestCard extends StatelessWidget {
             icon: const Icon(Icons.cancel_rounded, color: AppColors.declined),
             tooltip: 'Rechazar',
             onPressed: () {
-              FirestoreService().rejectCollaborator(eventId, collaborator.userId);
+              SupabaseService().rejectCollaborator(eventId, collaborator.userId);
             },
           ),
         ],
@@ -620,7 +620,7 @@ class _PendingRequestCard extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                FirestoreService().approveCollaborator(eventId, collaborator.userId, selectedRole);
+                SupabaseService().approveCollaborator(eventId, collaborator.userId, selectedRole);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -712,11 +712,11 @@ class _CollaboratorCard extends StatelessWidget {
               icon: Icon(Icons.more_vert_rounded, color: baseColor.withValues(alpha: 0.3)),
               onSelected: (val) {
                 if (val == 'remove') {
-                  FirestoreService().removeCollaborator(eventId, collaborator.userId);
+                  SupabaseService().removeCollaborator(eventId, collaborator.userId);
                 } else if (val == 'admin') {
-                  FirestoreService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.admin);
+                  SupabaseService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.admin);
                 } else if (val == 'viewer') {
-                  FirestoreService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.viewer);
+                  SupabaseService().updateCollaboratorRole(eventId, collaborator.userId, CollaboratorRole.viewer);
                 }
               },
               itemBuilder: (_) => [

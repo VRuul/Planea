@@ -10,7 +10,7 @@ import '../../data/models/event_model.dart';
 import '../../data/models/table_model.dart';
 import '../../data/models/seating_assignment_model.dart';
 import '../../data/models/seating_data_model.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,7 +25,7 @@ class GuestsScreen extends StatefulWidget {
 }
 
 class _GuestsScreenState extends State<GuestsScreen> {
-  final _service = FirestoreService();
+  final _service = SupabaseService();
   GuestStatus? _filterStatus;
   GuestRole? _filterRole;
   String? _filterCustomRole;
@@ -40,7 +40,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
     final l = context.l10n;
     final auth = context.read<AuthProvider>();
     final eventProvider = context.watch<EventProvider>();
-    final userId = auth.currentUser?.uid ?? '';
+    final userId = auth.currentUser?.id ?? '';
 
     return StreamBuilder<List<EventModel>>(
       stream: _service.watchUserEvents(userId),
@@ -357,7 +357,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
 class _MessageTemplateDialog extends StatefulWidget {
   final String eventId;
   final EventModel event;
-  final FirestoreService service;
+  final SupabaseService service;
 
   const _MessageTemplateDialog({
     required this.eventId,
@@ -723,7 +723,7 @@ class _GuestCard extends StatelessWidget {
     required this.emailTemplate,
     required this.emailSubject,
   });
-  final _service = FirestoreService();
+  final _service = SupabaseService();
 
   String _buildMessage(String template) {
     final assignment = assignments?.where((a) => a.guestId == guest.id).firstOrNull;
@@ -1670,7 +1670,7 @@ class _GuestDialogState extends State<_GuestDialog> {
   bool _saving = false;
   bool _showSplitName = false;
   bool _isAdvancedExpanded = false;
-  final _service = FirestoreService();
+  final _service = SupabaseService();
 
   @override
   void initState() {
@@ -2419,7 +2419,7 @@ class _TablePickerFlow extends StatefulWidget {
   final List<SeatingAssignment> assignments;
   final List<SeatingAssignment> guestAssignments;
   final String eventId;
-  final FirestoreService service;
+  final SupabaseService service;
   final AppLocalizations l;
 
   const _TablePickerFlow({
@@ -2714,7 +2714,7 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
                       await widget.service.updateAssignment(
                         widget.eventId,
                         newAssignment.id,
-                        newAssignment.toFirestore(),
+                        newAssignment.toJson(),
                       );
                     }
                   }

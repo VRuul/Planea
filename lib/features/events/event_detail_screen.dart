@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/event_model.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
@@ -19,7 +19,7 @@ class EventDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<EventModel?>(
-      stream: FirestoreService().watchEvent(eventId),
+      stream: SupabaseService().watchEvent(eventId),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
           return const Scaffold(
@@ -91,7 +91,7 @@ class _EventDetailView extends StatelessWidget {
       );
 
       try {
-        await FirestoreService().deleteEvent(event.id);
+        await SupabaseService().deleteEvent(event.id);
         // No cerramos el diálogo aquí manualmente; el StreamBuilder en la parte superior
         // detectará que el documento desapareció, cerrará todos los diálogos y navegará a /events.
       } catch (e) {
@@ -130,14 +130,14 @@ class _EventDetailView extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.edit_rounded, color: AppColors.brushedGold),
                 onPressed: () {
-                  final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
+                  final userId = context.read<AuthProvider>().currentUser?.id ?? '';
                   showDialog(
                     context: context,
                     builder: (_) => EventDialog(userId: userId, event: event),
                   );
                 },
               ),
-              if (context.read<AuthProvider>().currentUser?.uid == event.organizerId)
+              if (context.read<AuthProvider>().currentUser?.id == event.organizerId)
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                   tooltip: 'Eliminar Evento',

@@ -186,7 +186,7 @@ class _EventSwitcher extends StatelessWidget {
     final theme = Theme.of(context);
     final auth = context.watch<AuthProvider>();
     final eventProvider = context.watch<EventProvider>();
-    final userId = auth.currentUser?.uid ?? '';
+    final userId = auth.currentUser?.id ?? '';
 
     final isDark = theme.brightness == Brightness.dark;
 

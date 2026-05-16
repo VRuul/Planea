@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/models/event_model.dart';
-import '../data/services/firestore_service.dart';
+import '../data/services/supabase_service.dart';
 
 class EventProvider extends ChangeNotifier {
-  final FirestoreService _service = FirestoreService();
+  final SupabaseService _service = SupabaseService();
 
   EventModel? _currentEvent;
   String? _currentEventId;

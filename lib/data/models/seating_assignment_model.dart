@@ -15,18 +15,18 @@ class SeatingAssignment extends Equatable {
 
   int get total => counts.values.fold(0, (sum, v) => sum + v);
 
-  factory SeatingAssignment.fromFirestore(Map<String, dynamic> data, String id) {
+  factory SeatingAssignment.fromJson(Map<String, dynamic> json) {
     return SeatingAssignment(
-      id: id,
-      guestId: data['guestId'] ?? '',
-      tableId: data['tableId'] ?? '',
-      counts: Map<String, int>.from(data['counts'] ?? {}),
+      id: json['id'] ?? '',
+      guestId: json['guest_id'] ?? '',
+      tableId: json['table_id'] ?? '',
+      counts: Map<String, int>.from(json['counts'] ?? {}),
     );
   }
 
-  Map<String, dynamic> toFirestore() => {
-    'guestId': guestId,
-    'tableId': tableId,
+  Map<String, dynamic> toJson() => {
+    'guest_id': guestId,
+    'table_id': tableId,
     'counts': counts,
   };
 

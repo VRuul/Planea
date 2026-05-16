@@ -1,112 +1,78 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  
-  // We use a getter to initialize GoogleSignIn only when needed and only on mobile.
-  // On Web, we use Firebase's native signInWithPopup which doesn't need this plugin.
-  GoogleSignIn? __googleSignIn;
-  GoogleSignIn get _googleSignIn {
-    if (kIsWeb) throw UnsupportedError('GoogleSignIn plugin is not used on Web. Use signInWithPopup.');
-    return __googleSignIn ??= GoogleSignIn();
-  }
+  final _supabase = Supabase.instance.client;
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _supabase.auth.currentUser;
   bool get isAuthenticated => currentUser != null;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
-  Future<UserCredential?> signInWithGoogle() async {
+  Future<AuthResponse?> signInWithGoogle() async {
     try {
-      if (kIsWeb) {
-        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        final userCredential = await _auth.signInWithPopup(googleProvider);
-        notifyListeners();
-        return userCredential;
-      }
-
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      // Nota: Supabase maneja Google Auth de forma diferente.
+      // En móvil se suele usar signInWithOAuth, en Web también.
+      await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
       );
-
-      final userCredential = await _auth.signInWithCredential(credential);
+      // El resultado real se maneja vía deep link o cambio de estado
       notifyListeners();
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw _mapAuthException(e);
+      return null; 
     } catch (e) {
       throw 'Error al iniciar sesión con Google: $e';
     }
   }
 
-  Future<UserCredential?> signInWithEmailAndPassword(
+  Future<AuthResponse?> signInWithEmailAndPassword(
     String email,
     String password,
   ) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
+      final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
       notifyListeners();
-      return credential;
-    } on FirebaseAuthException catch (e) {
+      return response;
+    } on AuthException catch (e) {
       throw _mapAuthException(e);
     }
   }
 
-  Future<UserCredential?> createUserWithEmailAndPassword(
+  Future<AuthResponse?> createUserWithEmailAndPassword(
     String email,
     String password,
   ) async {
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
+      final response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
       notifyListeners();
-      return credential;
-    } on FirebaseAuthException catch (e) {
+      return response;
+    } on AuthException catch (e) {
       throw _mapAuthException(e);
     }
   }
 
   Future<void> signOut() async {
-    if (kIsWeb) {
-      await _auth.signOut();
-    } else {
-      await Future.wait([
-        _auth.signOut(),
-        _googleSignIn.signOut(),
-      ]);
-    }
+    await _supabase.auth.signOut();
     notifyListeners();
   }
 
-  String _mapAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'No se encontró una cuenta con este correo.';
-      case 'wrong-password':
-        return 'Contraseña incorrecta.';
-      case 'email-already-in-use':
-        return 'Este correo ya está en uso.';
-      case 'invalid-email':
-        return 'Correo electrónico inválido.';
-      case 'weak-password':
-        return 'La contraseña debe tener al menos 6 caracteres.';
-      case 'account-exists-with-different-credential':
-        return 'Ya existe una cuenta con este correo pero con otro método de inicio de sesión.';
-      default:
-        return e.message ?? 'Error de autenticación.';
+  String _mapAuthException(AuthException e) {
+    final message = e.message.toLowerCase();
+    if (message.contains('invalid login credentials')) {
+      return 'Correo o contraseña incorrectos.';
     }
+    if (message.contains('user already exists')) {
+      return 'Este correo ya está en uso.';
+    }
+    if (message.contains('email not confirmed')) {
+      return 'Por favor confirma tu correo electrónico.';
+    }
+    return e.message;
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -13,7 +13,7 @@ class JoinEventDialog extends StatefulWidget {
 
 class _JoinEventDialogState extends State<JoinEventDialog> {
   final _codeController = TextEditingController();
-  final _service = FirestoreService();
+  final _service = SupabaseService();
   bool _loading = false;
   String? _error;
   String? _foundEventName;
@@ -60,7 +60,7 @@ class _JoinEventDialogState extends State<JoinEventDialog> {
 
       await _service.requestJoinEvent(
         eventId: event.id,
-        userId: user.uid,
+        userId: user.id,
         email: user.email ?? '',
         displayName: user.displayName ?? user.email ?? 'Usuario',
         photoUrl: user.photoURL,

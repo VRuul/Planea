@@ -27,37 +27,37 @@ class CollaboratorModel extends Equatable {
     this.approvedAt,
   });
 
-  factory CollaboratorModel.fromFirestore(Map<String, dynamic> data, String id) {
+  factory CollaboratorModel.fromJson(Map<String, dynamic> json) {
     return CollaboratorModel(
-      id: id,
-      userId: data['userId'] ?? '',
-      email: data['email'] ?? '',
-      displayName: data['displayName'] ?? '',
-      photoUrl: data['photoUrl'],
+      id: json['id'] ?? '',
+      userId: json['user_id'] ?? '',
+      email: json['email'] ?? '',
+      displayName: json['display_name'] ?? '',
+      photoUrl: json['photo_url'],
       role: CollaboratorRole.values.firstWhere(
-        (r) => r.name == data['role'],
+        (r) => r.name == json['role'],
         orElse: () => CollaboratorRole.viewer,
       ),
       status: CollaboratorStatus.values.firstWhere(
-        (s) => s.name == data['status'],
+        (s) => s.name == json['status'],
         orElse: () => CollaboratorStatus.pending,
       ),
-      requestedAt: DateTime.fromMillisecondsSinceEpoch(data['requestedAtMs'] ?? 0),
-      approvedAt: data['approvedAtMs'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(data['approvedAtMs'])
+      requestedAt: DateTime.parse(json['requested_at'] ?? DateTime.now().toIso8601String()),
+      approvedAt: json['approved_at'] != null
+          ? DateTime.parse(json['approved_at'])
           : null,
     );
   }
 
-  Map<String, dynamic> toFirestore() => {
-    'userId': userId,
+  Map<String, dynamic> toJson() => {
+    'user_id': userId,
     'email': email,
-    'displayName': displayName,
-    'photoUrl': photoUrl,
+    'display_name': displayName,
+    'photo_url': photoUrl,
     'role': role.name,
     'status': status.name,
-    'requestedAtMs': requestedAt.millisecondsSinceEpoch,
-    'approvedAtMs': approvedAt?.millisecondsSinceEpoch,
+    'requested_at': requestedAt.toIso8601String(),
+    'approved_at': approvedAt?.toIso8601String(),
   };
 
   CollaboratorModel copyWith({

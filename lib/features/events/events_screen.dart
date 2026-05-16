@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/auth_provider.dart';
 import '../../data/models/event_model.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import './widgets/event_utils.dart';
@@ -18,7 +18,7 @@ class EventsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final userId = context.read<AuthProvider>().currentUser?.uid ?? '';
+    final userId = context.read<AuthProvider>().currentUser?.id ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -44,7 +44,7 @@ class EventsScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       body: StreamBuilder<List<EventModel>>(
-        stream: FirestoreService().watchUserEvents(userId),
+        stream: SupabaseService().watchUserEvents(userId),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -266,9 +266,9 @@ class _EventDialogState extends State<EventDialog> {
       );
 
       if (isEdit) {
-        await FirestoreService().updateEvent(event);
+        await SupabaseService().updateEvent(event);
       } else {
-        await FirestoreService().createEvent(event);
+        await SupabaseService().createEvent(event);
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {

@@ -7,7 +7,7 @@ import 'package:planea/data/models/table_model.dart';
 import 'package:planea/data/models/venue_element_model.dart';
 import 'package:planea/data/models/seating_assignment_model.dart';
 import 'package:planea/data/models/seating_data_model.dart';
-import 'package:planea/data/services/firestore_service.dart';
+import 'package:planea/data/services/supabase_service.dart';
 import 'package:planea/providers/event_provider.dart';
 import 'package:planea/l10n/app_localizations.dart';
 import 'package:planea/core/constants/app_colors.dart';
@@ -21,7 +21,7 @@ class TablesScreen extends StatefulWidget {
 }
 
 class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderStateMixin {
-  final FirestoreService _service = FirestoreService();
+  final SupabaseService _service = SupabaseService();
   bool _isLayoutMode = false;
   late TabController _tabController;
 
@@ -222,7 +222,7 @@ class _ModeButton extends StatelessWidget {
 class _TablesList extends StatelessWidget {
   final String eventId;
   final List<TableModel> tables;
-  final FirestoreService service;
+  final SupabaseService service;
 
   const _TablesList({required this.eventId, required this.tables, required this.service});
 
@@ -294,7 +294,7 @@ class _LayoutCanvas extends StatefulWidget {
   final String eventId;
   final List<TableModel> tables;
   final List<VenueElementModel> venueElements;
-  final FirestoreService service;
+  final SupabaseService service;
 
   const _LayoutCanvas({required this.eventId, required this.tables, required this.venueElements, required this.service});
 
@@ -531,7 +531,7 @@ class _AssignmentView extends StatelessWidget {
   final List<TableModel> tables;
   final List<GuestModel> guests;
   final List<SeatingAssignment> assignments;
-  final FirestoreService service;
+  final SupabaseService service;
 
   const _AssignmentView({required this.eventId, required this.tables, required this.guests, required this.assignments, required this.service});
 
@@ -842,7 +842,7 @@ class _TableDialog extends StatefulWidget {
 }
 
 class _TableDialogState extends State<_TableDialog> {
-  final FirestoreService _service = FirestoreService();
+  final SupabaseService _service = SupabaseService();
   late TextEditingController _nameController, _capacityController, _widthController, _heightController;
   late TableShape _shape;
   bool _saving = false;
@@ -997,7 +997,7 @@ class _VenueElementDialog extends StatefulWidget {
 }
 
 class _VenueElementDialogState extends State<_VenueElementDialog> {
-  final FirestoreService _service = FirestoreService();
+  final SupabaseService _service = SupabaseService();
   late TextEditingController _nameController, _widthController, _heightController;
   late VenueElementType _type;
   bool _saving = false;
@@ -1171,7 +1171,7 @@ class _AssignGuestDialog extends StatefulWidget {
   final List<GuestModel> allGuests;
   final List<TableModel> allTables;
   final List<SeatingAssignment> allAssignments;
-  final FirestoreService service;
+  final SupabaseService service;
   const _AssignGuestDialog({required this.eventId, required this.table, required this.allGuests, required this.allTables, required this.allAssignments, required this.service});
   @override
   State<_AssignGuestDialog> createState() => _AssignGuestDialogState();

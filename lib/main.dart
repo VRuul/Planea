@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/extensions/l10n_extension.dart';
-import 'firebase_options.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
@@ -15,7 +14,12 @@ import 'app/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // TODO: Reemplazar con tus credenciales de Supabase Dashboard
+  await Supabase.initialize(
+    url: 'https://wwduamcelmmvqrpaqzhp.supabase.co',
+    anonKey: 'sb_publishable_CQZKN-U47dEUVfr5y-Hpww_aNtA6cYO',
+  );
 
   final localeProvider = LocaleProvider();
   await localeProvider.load(); // restore persisted locale before first frame
@@ -37,7 +41,8 @@ class PlaneaApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: localeProvider),
         // Creamos el router una sola vez, pero le pasamos el AuthProvider para que reaccione
         ProxyProvider<AuthProvider, GoRouter>(
-          update: (context, auth, previous) => previous ?? AppRouter.createRouter(auth),
+          update: (context, auth, previous) =>
+              previous ?? AppRouter.createRouter(auth),
         ),
       ],
       child: Consumer3<ThemeProvider, LocaleProvider, GoRouter>(

@@ -6,7 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../data/models/guest_model.dart';
 import '../../data/models/event_model.dart';
-import '../../data/services/firestore_service.dart';
+import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
 import '../shared/widgets/stat_card.dart';
@@ -22,7 +22,7 @@ class DashboardScreen extends StatelessWidget {
     final l = context.l10n;
     final auth = context.read<AuthProvider>();
     final eventProvider = context.watch<EventProvider>();
-    final userId = auth.currentUser?.uid ?? '';
+    final userId = auth.currentUser?.id ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +51,7 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<EventModel>>(
-        stream: FirestoreService().watchUserEvents(userId),
+        stream: SupabaseService().watchUserEvents(userId),
         builder: (context, eventSnap) {
           final events = eventSnap.data ?? [];
           // Aseguramos que el ID actual sea válido y exista en la lista actual.
@@ -62,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
           if (currentEventId == null) return _EmptyDashboard();
 
           return StreamBuilder<List<GuestModel>>(
-            stream: FirestoreService().watchGuests(currentEventId),
+            stream: SupabaseService().watchGuests(currentEventId),
             builder: (context, guestSnap) {
               final guests = guestSnap.data ?? [];
               

@@ -35,30 +35,30 @@ class VenueElementModel {
     this.color,
   });
 
-  factory VenueElementModel.fromMap(String id, Map<String, dynamic> map) {
+  factory VenueElementModel.fromJson(Map<String, dynamic> json) {
     return VenueElementModel(
-      id: id,
-      eventId: map['eventId'] ?? '',
-      name: map['name'] ?? '',
+      id: json['id'] ?? '',
+      eventId: json['event_id'] ?? '',
+      name: json['name'] ?? '',
       type: VenueElementType.values.firstWhere(
-        (e) => e.name == (map['type'] ?? 'other'),
+        (e) => e.name == (json['type'] ?? 'other'),
         orElse: () => VenueElementType.other,
       ),
-      posX: (map['posX'] ?? 0.0).toDouble(),
-      posY: (map['posY'] ?? 0.0).toDouble(),
-      width: (map['width'] ?? 200.0).toDouble(),
-      height: (map['height'] ?? 200.0).toDouble(),
-      color: map['color'] != null ? Color(map['color']) : null,
+      posX: (json['pos_x'] ?? 0.0).toDouble(),
+      posY: (json['pos_y'] ?? 0.0).toDouble(),
+      width: (json['width'] ?? 200.0).toDouble(),
+      height: (json['height'] ?? 200.0).toDouble(),
+      color: json['color'] != null ? Color(json['color']) : null,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'eventId': eventId,
+      'event_id': eventId,
       'name': name,
       'type': type.name,
-      'posX': posX,
-      'posY': posY,
+      'pos_x': posX,
+      'pos_y': posY,
       'width': width,
       'height': height,
       'color': color?.toARGB32(),
