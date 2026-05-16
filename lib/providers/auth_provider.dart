@@ -7,6 +7,9 @@ class AuthProvider extends ChangeNotifier {
   User? get currentUser => _supabase.auth.currentUser;
   bool get isAuthenticated => currentUser != null;
 
+  String? get userDisplayName => currentUser?.userMetadata?['display_name'] ?? currentUser?.userMetadata?['full_name'];
+  String? get userPhotoUrl => currentUser?.userMetadata?['avatar_url'] ?? currentUser?.userMetadata?['picture'];
+
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
   Future<AuthResponse?> signInWithGoogle() async {

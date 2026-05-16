@@ -260,7 +260,8 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
             ElevatedButton(
               onPressed: () async {
                 if (emailController.text.trim().isEmpty) return;
-                final userName = context.read<AuthProvider>().currentUser?.displayName ?? 'Admin';
+                final auth = context.read<AuthProvider>();
+                final userName = auth.userDisplayName ?? 'Admin';
                 await _service.inviteByEmail(
                   eventId: event.id,
                   email: emailController.text.trim(),

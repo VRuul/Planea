@@ -46,7 +46,8 @@ class _JoinEventDialogState extends State<JoinEventDialog> {
 
   Future<void> _requestJoin() async {
     final code = _codeController.text.trim().toUpperCase();
-    final user = context.read<AuthProvider>().currentUser;
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
     if (user == null) return;
 
     setState(() => _loading = true);
@@ -62,8 +63,8 @@ class _JoinEventDialogState extends State<JoinEventDialog> {
         eventId: event.id,
         userId: user.id,
         email: user.email ?? '',
-        displayName: user.displayName ?? user.email ?? 'Usuario',
-        photoUrl: user.photoURL,
+        displayName: auth.userDisplayName ?? user.email ?? 'Usuario',
+        photoUrl: auth.userPhotoUrl,
       );
 
       if (mounted) {
