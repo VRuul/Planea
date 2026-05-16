@@ -17,8 +17,8 @@ void main() async {
 
   // TODO: Reemplazar con tus credenciales de Supabase Dashboard
   await Supabase.initialize(
-    url: 'https://wwduamcelmmvqrpaqzhp.supabase.co',
-    anonKey: 'sb_publishable_CQZKN-U47dEUVfr5y-Hpww_aNtA6cYO',
+    url: 'https://omdfdwqwbkdwvbzcqbrz.supabase.co',
+    anonKey: 'sb_publishable_Q-JHinzS8KEgkTJyxzKbZA_IhOW-jDp',
   );
 
   final localeProvider = LocaleProvider();
