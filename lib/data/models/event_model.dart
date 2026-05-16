@@ -77,6 +77,7 @@ class EventModel extends Equatable {
   Map<String, dynamic> toJson() => {
     'name': name,
     'type': type.name,
+    'date': date.toIso8601String(),
     'date_ms': date.millisecondsSinceEpoch,
     'primary_color': primaryColor.toARGB32(),
     'secondary_color': secondaryColor.toARGB32(),
