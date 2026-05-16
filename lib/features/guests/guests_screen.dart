@@ -2492,6 +2492,7 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
               (a) => a.tableId == t.id,
               orElse: () => SeatingAssignment(
                 id: '',
+                eventId: widget.eventId,
                 guestId: widget.guest.id,
                 tableId: t.id,
                 counts: {},
@@ -2563,7 +2564,7 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
     final assignment = widget.guestAssignments.firstWhere(
       (a) => a.tableId == t.id,
       orElse: () =>
-          SeatingAssignment(id: '', guestId: g.id, tableId: t.id, counts: {}),
+          SeatingAssignment(id: '', eventId: g.eventId, guestId: g.id, tableId: t.id, counts: {}),
     );
 
     // Calcular ocupados en OTRAS mesas para este invitado
@@ -2700,6 +2701,7 @@ class _TablePickerFlowState extends State<_TablePickerFlow> {
                   } else {
                     final newAssignment = SeatingAssignment(
                       id: assignment.id,
+                      eventId: widget.eventId,
                       guestId: g.id,
                       tableId: t.id,
                       counts: cleanedCounts,

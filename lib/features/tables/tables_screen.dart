@@ -820,6 +820,7 @@ class _AssignmentView extends StatelessWidget {
           if (counts.isNotEmpty) {
             await service.addAssignment(eventId, SeatingAssignment(
               id: '',
+              eventId: eventId,
               guestId: g.id,
               tableId: t.id,
               counts: counts,
@@ -1255,7 +1256,7 @@ class _AssignGuestDialogState extends State<_AssignGuestDialog> {
 
         return Row(children: [Expanded(child: Text(type.toUpperCase())), IconButton(icon: const Icon(Icons.remove), onPressed: _toAssign[type]! > 0 ? () => setState(() => _toAssign[type] = _toAssign[type]! - 1) : null), Text('${_toAssign[type]}'), IconButton(icon: const Icon(Icons.add), onPressed: (_toAssign[type]! < remainingForType && currentTotalToAssign < remainingInTable) ? () => setState(() => _toAssign[type] = _toAssign[type]! + 1) : null)]);
       }).toList()),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), ElevatedButton(onPressed: currentTotalToAssign > 0 ? () async { await widget.service.addAssignment(widget.eventId, SeatingAssignment(id: '', guestId: g.id, tableId: widget.table.id, counts: Map.from(_toAssign)..removeWhere((k,v)=>v==0))); Navigator.pop(context); } : null, child: const Text('Asignar'))],
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), ElevatedButton(onPressed: currentTotalToAssign > 0 ? () async { await widget.service.addAssignment(widget.eventId, SeatingAssignment(id: '', eventId: widget.eventId, guestId: g.id, tableId: widget.table.id, counts: Map.from(_toAssign)..removeWhere((k,v)=>v==0))); Navigator.pop(context); } : null, child: const Text('Asignar'))],
     );
   }
 }
