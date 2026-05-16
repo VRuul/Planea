@@ -726,6 +726,37 @@ class _AssignmentView extends StatelessWidget {
                                         fontSize: 12,
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Eliminar Asignación'),
+                                            content: Text('¿Deseas quitar a ${guest.displayName} de esta mesa?'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, true), 
+                                                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                                                child: const Text('Eliminar'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await service.deleteAssignment(eventId, a.id);
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent.withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.close_rounded, size: 12, color: Colors.redAccent),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
