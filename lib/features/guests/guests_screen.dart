@@ -785,7 +785,12 @@ class _GuestCard extends StatelessWidget {
                   ),
                 ),
               ),
-              _StatusPill(status: guest.status, color: statusColor, l: l),
+              _StatusPill(
+                status: guest.status, 
+                color: statusColor, 
+                l: l,
+                onTap: () => _showStatusDialog(context, l),
+              ),
             ],
           ),
           subtitle: Padding(
@@ -945,78 +950,101 @@ class _GuestCard extends StatelessWidget {
 }
 
   void _showStatusDialog(BuildContext context, AppLocalizations l) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-          l.filterStatus,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: GuestStatus.values.map((s) {
-            final color = s == GuestStatus.confirmed
-                ? AppColors.confirmed
-                : s == GuestStatus.pending
-                ? AppColors.pending
-                : AppColors.declined;
-            final icon = s == GuestStatus.confirmed
-                ? Icons.check_circle_outline_rounded
-                : s == GuestStatus.pending
-                ? Icons.hourglass_empty_rounded
-                : Icons.cancel_outlined;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: InkWell(
-                onTap: () {
-                  _service.updateGuestStatus(eventId, guest.id, s);
-                  Navigator.pop(context);
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 20,
-                  ),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: (isDark ? AppColors.charcoal : Colors.white).withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    border: Border.all(
-                      color: color.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(icon, color: color),
-                      const SizedBox(width: 16),
-                      Text(
-                        _statusLabel(l, s),
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    color: AppColors.brushedGold.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2)
+                  )
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  l.filterStatus.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.brushedGold,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 2
+                  )
+                ),
+                const SizedBox(height: 12),
+                ...GuestStatus.values.map((s) {
+                  final color = s == GuestStatus.confirmed
+                      ? AppColors.confirmed
+                      : s == GuestStatus.pending
+                      ? AppColors.pending
+                      : AppColors.declined;
+                  final icon = s == GuestStatus.confirmed
+                      ? Icons.check_circle_outline_rounded
+                      : s == GuestStatus.pending
+                      ? Icons.hourglass_empty_rounded
+                      : Icons.cancel_outlined;
+                  final isSelected = s == guest.status;
+
+                  return InkWell(
+                    onTap: () {
+                      _service.updateGuestStatus(eventId, guest.id, s);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: isSelected ? color.withValues(alpha: 0.05) : Colors.transparent,
+                        border: Border(
+                          left: BorderSide(
+                            color: isSelected ? color : Colors.transparent,
+                            width: 4
+                          )
                         ),
                       ),
-                      const Spacer(),
-                      if (guest.status == s)
-                        Icon(Icons.check_rounded, color: color, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l.cancelButton),
+                      child: Row(
+                        children: [
+                          Icon(icon, color: isSelected ? color : color.withValues(alpha: 0.3)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              _statusLabel(l, s),
+                              style: TextStyle(
+                                color: isSelected ? color : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          if (isSelected) 
+                            Icon(Icons.check_circle_rounded, color: color, size: 18),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1073,24 +1101,44 @@ class _StatusPill extends StatelessWidget {
   final GuestStatus status;
   final Color color;
   final AppLocalizations l;
-  const _StatusPill({required this.status, required this.color, required this.l});
+  final VoidCallback? onTap;
+
+  const _StatusPill({
+    required this.status, 
+    required this.color, 
+    required this.l,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        _statusLabel(l, status).toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _statusLabel(l, status).toUpperCase(),
+              style: TextStyle(
+                color: color,
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_down_rounded, color: color, size: 12),
+            ],
+          ],
         ),
       ),
     );
