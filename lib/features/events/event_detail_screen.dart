@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/event_model.dart';
 import '../../data/services/supabase_service.dart';
-import '../../providers/theme_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
@@ -186,6 +187,10 @@ class _EventDetailView extends StatelessWidget {
               const SizedBox(height: 16),
               _BudgetCard(event: event),
               const SizedBox(height: 32),
+              _SectionTitle("Portal de Invitados (RSVP)"),
+              const SizedBox(height: 16),
+              _RsvpPortalCard(event: event),
+              const SizedBox(height: 32),
               _SectionTitle(l.eventDetailsSection),
               const SizedBox(height: 16),
               Container(
@@ -343,6 +348,232 @@ class _DetailRow extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+class _RsvpPortalCard extends StatefulWidget {
+  final EventModel event;
+  const _RsvpPortalCard({required this.event});
+
+  @override
+  State<_RsvpPortalCard> createState() => _RsvpPortalCardState();
+}
+
+class _RsvpPortalCardState extends State<_RsvpPortalCard> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+    final inviteCode = widget.event.inviteCode;
+
+    if (inviteCode == null || inviteCode.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: baseColor.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: baseColor.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.qr_code_scanner_rounded, color: AppColors.brushedGold, size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              "Sin Código de Invitación",
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.brushedGold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Genera un código único para que tus invitados puedan ingresar al portal de RSVP.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: baseColor.withValues(alpha: 0.6), fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loading ? null : () async {
+                setState(() => _loading = true);
+                try {
+                  await SupabaseService().generateInviteCode(widget.event.id);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al generar código: $e')),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _loading = false);
+                }
+              },
+              icon: _loading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Icon(Icons.auto_awesome_rounded),
+              label: const Text("Generar Código RSVP"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final origin = Uri.base.origin.startsWith('http') ? Uri.base.origin : 'https://planea.mx';
+    final rsvpLink = '$origin/rsvp/$inviteCode';
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "CÓDIGO DE INVITACIÓN",
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: baseColor.withValues(alpha: 0.4),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    inviteCode,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.brushedGold,
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.brushedGold.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.qr_code_2_rounded, color: AppColors.brushedGold, size: 28),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "Enlace del Portal de Invitados:",
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: baseColor.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: baseColor.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    rsvpLink,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: baseColor.withValues(alpha: 0.8),
+                      fontSize: 13,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy_rounded, color: AppColors.brushedGold, size: 20),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: rsvpLink));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Enlace RSVP copiado al portapapeles'),
+                          backgroundColor: AppColors.charcoal,
+                        ),
+                      );
+                    }
+                  },
+                  tooltip: 'Copiar enlace',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.push('/rsvp/$inviteCode');
+                  },
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text("Probar Portal"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: baseColor.withValues(alpha: 0.05),
+                    foregroundColor: baseColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: baseColor.withValues(alpha: 0.1)),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final text = '¡Hola! Te invito a confirmar tu asistencia para el evento "${widget.event.name}". Ingresa aquí para confirmar tu asistencia y elegir tu menú: $rsvpLink';
+                    final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+                    try {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('No se pudo abrir WhatsApp: $e')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: const Text("Compartir"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brushedGold,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

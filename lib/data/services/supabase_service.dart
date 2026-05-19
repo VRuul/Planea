@@ -23,7 +23,12 @@ class SupabaseService {
 
   // ─── Event CRUD ──────────────────────────────────────────────
   Future<String> createEvent(EventModel event) async {
-    final data = await _client.from('events').insert(event.toJson()).select('id').single();
+    EventModel finalEvent = event;
+    if (event.inviteCode == null || event.inviteCode!.isEmpty) {
+      final code = 'PLA-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      finalEvent = event.copyWith(inviteCode: code);
+    }
+    final data = await _client.from('events').insert(finalEvent.toJson()).select('id').single();
     return data['id'];
   }
 

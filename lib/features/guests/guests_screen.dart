@@ -237,6 +237,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
         whatsappTemplate: event.whatsappTemplate ?? 'Hola {nombre}, te contacto para saludarte.',
         emailTemplate: event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.',
         emailSubject: event.emailSubject ?? 'Información de tu invitación',
+        eventInviteCode: event.inviteCode,
       ),
     );
   }
@@ -364,6 +365,8 @@ class _MessageTemplateDialogState extends State<_MessageTemplateDialog> {
                 _TagChip(label: "{nombre}"),
                 _TagChip(label: "{mesa}"),
                 _TagChip(label: "{total}"),
+                _TagChip(label: "{codigo}"),
+                _TagChip(label: "{link}"),
               ],
             ),
             const SizedBox(height: 24),
@@ -628,6 +631,7 @@ class _GuestCard extends StatelessWidget {
   final String whatsappTemplate;
   final String emailTemplate;
   final String emailSubject;
+  final String? eventInviteCode;
 
   _GuestCard({
     required this.guest,
@@ -638,6 +642,7 @@ class _GuestCard extends StatelessWidget {
     required this.whatsappTemplate,
     required this.emailTemplate,
     required this.emailSubject,
+    this.eventInviteCode,
   });
   final _service = SupabaseService();
 
@@ -646,11 +651,17 @@ class _GuestCard extends StatelessWidget {
     final tableName = assignment != null
         ? tables?.firstWhere((t) => t.id == assignment.tableId).name ?? '?'
         : 'Pendiente';
+    final origin = Uri.base.origin.startsWith('http') ? Uri.base.origin : 'https://planea.mx';
+    final rsvpLink = eventInviteCode != null && eventInviteCode!.isNotEmpty
+        ? '$origin/rsvp/$eventInviteCode'
+        : '$origin/rsvp';
 
     String message = template;
     message = message.replaceAll('{nombre}', guest.displayName);
     message = message.replaceAll('{total}', guest.totalSeats.toString());
     message = message.replaceAll('{mesa}', tableName);
+    message = message.replaceAll('{codigo}', eventInviteCode ?? '');
+    message = message.replaceAll('{link}', rsvpLink);
     return message;
   }
 
@@ -827,6 +838,11 @@ class _GuestCard extends StatelessWidget {
                   label: 'Total: ${guest.totalSeats}',
                   icon: Icons.people_alt_rounded,
                 ),
+                if (guest.checkedIn)
+                  _PremiumBadge(
+                    label: l.rsvpAttendanceArrived,
+                    icon: Icons.check_circle_rounded,
+                  ),
               ],
             ),
           ),
@@ -904,7 +920,98 @@ class _GuestCard extends StatelessWidget {
                       value: guest.email!,
                     ),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: (theme.brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.05)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.restaurant_rounded, color: AppColors.brushedGold, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("MENÚ CATERING", style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    guest.menuSelection == 'meat' ? l.rsvpMenuMeat
+                                    : guest.menuSelection == 'fish' ? l.rsvpMenuFish
+                                    : guest.menuSelection == 'veg' ? l.rsvpMenuVeg
+                                    : guest.menuSelection == 'kids' ? l.rsvpMenuKids
+                                    : 'No seleccionado',
+                                    style: TextStyle(color: (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87), fontSize: 11, fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final updated = guest.copyWith(checkedIn: !guest.checkedIn);
+                          await _service.updateGuest(eventId, updated);
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: guest.checkedIn 
+                                ? AppColors.confirmed.withValues(alpha: 0.08) 
+                                : AppColors.brushedGold.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: guest.checkedIn 
+                                  ? AppColors.confirmed.withValues(alpha: 0.3) 
+                                  : AppColors.brushedGold.withValues(alpha: 0.15),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                guest.checkedIn ? Icons.check_circle_rounded : Icons.login_rounded,
+                                color: guest.checkedIn ? AppColors.confirmed : AppColors.brushedGold,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text("CONTROL DE ACCESO", style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      guest.checkedIn ? "INGRESADO" : "REGISTRAR ENTRADA",
+                                      style: TextStyle(
+                                        color: guest.checkedIn ? AppColors.confirmed : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     _ActionButton(
