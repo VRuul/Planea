@@ -32,6 +32,8 @@ class GuestModel extends Equatable {
   final Map<String, int> customIcons;
   final String? customRole;
   final int? customRoleIcon;
+  final String? menuSelection;
+  final bool checkedIn;
 
   const GuestModel({
     required this.id,
@@ -55,6 +57,8 @@ class GuestModel extends Equatable {
     this.customIcons = const {},
     this.customRole,
     this.customRoleIcon,
+    this.menuSelection,
+    this.checkedIn = false,
   });
 
   int get totalSeats {
@@ -86,6 +90,8 @@ class GuestModel extends Equatable {
       customIcons: Map<String, int>.from(json['custom_icons'] ?? {}),
       customRole: json['custom_role'],
       customRoleIcon: json['custom_role_icon'],
+      menuSelection: json['menu_selection'],
+      checkedIn: json['checked_in'] ?? false,
     );
   }
 
@@ -111,6 +117,8 @@ class GuestModel extends Equatable {
       'custom_icons': customIcons,
       'custom_role': customRole,
       'custom_role_icon': customRoleIcon,
+      'menu_selection': menuSelection,
+      'checked_in': checkedIn,
     };
   }
 
@@ -134,6 +142,8 @@ class GuestModel extends Equatable {
     Map<String, int>? customIcons,
     String? customRole,
     int? customRoleIcon,
+    String? menuSelection,
+    bool? checkedIn,
   }) {
     return GuestModel(
       id: id,
@@ -157,6 +167,8 @@ class GuestModel extends Equatable {
       customIcons: customIcons ?? this.customIcons,
       customRole: customRole ?? this.customRole,
       customRoleIcon: customRoleIcon ?? this.customRoleIcon,
+      menuSelection: menuSelection ?? this.menuSelection,
+      checkedIn: checkedIn ?? this.checkedIn,
     );
   }
 
@@ -165,6 +177,6 @@ class GuestModel extends Equatable {
         id, eventId, displayName, firstName, lastName, role, status,
         tableId, adults, children, teenagers, disabled, phone, email,
         socialMedia, notes, dietaryRestrictions, customCounts, customIcons,
-        customRole, customRoleIcon,
+        customRole, customRoleIcon, menuSelection, checkedIn,
       ];
 }

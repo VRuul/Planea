@@ -439,4 +439,72 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get langSpanish => 'Español';
+
+  @override
+  String get rsvpTitle => 'Portal RSVP';
+
+  @override
+  String get rsvpSubtitle => 'Confirma tu asistencia al evento';
+
+  @override
+  String get rsvpEnterCode =>
+      'Introduce tu código de invitación para continuar';
+
+  @override
+  String get rsvpInviteCode => 'Código de invitación';
+
+  @override
+  String get rsvpCodeError => 'Código de invitación no válido o inexistente';
+
+  @override
+  String get rsvpSearchName => 'Busca tu nombre en la lista para confirmar';
+
+  @override
+  String get rsvpSearchNameHint => 'Escribe tu nombre...';
+
+  @override
+  String get rsvpConfirmAttendance => 'Confirmación de Asistencia';
+
+  @override
+  String get rsvpSelectMenu => 'Selección de Menú';
+
+  @override
+  String get rsvpDietaryRestrictions => 'Restricciones alimenticias / Alergias';
+
+  @override
+  String get rsvpSubmit => 'Confirmar RSVP';
+
+  @override
+  String get rsvpSuccessTitle => '¡Asistencia Confirmada!';
+
+  @override
+  String get rsvpSuccessSubtitle =>
+      'Tu pase de acceso digital ha sido generado.';
+
+  @override
+  String get rsvpTicketTable => 'Mesa';
+
+  @override
+  String get rsvpMenuMeat => '🥩 Tradicional (Corte de Wagyu)';
+
+  @override
+  String get rsvpMenuFish => '🐟 Gourmet (Salmón Grillado)';
+
+  @override
+  String get rsvpMenuVeg => '🥗 Vegetariano (Risotto de Champiñones)';
+
+  @override
+  String get rsvpMenuKids => '👶 Menú Infantil (Chicken & Chips)';
+
+  @override
+  String get rsvpChangeCode => 'Cambiar Código';
+
+  @override
+  String get rsvpAttendanceArrived => '¡Asistencia registrada!';
+
+  @override
+  String get rsvpTicketPass => 'Pase de Acceso';
+
+  @override
+  String get rsvpClose => 'Cerrar';
 }

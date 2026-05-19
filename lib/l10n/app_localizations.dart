@@ -925,6 +925,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spanish'**
   String get langSpanish;
+
+  /// No description provided for @rsvpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'RSVP Portal'**
+  String get rsvpTitle;
+
+  /// No description provided for @rsvpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your attendance to the event'**
+  String get rsvpSubtitle;
+
+  /// No description provided for @rsvpEnterCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your invitation code to continue'**
+  String get rsvpEnterCode;
+
+  /// No description provided for @rsvpInviteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation Code'**
+  String get rsvpInviteCode;
+
+  /// No description provided for @rsvpCodeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or non-existent invitation code'**
+  String get rsvpCodeError;
+
+  /// No description provided for @rsvpSearchName.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your name in the guest list to confirm'**
+  String get rsvpSearchName;
+
+  /// No description provided for @rsvpSearchNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your name...'**
+  String get rsvpSearchNameHint;
+
+  /// No description provided for @rsvpConfirmAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Attendance'**
+  String get rsvpConfirmAttendance;
+
+  /// No description provided for @rsvpSelectMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Catering Menu'**
+  String get rsvpSelectMenu;
+
+  /// No description provided for @rsvpDietaryRestrictions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dietary Restrictions / Allergies'**
+  String get rsvpDietaryRestrictions;
+
+  /// No description provided for @rsvpSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm RSVP'**
+  String get rsvpSubmit;
+
+  /// No description provided for @rsvpSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance Confirmed!'**
+  String get rsvpSuccessTitle;
+
+  /// No description provided for @rsvpSuccessSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your premium digital access pass has been generated.'**
+  String get rsvpSuccessSubtitle;
+
+  /// No description provided for @rsvpTicketTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get rsvpTicketTable;
+
+  /// No description provided for @rsvpMenuMeat.
+  ///
+  /// In en, this message translates to:
+  /// **'🥩 Traditional (Wagyu Steak)'**
+  String get rsvpMenuMeat;
+
+  /// No description provided for @rsvpMenuFish.
+  ///
+  /// In en, this message translates to:
+  /// **'🐟 Gourmet (Grilled Salmon)'**
+  String get rsvpMenuFish;
+
+  /// No description provided for @rsvpMenuVeg.
+  ///
+  /// In en, this message translates to:
+  /// **'🥗 Vegetarian (Mushroom Risotto)'**
+  String get rsvpMenuVeg;
+
+  /// No description provided for @rsvpMenuKids.
+  ///
+  /// In en, this message translates to:
+  /// **'👶 Kids Menu (Chicken & Chips)'**
+  String get rsvpMenuKids;
+
+  /// No description provided for @rsvpChangeCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Code'**
+  String get rsvpChangeCode;
+
+  /// No description provided for @rsvpAttendanceArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance registered!'**
+  String get rsvpAttendanceArrived;
+
+  /// No description provided for @rsvpTicketPass.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Pass'**
+  String get rsvpTicketPass;
+
+  /// No description provided for @rsvpClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get rsvpClose;
 }
 
 class _AppLocalizationsDelegate

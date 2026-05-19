@@ -10,6 +10,7 @@ import '../features/tables/tables_screen.dart';
 import '../features/events/events_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/events/event_detail_screen.dart';
+import '../features/rsvp/rsvp_screen.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthProvider authProvider) {
@@ -19,8 +20,9 @@ class AppRouter {
       redirect: (context, state) {
         final isAuth = authProvider.isAuthenticated;
         final isLoginRoute = state.matchedLocation == '/login';
+        final isRsvpRoute = state.matchedLocation.startsWith('/rsvp');
 
-        if (!isAuth && !isLoginRoute) return '/login';
+        if (!isAuth && !isLoginRoute && !isRsvpRoute) return '/login';
         if (isAuth && isLoginRoute) return '/dashboard';
         return null;
       },
@@ -28,6 +30,16 @@ class AppRouter {
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: '/rsvp',
+          builder: (context, state) => const RsvpsScreen(),
+        ),
+        GoRoute(
+          path: '/rsvp/:code',
+          builder: (context, state) => RsvpsScreen(
+            initialCode: state.pathParameters['code'],
+          ),
         ),
         ShellRoute(
           builder: (context, state, child) => AppShell(child: child),

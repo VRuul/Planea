@@ -439,4 +439,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get langSpanish => 'Spanish';
+
+  @override
+  String get rsvpTitle => 'RSVP Portal';
+
+  @override
+  String get rsvpSubtitle => 'Confirm your attendance to the event';
+
+  @override
+  String get rsvpEnterCode => 'Enter your invitation code to continue';
+
+  @override
+  String get rsvpInviteCode => 'Invitation Code';
+
+  @override
+  String get rsvpCodeError => 'Invalid or non-existent invitation code';
+
+  @override
+  String get rsvpSearchName => 'Search your name in the guest list to confirm';
+
+  @override
+  String get rsvpSearchNameHint => 'Type your name...';
+
+  @override
+  String get rsvpConfirmAttendance => 'Confirm Attendance';
+
+  @override
+  String get rsvpSelectMenu => 'Select Catering Menu';
+
+  @override
+  String get rsvpDietaryRestrictions => 'Dietary Restrictions / Allergies';
+
+  @override
+  String get rsvpSubmit => 'Confirm RSVP';
+
+  @override
+  String get rsvpSuccessTitle => 'Attendance Confirmed!';
+
+  @override
+  String get rsvpSuccessSubtitle =>
+      'Your premium digital access pass has been generated.';
+
+  @override
+  String get rsvpTicketTable => 'Table';
+
+  @override
+  String get rsvpMenuMeat => '🥩 Traditional (Wagyu Steak)';
+
+  @override
+  String get rsvpMenuFish => '🐟 Gourmet (Grilled Salmon)';
+
+  @override
+  String get rsvpMenuVeg => '🥗 Vegetarian (Mushroom Risotto)';
+
+  @override
+  String get rsvpMenuKids => '👶 Kids Menu (Chicken & Chips)';
+
+  @override
+  String get rsvpChangeCode => 'Change Code';
+
+  @override
+  String get rsvpAttendanceArrived => 'Attendance registered!';
+
+  @override
+  String get rsvpTicketPass => 'Access Pass';
+
+  @override
+  String get rsvpClose => 'Close';
 }

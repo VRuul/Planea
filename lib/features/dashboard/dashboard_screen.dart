@@ -9,7 +9,6 @@ import '../../data/models/event_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/l10n_extension.dart';
-import '../shared/widgets/stat_card.dart';
 import '../shared/widgets/celebration_progress_bar.dart';
 import '../shared/widgets/guest_role_chip.dart';
 
@@ -77,6 +76,26 @@ class DashboardScreen extends StatelessWidget {
               final totalExpected = guests.fold<int>(0, (sum, g) => sum + g.totalSeats);
               final progress = totalExpected > 0 ? totalPeopleConfirmed / totalExpected : 0.0;
 
+              final totalCheckedIn = guests
+                  .where((g) => g.checkedIn)
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+
+              final meatCount = guests
+                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'meat')
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+              
+              final fishCount = guests
+                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'fish')
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+
+              final vegCount = guests
+                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'veg')
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+
+              final kidsCount = guests
+                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'kids')
+                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
+
               final currentEvent = events.firstWhere(
                 (e) => e.id == currentEventId,
                 orElse: () => events.first,
@@ -105,6 +124,15 @@ class DashboardScreen extends StatelessWidget {
                             confirmed: confirmedGroups,
                             pending: pendingGroups,
                             declined: declinedGroups,
+                          ),
+                          const SizedBox(height: 24),
+                          _CateringAndAccessStats(
+                            checkedIn: totalCheckedIn,
+                            totalExpected: totalPeopleConfirmed,
+                            meat: meatCount,
+                            fish: fishCount,
+                            veg: vegCount,
+                            kids: kidsCount,
                           ),
                           const SizedBox(height: 24),
                           if (events.length > 1) ...[
@@ -493,6 +521,190 @@ class _EmptyDashboard extends StatelessWidget {
               backgroundColor: AppColors.brushedGold,
               foregroundColor: AppColors.charcoal,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CateringAndAccessStats extends StatelessWidget {
+  final int checkedIn;
+  final int totalExpected;
+  final int meat;
+  final int fish;
+  final int veg;
+  final int kids;
+
+  const _CateringAndAccessStats({
+    required this.checkedIn,
+    required this.totalExpected,
+    required this.meat,
+    required this.fish,
+    required this.veg,
+    required this.kids,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_outlined, color: AppColors.brushedGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                "CATERING Y CONTROL DE ASISTENCIA",
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.brushedGold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _AccessProgressTile(
+                  label: "CHECK-IN (ASISTENCIA)",
+                  value: "$checkedIn / $totalExpected",
+                  progress: totalExpected > 0 ? checkedIn / totalExpected : 0.0,
+                  icon: Icons.qr_code_scanner_rounded,
+                  color: AppColors.confirmed,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _MenuMiniCard(label: "Wagyu Steak", count: meat, emoji: "🥩")),
+              const SizedBox(width: 8),
+              Expanded(child: _MenuMiniCard(label: "Salmon Gourmet", count: fish, emoji: "🐟")),
+              const SizedBox(width: 8),
+              Expanded(child: _MenuMiniCard(label: "Vegetariano", count: veg, emoji: "🥗")),
+              const SizedBox(width: 8),
+              Expanded(child: _MenuMiniCard(label: "Kids Menu", count: kids, emoji: "👶")),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccessProgressTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final double progress;
+  final IconData icon;
+  final Color color;
+
+  const _AccessProgressTile({
+    required this.label,
+    required this.value,
+    required this.progress,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label, style: TextStyle(color: baseColor.withValues(alpha: 0.4), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  Text(value, style: TextStyle(color: baseColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: baseColor.withValues(alpha: 0.05),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuMiniCard extends StatelessWidget {
+  final String label;
+  final int count;
+  final String emoji;
+
+  const _MenuMiniCard({
+    required this.label,
+    required this.count,
+    required this.emoji,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: baseColor.withValues(alpha: 0.04)),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 4),
+          Text(
+            "$count un.",
+            style: TextStyle(color: baseColor, fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(color: baseColor.withValues(alpha: 0.3), fontSize: 7, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
