@@ -24,6 +24,7 @@ class EventModel extends Equatable {
   final String? whatsappTemplate;
   final String? emailTemplate;
   final String? emailSubject;
+  final List<MenuModel> menus;
 
   const EventModel({
     required this.id,
@@ -45,6 +46,7 @@ class EventModel extends Equatable {
     this.whatsappTemplate,
     this.emailTemplate,
     this.emailSubject,
+    this.menus = const [],
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -71,6 +73,10 @@ class EventModel extends Equatable {
       whatsappTemplate: json['whatsapp_template'],
       emailTemplate: json['email_template'],
       emailSubject: json['email_subject'],
+      menus: (json['menus'] as List?)
+              ?.map((m) => MenuModel.fromJson(m))
+              .toList() ??
+          const [],
     );
   }
 
@@ -94,6 +100,7 @@ class EventModel extends Equatable {
     'whatsapp_template': whatsappTemplate,
     'email_template': emailTemplate,
     'email_subject': emailSubject,
+    'menus': menus.map((m) => m.toJson()).toList(),
   };
 
   EventModel copyWith({
@@ -116,6 +123,7 @@ class EventModel extends Equatable {
     String? whatsappTemplate,
     String? emailTemplate,
     String? emailSubject,
+    List<MenuModel>? menus,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -137,6 +145,7 @@ class EventModel extends Equatable {
       whatsappTemplate: whatsappTemplate ?? this.whatsappTemplate,
       emailTemplate: emailTemplate ?? this.emailTemplate,
       emailSubject: emailSubject ?? this.emailSubject,
+      menus: menus ?? this.menus,
     );
   }
 
@@ -146,6 +155,72 @@ class EventModel extends Equatable {
   List<Object?> get props => [
         id, name, type, date, primaryColor, secondaryColor, venue, organizerId,
         budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames,
-        inviteCode, collaboratorIds, whatsappTemplate, emailTemplate, emailSubject
+        inviteCode, collaboratorIds, whatsappTemplate, emailTemplate, emailSubject,
+        menus
       ];
+}
+
+class MenuModel extends Equatable {
+  final String id;
+  final String name;
+  final String? icon;
+  final List<MenuCourseModel> courses;
+
+  const MenuModel({
+    required this.id,
+    required this.name,
+    this.icon,
+    required this.courses,
+  });
+
+  factory MenuModel.fromJson(Map<String, dynamic> json) {
+    return MenuModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      icon: json['icon'],
+      courses: (json['courses'] as List?)
+              ?.map((c) => MenuCourseModel.fromJson(c))
+              .toList() ??
+          const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'icon': icon,
+        'courses': courses.map((c) => c.toJson()).toList(),
+      };
+
+  @override
+  List<Object?> get props => [id, name, icon, courses];
+}
+
+class MenuCourseModel extends Equatable {
+  final String name;
+  final String dishName;
+  final String? description;
+
+  const MenuCourseModel({
+    required this.name,
+    required this.dishName,
+    this.description,
+  });
+
+  factory MenuCourseModel.fromJson(Map<String, dynamic> json) {
+    return MenuCourseModel(
+      name: json['name'] ?? '',
+      dishName: json['dish_name'] ?? json['dishName'] ?? '',
+      description: json['description'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'dish_name': dishName,
+        'description': description,
+      };
+
+  @override
+  List<Object?> get props => [name, dishName, description];
 }

@@ -129,7 +129,7 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
     setState(() {
       _selectedGuest = guest;
       _rsvpStatus = guest.status == GuestStatus.pending ? GuestStatus.confirmed : guest.status;
-      _selectedMenu = guest.menuSelection;
+      _selectedMenu = guest.menuSelection ?? (_currentEvent!.menus.isNotEmpty ? _currentEvent!.menus.first.id : 'meat');
       _adultsCount = guest.adults;
       _childrenCount = guest.children;
       _teenagersCount = guest.teenagers;
@@ -426,12 +426,20 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
 
   // Phase 3: RSVP Form
   Widget _buildRsvpForm(ThemeData theme, AppLocalizations l) {
-    final menuOptions = [
-      {'value': 'meat', 'label': l.rsvpMenuMeat},
-      {'value': 'fish', 'label': l.rsvpMenuFish},
-      {'value': 'veg', 'label': l.rsvpMenuVeg},
-      {'value': 'kids', 'label': l.rsvpMenuKids},
-    ];
+    final List<Map<String, String>> menuOptions;
+    if (_currentEvent != null && _currentEvent!.menus.isNotEmpty) {
+      menuOptions = _currentEvent!.menus.map((m) => {
+        'value': m.id,
+        'label': '${m.icon ?? '🍽️'} ${m.name}',
+      }).toList();
+    } else {
+      menuOptions = [
+        {'value': 'meat', 'label': l.rsvpMenuMeat},
+        {'value': 'fish', 'label': l.rsvpMenuFish},
+        {'value': 'veg', 'label': l.rsvpMenuVeg},
+        {'value': 'kids', 'label': l.rsvpMenuKids},
+      ];
+    }
 
     return Container(
       padding: const EdgeInsets.all(28),
@@ -525,31 +533,92 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
               Column(
                 children: menuOptions.map((opt) {
                   final isSelected = _selectedMenu == opt['value'];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.08) : Colors.transparent,
-                      border: Border.all(
-                        color: isSelected ? AppColors.brushedGold : Colors.white.withValues(alpha: 0.1),
-                        width: isSelected ? 1.5 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(
-                        opt['label']!,
-                        style: TextStyle(
-                          color: isSelected ? AppColors.brushedGold : Colors.white70,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13,
+                  MenuModel? matchedMenu;
+                  if (_currentEvent != null && _currentEvent!.menus.isNotEmpty) {
+                    final index = _currentEvent!.menus.indexWhere((m) => m.id == opt['value']);
+                    if (index != -1) matchedMenu = _currentEvent!.menus[index];
+                  }
+
+                  return Column(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.brushedGold.withValues(alpha: 0.08) : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected ? AppColors.brushedGold : Colors.white.withValues(alpha: 0.1),
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          title: Text(
+                            opt['label']!,
+                            style: TextStyle(
+                              color: isSelected ? AppColors.brushedGold : Colors.white70,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                          trailing: isSelected 
+                              ? const Icon(Icons.radio_button_checked, color: AppColors.brushedGold, size: 18)
+                              : const Icon(Icons.radio_button_off, color: Colors.white24, size: 18),
+                          onTap: () => setState(() => _selectedMenu = opt['value']),
                         ),
                       ),
-                      trailing: isSelected 
-                          ? const Icon(Icons.radio_button_checked, color: AppColors.brushedGold, size: 18)
-                          : const Icon(Icons.radio_button_off, color: Colors.white24, size: 18),
-                      onTap: () => setState(() => _selectedMenu = opt['value']),
-                    ),
+                      if (isSelected && matchedMenu != null && matchedMenu.courses.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(left: 12, right: 12, bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.02),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: matchedMenu.courses.map((course) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.brushedGold.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        course.name,
+                                        style: const TextStyle(color: AppColors.brushedGold, fontSize: 8, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            course.dishName,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                          ),
+                                          if (course.description != null && course.description!.isNotEmpty)
+                                            Text(
+                                              course.description!,
+                                              style: const TextStyle(color: Colors.white30, fontSize: 9),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
                   );
                 }).toList(),
               ),
@@ -597,10 +666,24 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
   // Phase 4: Access Ticket Pass
   Widget _buildTicketPass(ThemeData theme, AppLocalizations l) {
     String menuName = 'Sin seleccionar';
-    if (_selectedGuest!.menuSelection == 'meat') menuName = l.rsvpMenuMeat;
-    if (_selectedGuest!.menuSelection == 'fish') menuName = l.rsvpMenuFish;
-    if (_selectedGuest!.menuSelection == 'veg') menuName = l.rsvpMenuVeg;
-    if (_selectedGuest!.menuSelection == 'kids') menuName = l.rsvpMenuKids;
+    if (_selectedGuest!.menuSelection != null) {
+      final selectedId = _selectedGuest!.menuSelection;
+      if (_currentEvent != null && _currentEvent!.menus.isNotEmpty) {
+        final index = _currentEvent!.menus.indexWhere((m) => m.id == selectedId);
+        if (index != -1) {
+          final matchedMenu = _currentEvent!.menus[index];
+          menuName = '${matchedMenu.icon ?? '🍽️'} ${matchedMenu.name}';
+        } else {
+          menuName = selectedId!;
+        }
+      } else {
+        if (selectedId == 'meat') menuName = l.rsvpMenuMeat;
+        else if (selectedId == 'fish') menuName = l.rsvpMenuFish;
+        else if (selectedId == 'veg') menuName = l.rsvpMenuVeg;
+        else if (selectedId == 'kids') menuName = l.rsvpMenuKids;
+        else menuName = selectedId!;
+      }
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,

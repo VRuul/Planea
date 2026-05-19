@@ -238,6 +238,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
         emailTemplate: event.emailTemplate ?? 'Hola {nombre}, te escribo para confirmar tus detalles.',
         emailSubject: event.emailSubject ?? 'Información de tu invitación',
         eventInviteCode: event.inviteCode,
+        eventMenus: event.menus,
       ),
     );
   }
@@ -632,6 +633,7 @@ class _GuestCard extends StatelessWidget {
   final String emailTemplate;
   final String emailSubject;
   final String? eventInviteCode;
+  final List<MenuModel> eventMenus;
 
   _GuestCard({
     required this.guest,
@@ -643,8 +645,25 @@ class _GuestCard extends StatelessWidget {
     required this.emailTemplate,
     required this.emailSubject,
     this.eventInviteCode,
+    required this.eventMenus,
   });
   final _service = SupabaseService();
+
+  String _getMenuLabel(String? selection, AppLocalizations l) {
+    if (selection == null) return 'No seleccionado';
+    if (eventMenus.isNotEmpty) {
+      final index = eventMenus.indexWhere((m) => m.id == selection);
+      if (index != -1) {
+        final m = eventMenus[index];
+        return '${m.icon ?? '🍽️'} ${m.name}';
+      }
+    }
+    if (selection == 'meat') return l.rsvpMenuMeat;
+    if (selection == 'fish') return l.rsvpMenuFish;
+    if (selection == 'veg') return l.rsvpMenuVeg;
+    if (selection == 'kids') return l.rsvpMenuKids;
+    return selection;
+  }
 
   String _buildMessage(String template) {
     final assignment = assignments?.where((a) => a.guestId == guest.id).firstOrNull;
@@ -942,11 +961,7 @@ class _GuestCard extends StatelessWidget {
                                   const Text("MENÚ CATERING", style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                                   const SizedBox(height: 2),
                                   Text(
-                                    guest.menuSelection == 'meat' ? l.rsvpMenuMeat
-                                    : guest.menuSelection == 'fish' ? l.rsvpMenuFish
-                                    : guest.menuSelection == 'veg' ? l.rsvpMenuVeg
-                                    : guest.menuSelection == 'kids' ? l.rsvpMenuKids
-                                    : 'No seleccionado',
+                                    _getMenuLabel(guest.menuSelection, l),
                                     style: TextStyle(color: (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87), fontSize: 11, fontWeight: FontWeight.bold),
                                     overflow: TextOverflow.ellipsis,
                                   ),

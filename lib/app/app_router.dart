@@ -10,6 +10,7 @@ import '../features/tables/tables_screen.dart';
 import '../features/events/events_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/events/event_detail_screen.dart';
+import '../features/events/event_menu_screen.dart';
 import '../features/rsvp/rsvp_screen.dart';
 
 class AppRouter {
@@ -64,6 +65,11 @@ class AppRouter {
               path: '/events/:id',
               builder: (context, state) =>
                   EventDetailScreen(eventId: state.pathParameters['id']!),
+            ),
+            GoRoute(
+              path: '/events/:id/menu',
+              builder: (context, state) =>
+                  EventMenuScreen(eventId: state.pathParameters['id']!),
             ),
             GoRoute(
               path: '/settings',

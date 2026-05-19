@@ -80,21 +80,6 @@ class DashboardScreen extends StatelessWidget {
                   .where((g) => g.checkedIn)
                   .fold<int>(0, (sum, g) => sum + g.totalSeats);
 
-              final meatCount = guests
-                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'meat')
-                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
-              
-              final fishCount = guests
-                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'fish')
-                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
-
-              final vegCount = guests
-                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'veg')
-                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
-
-              final kidsCount = guests
-                  .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'kids')
-                  .fold<int>(0, (sum, g) => sum + g.totalSeats);
 
               final currentEvent = events.firstWhere(
                 (e) => e.id == currentEventId,
@@ -129,10 +114,8 @@ class DashboardScreen extends StatelessWidget {
                           _CateringAndAccessStats(
                             checkedIn: totalCheckedIn,
                             totalExpected: totalPeopleConfirmed,
-                            meat: meatCount,
-                            fish: fishCount,
-                            veg: vegCount,
-                            kids: kidsCount,
+                            guests: guests,
+                            event: currentEvent,
                           ),
                           const SizedBox(height: 24),
                           if (events.length > 1) ...[
@@ -531,18 +514,14 @@ class _EmptyDashboard extends StatelessWidget {
 class _CateringAndAccessStats extends StatelessWidget {
   final int checkedIn;
   final int totalExpected;
-  final int meat;
-  final int fish;
-  final int veg;
-  final int kids;
+  final List<GuestModel> guests;
+  final EventModel event;
 
   const _CateringAndAccessStats({
     required this.checkedIn,
     required this.totalExpected,
-    required this.meat,
-    required this.fish,
-    required this.veg,
-    required this.kids,
+    required this.guests,
+    required this.event,
   });
 
   @override
@@ -592,17 +571,69 @@ class _CateringAndAccessStats extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(color: Colors.white10),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _MenuMiniCard(label: "Wagyu Steak", count: meat, emoji: "🥩")),
-              const SizedBox(width: 8),
-              Expanded(child: _MenuMiniCard(label: "Salmon Gourmet", count: fish, emoji: "🐟")),
-              const SizedBox(width: 8),
-              Expanded(child: _MenuMiniCard(label: "Vegetariano", count: veg, emoji: "🥗")),
-              const SizedBox(width: 8),
-              Expanded(child: _MenuMiniCard(label: "Kids Menu", count: kids, emoji: "👶")),
-            ],
-          ),
+          if (event.menus.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: event.menus.map((menu) {
+                final count = guests
+                    .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == menu.id)
+                    .fold<int>(0, (sum, g) => sum + g.totalSeats);
+                return SizedBox(
+                  width: 140,
+                  child: _MenuMiniCard(
+                    label: menu.name,
+                    count: count,
+                    emoji: menu.icon ?? "🍽️",
+                  ),
+                );
+              }).toList(),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _MenuMiniCard(
+                    label: "Wagyu Steak",
+                    count: guests
+                        .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'meat')
+                        .fold<int>(0, (sum, g) => sum + g.totalSeats),
+                    emoji: "🥩",
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MenuMiniCard(
+                    label: "Salmon Gourmet",
+                    count: guests
+                        .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'fish')
+                        .fold<int>(0, (sum, g) => sum + g.totalSeats),
+                    emoji: "🐟",
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MenuMiniCard(
+                    label: "Vegetariano",
+                    count: guests
+                        .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'veg')
+                        .fold<int>(0, (sum, g) => sum + g.totalSeats),
+                    emoji: "🥗",
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MenuMiniCard(
+                    label: "Kids Menu",
+                    count: guests
+                        .where((g) => g.status == GuestStatus.confirmed && g.menuSelection == 'kids')
+                        .fold<int>(0, (sum, g) => sum + g.totalSeats),
+                    emoji: "👶",
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
