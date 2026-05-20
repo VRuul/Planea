@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum CollaboratorRole { owner, admin, viewer }
+enum CollaboratorRole { owner, admin, staff, viewer }
 
 enum CollaboratorStatus { pending, approved, rejected, invited }
 
@@ -94,6 +94,7 @@ class CollaboratorModel extends Equatable {
   bool get isApproved => status == CollaboratorStatus.approved;
   bool get isOwner => role == CollaboratorRole.owner;
   bool get isAdmin => role == CollaboratorRole.admin;
+  bool get isStaff => role == CollaboratorRole.staff;
   bool get canEdit => role == CollaboratorRole.owner || role == CollaboratorRole.admin;
 
   @override

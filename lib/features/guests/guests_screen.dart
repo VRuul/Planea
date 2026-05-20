@@ -42,6 +42,8 @@ class _GuestsScreenState extends State<GuestsScreen> {
     final seatingData = seatingProvider.data;
     final currentEventId = eventProvider.currentEventId;
     final currentEvent = eventProvider.currentEvent;
+    final canEdit = eventProvider.canEditGuestsAndTables;
+    final canCheckIn = eventProvider.canCheckInGuests;
 
     if (currentEventId == null || currentEvent == null) {
       return Scaffold(
@@ -56,11 +58,12 @@ class _GuestsScreenState extends State<GuestsScreen> {
       appBar: AppBar(
         title: Text(l.guestsTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.message_rounded, color: AppColors.brushedGold),
-            tooltip: 'Configurar Mensaje',
-            onPressed: () => _showTemplateDialog(context, currentEventId, currentEvent),
-          ),
+          if (canEdit)
+            IconButton(
+              icon: const Icon(Icons.message_rounded, color: AppColors.brushedGold),
+              tooltip: 'Configurar Mensaje',
+              onPressed: () => _showTemplateDialog(context, currentEventId, currentEvent),
+            ),
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: () => _showFilterSheet(context, l),
@@ -106,14 +109,16 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.brushedGold))
                 : Scaffold(
                     backgroundColor: Colors.transparent,
-                    floatingActionButton: FloatingActionButton.extended(
-                      onPressed: () => _showGuestDialog(context, currentEventId, null, seatingData.guests),
-                      backgroundColor: AppColors.brushedGold,
-                      foregroundColor: AppColors.charcoal,
-                      icon: const Icon(Icons.person_add_rounded),
-                      label: Text(l.addGuest),
-                    ),
-                    body: _buildGuestList(context, seatingData.guests, currentEventId, l, theme, seatingData.tables, seatingData.assignments, currentEvent),
+                    floatingActionButton: canEdit
+                        ? FloatingActionButton.extended(
+                            onPressed: () => _showGuestDialog(context, currentEventId, null, seatingData.guests),
+                            backgroundColor: AppColors.brushedGold,
+                            foregroundColor: AppColors.charcoal,
+                            icon: const Icon(Icons.person_add_rounded),
+                            label: Text(l.addGuest),
+                          )
+                        : null,
+                    body: _buildGuestList(context, seatingData.guests, currentEventId, l, theme, seatingData.tables, seatingData.assignments, currentEvent, canEdit: canEdit, canCheckIn: canCheckIn),
                   ),
           ),
         ],
@@ -154,8 +159,10 @@ class _GuestsScreenState extends State<GuestsScreen> {
     ThemeData theme,
     List<TableModel> tables,
     List<SeatingAssignment> assignments,
-    EventModel event,
-  ) {
+    EventModel event, {
+    bool canEdit = true,
+    bool canCheckIn = true,
+  }) {
     final filtered = allGuests.where((g) {
       final matchSearch =
           _search.isEmpty ||
@@ -239,6 +246,8 @@ class _GuestsScreenState extends State<GuestsScreen> {
         emailSubject: event.emailSubject ?? 'Información de tu invitación',
         eventInviteCode: event.inviteCode,
         eventMenus: event.menus,
+        canEdit: canEdit,
+        canCheckIn: canCheckIn,
       ),
     );
   }
@@ -634,6 +643,8 @@ class _GuestCard extends StatelessWidget {
   final String emailSubject;
   final String? eventInviteCode;
   final List<MenuModel> eventMenus;
+  final bool canEdit;
+  final bool canCheckIn;
 
   _GuestCard({
     required this.guest,
@@ -646,6 +657,8 @@ class _GuestCard extends StatelessWidget {
     required this.emailSubject,
     this.eventInviteCode,
     required this.eventMenus,
+    this.canEdit = true,
+    this.canCheckIn = true,
   });
   final _service = SupabaseService();
 
@@ -975,51 +988,56 @@ class _GuestCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: InkWell(
-                        onTap: () async {
-                          final updated = guest.copyWith(checkedIn: !guest.checkedIn);
-                          await _service.updateGuest(eventId, updated);
-                        },
+                        onTap: canCheckIn
+                            ? () async {
+                                final updated = guest.copyWith(checkedIn: !guest.checkedIn);
+                                await _service.updateGuest(eventId, updated);
+                              }
+                            : null,
                         borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: guest.checkedIn 
-                                ? AppColors.confirmed.withValues(alpha: 0.08) 
-                                : AppColors.brushedGold.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
+                        child: Opacity(
+                          opacity: canCheckIn ? 1.0 : 0.4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
                               color: guest.checkedIn 
-                                  ? AppColors.confirmed.withValues(alpha: 0.3) 
-                                  : AppColors.brushedGold.withValues(alpha: 0.15),
-                              width: 1,
+                                  ? AppColors.confirmed.withValues(alpha: 0.08) 
+                                  : AppColors.brushedGold.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: guest.checkedIn 
+                                    ? AppColors.confirmed.withValues(alpha: 0.3) 
+                                    : AppColors.brushedGold.withValues(alpha: 0.15),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                guest.checkedIn ? Icons.check_circle_rounded : Icons.login_rounded,
-                                color: guest.checkedIn ? AppColors.confirmed : AppColors.brushedGold,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text("CONTROL DE ACCESO", style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      guest.checkedIn ? "INGRESADO" : "REGISTRAR ENTRADA",
-                                      style: TextStyle(
-                                        color: guest.checkedIn ? AppColors.confirmed : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                            child: Row(
+                              children: [
+                                Icon(
+                                  guest.checkedIn ? Icons.check_circle_rounded : Icons.login_rounded,
+                                  color: guest.checkedIn ? AppColors.confirmed : AppColors.brushedGold,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("CONTROL DE ACCESO", style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        guest.checkedIn ? "INGRESADO" : "REGISTRAR ENTRADA",
+                                        style: TextStyle(
+                                          color: guest.checkedIn ? AppColors.confirmed : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1029,37 +1047,40 @@ class _GuestCard extends StatelessWidget {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    _ActionButton(
-                      label: l.deleteButton,
-                      icon: Icons.delete_outline_rounded,
-                      color: Colors.redAccent,
-                      onTap: () => _showDeleteDialog(context, l),
-                    ),
-                    const SizedBox(width: 12),
-                    _ActionButton(
-                      label: l.editButton,
-                      icon: Icons.edit_rounded,
-                      color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.5),
-                      onTap: () {
-                        final state = context.findAncestorStateOfType<_GuestsScreenState>();
-                        state?._showGuestDialog(context, eventId, guest, allGuests);
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _showTablePicker(context, l),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.brushedGold,
-                          foregroundColor: AppColors.charcoal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 4,
-                          shadowColor: AppColors.brushedGold.withValues(alpha: 0.2),
-                        ),
-                        child: const Text("ASIGNAR MESA", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    if (canEdit) ...[  
+                      _ActionButton(
+                        label: l.deleteButton,
+                        icon: Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                        onTap: () => _showDeleteDialog(context, l),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      _ActionButton(
+                        label: l.editButton,
+                        icon: Icons.edit_rounded,
+                        color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black).withValues(alpha: 0.5),
+                        onTap: () {
+                          final state = context.findAncestorStateOfType<_GuestsScreenState>();
+                          state?._showGuestDialog(context, eventId, guest, allGuests);
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    if (canEdit)
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _showTablePicker(context, l),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.brushedGold,
+                            foregroundColor: AppColors.charcoal,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 4,
+                            shadowColor: AppColors.brushedGold.withValues(alpha: 0.2),
+                          ),
+                          child: const Text("ASIGNAR MESA", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        ),
+                      ),
                   ],
                 ),
               ],

@@ -224,26 +224,30 @@ class _CollaboratorsPanelState extends State<CollaboratorsPanel> {
                 const SizedBox(height: 20),
                 Text('Rol a asignar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: baseColor)),
                 const SizedBox(height: 12),
-                Row(
+                Column(
                   children: [
-                    Expanded(
-                      child: _RoleOption(
-                        icon: Icons.admin_panel_settings_rounded,
-                        label: 'Administrador',
-                        description: 'Puede editar todo',
-                        selected: selectedRole == CollaboratorRole.admin,
-                        onTap: () => setDialogState(() => selectedRole = CollaboratorRole.admin),
-                      ),
+                    _RoleOption(
+                      icon: Icons.admin_panel_settings_rounded,
+                      label: 'Administrador',
+                      description: 'Acceso total para editar el evento',
+                      selected: selectedRole == CollaboratorRole.admin,
+                      onTap: () => setDialogState(() => selectedRole = CollaboratorRole.admin),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _RoleOption(
-                        icon: Icons.visibility_rounded,
-                        label: 'Visualizador',
-                        description: 'Solo lectura',
-                        selected: selectedRole == CollaboratorRole.viewer,
-                        onTap: () => setDialogState(() => selectedRole = CollaboratorRole.viewer),
-                      ),
+                    const SizedBox(height: 10),
+                    _RoleOption(
+                      icon: Icons.qr_code_scanner_rounded,
+                      label: 'Staff de Logística',
+                      description: 'Marcar asistencia (check-in) y ver plano',
+                      selected: selectedRole == CollaboratorRole.staff,
+                      onTap: () => setDialogState(() => selectedRole = CollaboratorRole.staff),
+                    ),
+                    const SizedBox(height: 10),
+                    _RoleOption(
+                      icon: Icons.visibility_rounded,
+                      label: 'Visualizador',
+                      description: 'Acceso de solo lectura al evento',
+                      selected: selectedRole == CollaboratorRole.viewer,
+                      onTap: () => setDialogState(() => selectedRole = CollaboratorRole.viewer),
                     ),
                   ],
                 ),
@@ -587,26 +591,30 @@ class _PendingRequestCard extends StatelessWidget {
               const SizedBox(height: 20),
               Text('Asignar rol:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: baseColor)),
               const SizedBox(height: 12),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: _RoleOption(
-                      icon: Icons.admin_panel_settings_rounded,
-                      label: 'Admin',
-                      description: 'Puede editar',
-                      selected: selectedRole == CollaboratorRole.admin,
-                      onTap: () => setDialogState(() => selectedRole = CollaboratorRole.admin),
-                    ),
+                  _RoleOption(
+                    icon: Icons.admin_panel_settings_rounded,
+                    label: 'Administrador',
+                    description: 'Acceso total para editar el evento',
+                    selected: selectedRole == CollaboratorRole.admin,
+                    onTap: () => setDialogState(() => selectedRole = CollaboratorRole.admin),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _RoleOption(
-                      icon: Icons.visibility_rounded,
-                      label: 'Visualizador',
-                      description: 'Solo lectura',
-                      selected: selectedRole == CollaboratorRole.viewer,
-                      onTap: () => setDialogState(() => selectedRole = CollaboratorRole.viewer),
-                    ),
+                  const SizedBox(height: 10),
+                  _RoleOption(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Staff de Logística',
+                    description: 'Marcar asistencia (check-in) y ver plano',
+                    selected: selectedRole == CollaboratorRole.staff,
+                    onTap: () => setDialogState(() => selectedRole = CollaboratorRole.staff),
+                  ),
+                  const SizedBox(height: 10),
+                  _RoleOption(
+                    icon: Icons.visibility_rounded,
+                    label: 'Visualizador',
+                    description: 'Acceso de solo lectura al evento',
+                    selected: selectedRole == CollaboratorRole.viewer,
+                    onTap: () => setDialogState(() => selectedRole = CollaboratorRole.viewer),
                   ),
                 ],
               ),
@@ -655,11 +663,27 @@ class _CollaboratorCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final baseColor = isDark ? Colors.white : Colors.black87;
     final isInvited = collaborator.status == CollaboratorStatus.invited;
-    final roleColor = isInvited ? Colors.orange : (collaborator.isAdmin ? AppColors.brushedGold : Colors.blueGrey);
-    final roleLabel = isInvited ? 'Invitado - Pendiente' : (collaborator.isAdmin ? 'Administrador' : 'Visualizador');
+    final roleColor = isInvited 
+        ? Colors.orange 
+        : (collaborator.isAdmin 
+            ? AppColors.brushedGold 
+            : (collaborator.role == CollaboratorRole.staff 
+                ? Colors.tealAccent 
+                : Colors.blueGrey));
+    final roleLabel = isInvited 
+        ? 'Invitado - Pendiente' 
+        : (collaborator.isAdmin 
+            ? 'Administrador' 
+            : (collaborator.role == CollaboratorRole.staff 
+                ? 'Logística' 
+                : 'Visualizador'));
     final roleIcon = isInvited 
         ? Icons.mail_outline_rounded 
-        : (collaborator.isAdmin ? Icons.admin_panel_settings_rounded : Icons.visibility_rounded);
+        : (collaborator.isAdmin 
+            ? Icons.admin_panel_settings_rounded 
+            : (collaborator.role == CollaboratorRole.staff 
+                ? Icons.qr_code_scanner_rounded 
+                : Icons.visibility_rounded));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -717,14 +741,18 @@ class _CollaboratorCard extends StatelessWidget {
                   SupabaseService().removeCollaborator(collaborator.id);
                 } else if (val == 'admin') {
                   SupabaseService().updateCollaboratorRole(collaborator.id, CollaboratorRole.admin);
+                } else if (val == 'staff') {
+                  SupabaseService().updateCollaboratorRole(collaborator.id, CollaboratorRole.staff);
                 } else if (val == 'viewer') {
                   SupabaseService().updateCollaboratorRole(collaborator.id, CollaboratorRole.viewer);
                 }
               },
               itemBuilder: (_) => [
-                if (!collaborator.isAdmin)
+                if (collaborator.role != CollaboratorRole.admin)
                   const PopupMenuItem(value: 'admin', child: Text('Cambiar a Administrador')),
-                if (collaborator.isAdmin)
+                if (collaborator.role != CollaboratorRole.staff)
+                  const PopupMenuItem(value: 'staff', child: Text('Cambiar a Logística')),
+                if (collaborator.role != CollaboratorRole.viewer)
                   const PopupMenuItem(value: 'viewer', child: Text('Cambiar a Visualizador')),
                 const PopupMenuItem(value: 'remove',
                     child: Text('Eliminar', style: TextStyle(color: Colors.red))),
@@ -823,18 +851,27 @@ class _RoleOption extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? AppColors.brushedGold.withValues(alpha: 0.1) : Colors.transparent,
           border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
-            Text(description, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10), textAlign: TextAlign.center),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(description, style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

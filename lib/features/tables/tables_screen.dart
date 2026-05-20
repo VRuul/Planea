@@ -58,6 +58,7 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
 
     final seatingProvider = context.watch<SeatingProvider>();
     final data = seatingProvider.data;
+    final canEdit = eventProvider.canEditGuestsAndTables;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -109,6 +110,7 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
                   tables: data.tables,
                   venueElements: data.venueElements,
                   service: _service,
+                  canEdit: canEdit,
                 )
               : Column(
                   children: [
@@ -126,20 +128,21 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          _TablesList(eventId: eventId, tables: data.tables, service: _service),
+                          _TablesList(eventId: eventId, tables: data.tables, service: _service, canEdit: canEdit),
                           _AssignmentView(
                             eventId: eventId,
                             tables: data.tables,
                             guests: data.guests,
                             assignments: data.assignments,
                             service: _service,
+                            canEdit: canEdit,
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-      floatingActionButton: _isLayoutMode ? null : FloatingActionButton.extended(
+      floatingActionButton: (!_isLayoutMode && canEdit) ? FloatingActionButton.extended(
         onPressed: () => _showTableDialog(context, eventId),
         backgroundColor: AppColors.brushedGold,
         foregroundColor: AppColors.charcoal,
@@ -147,7 +150,7 @@ class _TablesScreenState extends State<TablesScreen> with SingleTickerProviderSt
         icon: const Icon(Icons.add_rounded),
         label: Text(l.addTable, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
+      ) : null,
     );
   }
 
@@ -216,8 +219,9 @@ class _TablesList extends StatelessWidget {
   final String eventId;
   final List<TableModel> tables;
   final SupabaseService service;
+  final bool canEdit;
 
-  const _TablesList({required this.eventId, required this.tables, required this.service});
+  const _TablesList({required this.eventId, required this.tables, required this.service, this.canEdit = true});
 
   @override
   Widget build(BuildContext context) {
@@ -261,21 +265,23 @@ class _TablesList extends StatelessWidget {
             ),
             title: Text(table.name, style: TextStyle(color: baseColor, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.3)),
             subtitle: Text('Capacidad: ${table.capacity} personas', style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 13)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ActionButton(
-                  icon: Icons.edit_rounded,
-                  onTap: () => showDialog(context: context, builder: (context) => _TableDialog(eventId: eventId, table: table)),
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  icon: Icons.delete_outline_rounded,
-                  isDelete: true,
-                  onTap: () => service.deleteTable(eventId, table.id),
-                ),
-              ],
-            ),
+            trailing: canEdit
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ActionButton(
+                        icon: Icons.edit_rounded,
+                        onTap: () => showDialog(context: context, builder: (context) => _TableDialog(eventId: eventId, table: table)),
+                      ),
+                      const SizedBox(width: 8),
+                      _ActionButton(
+                        icon: Icons.delete_outline_rounded,
+                        isDelete: true,
+                        onTap: () => service.deleteTable(eventId, table.id),
+                      ),
+                    ],
+                  )
+                : null,
           ),
         );
       },
@@ -288,8 +294,9 @@ class _LayoutCanvas extends StatefulWidget {
   final List<TableModel> tables;
   final List<VenueElementModel> venueElements;
   final SupabaseService service;
+  final bool canEdit;
 
-  const _LayoutCanvas({required this.eventId, required this.tables, required this.venueElements, required this.service});
+  const _LayoutCanvas({required this.eventId, required this.tables, required this.venueElements, required this.service, this.canEdit = true});
 
   @override
   State<_LayoutCanvas> createState() => _LayoutCanvasState();
@@ -359,19 +366,20 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
                         left: currentPos.dx + _canvasOrigin, top: currentPos.dy + _canvasOrigin,
                         child: _VenueElementItem(
                           element: e,
-                          onDragUpdate: (delta) {
+                          canEdit: widget.canEdit,
+                          onDragUpdate: widget.canEdit ? (delta) {
                             final scale = _transformController.value.getMaxScaleOnAxis();
                             setState(() {
                               _isDragging = true;
                               _dragPositions[e.id] = Offset(currentPos.dx + delta.dx / scale, currentPos.dy + delta.dy / scale);
                             });
-                          },
-                          onDragEnd: () {
+                          } : (_) {},
+                          onDragEnd: widget.canEdit ? () {
                             setState(() => _isDragging = false);
                             final pos = _dragPositions[e.id]!;
                             widget.service.updateVenueElementPosition(widget.eventId, e.id, pos.dx, pos.dy);
-                          },
-                          onEdit: () => _showVenueElementDialog(context, widget.eventId, e),
+                          } : () {},
+                          onEdit: widget.canEdit ? () => _showVenueElementDialog(context, widget.eventId, e) : () {},
                         ),
                       );
                     }),
@@ -381,19 +389,20 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
                         left: currentPos.dx + _canvasOrigin, top: currentPos.dy + _canvasOrigin,
                         child: _DraggableTable(
                           table: t,
-                          onDragUpdate: (delta) {
+                          canEdit: widget.canEdit,
+                          onDragUpdate: widget.canEdit ? (delta) {
                             final scale = _transformController.value.getMaxScaleOnAxis();
                             setState(() {
                               _isDragging = true;
                               _dragPositions[t.id] = Offset(currentPos.dx + delta.dx / scale, currentPos.dy + delta.dy / scale);
                             });
-                          },
-                          onDragEnd: () {
+                          } : (_) {},
+                          onDragEnd: widget.canEdit ? () {
                             setState(() => _isDragging = false);
                             final pos = _dragPositions[t.id]!;
                             widget.service.updateTablePosition(widget.eventId, t.id, pos.dx, pos.dy);
-                          },
-                          onEdit: () => _showTableDialog(context, widget.eventId, table: t, showDimensions: true),
+                          } : () {},
+                          onEdit: widget.canEdit ? () => _showTableDialog(context, widget.eventId, table: t, showDimensions: true) : () {},
                         ),
                       );
                     }),
@@ -423,30 +432,32 @@ class _LayoutCanvasState extends State<_LayoutCanvas> {
             child: Column(
               mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                FloatingActionButton.extended(
-                  heroTag: 'element_fab',
-                  onPressed: () => _showVenueElementDialog(context, widget.eventId),
-                  icon: const Icon(Icons.add_box_rounded, size: 20),
-                  label: const Text('ELEMENTO', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
-                  backgroundColor: isDark ? AppColors.charcoal : Colors.white,
-                  foregroundColor: AppColors.brushedGold,
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+                if (widget.canEdit) ...[  
+                  FloatingActionButton.extended(
+                    heroTag: 'element_fab',
+                    onPressed: () => _showVenueElementDialog(context, widget.eventId),
+                    icon: const Icon(Icons.add_box_rounded, size: 20),
+                    label: const Text('ELEMENTO', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
+                    backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+                    foregroundColor: AppColors.brushedGold,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.extended(
-                  heroTag: 'table_fab',
-                  onPressed: () => _showTableDialog(context, widget.eventId, showDimensions: true),
-                  icon: const Icon(Icons.table_restaurant_rounded, size: 20),
-                  label: const Text('AGREGAR MESA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
-                  backgroundColor: AppColors.brushedGold,
-                  foregroundColor: AppColors.charcoal,
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.extended(
+                    heroTag: 'table_fab',
+                    onPressed: () => _showTableDialog(context, widget.eventId, showDimensions: true),
+                    icon: const Icon(Icons.table_restaurant_rounded, size: 20),
+                    label: const Text('AGREGAR MESA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
+                    backgroundColor: AppColors.brushedGold,
+                    foregroundColor: AppColors.charcoal,
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -469,8 +480,9 @@ class _DraggableTable extends StatelessWidget {
   final Function(Offset) onDragUpdate;
   final VoidCallback onDragEnd;
   final VoidCallback onEdit;
+  final bool canEdit;
 
-  const _DraggableTable({required this.table, required this.onDragUpdate, required this.onDragEnd, required this.onEdit});
+  const _DraggableTable({required this.table, required this.onDragUpdate, required this.onDragEnd, required this.onEdit, this.canEdit = true});
 
   @override
   Widget build(BuildContext context) {
@@ -482,9 +494,9 @@ class _DraggableTable extends StatelessWidget {
     final primaryColor = customColor ?? AppColors.brushedGold;
 
     return GestureDetector(
-      onPanUpdate: (details) => onDragUpdate(details.delta),
-      onPanEnd: (_) => onDragEnd(),
-      onDoubleTap: onEdit,
+      onPanUpdate: canEdit ? (details) => onDragUpdate(details.delta) : null,
+      onPanEnd: canEdit ? (_) => onDragEnd() : null,
+      onDoubleTap: canEdit ? onEdit : null,
       child: Container(
         width: width, height: height,
         decoration: BoxDecoration(
@@ -542,8 +554,9 @@ class _AssignmentView extends StatelessWidget {
   final List<GuestModel> guests;
   final List<SeatingAssignment> assignments;
   final SupabaseService service;
+  final bool canEdit;
 
-  const _AssignmentView({required this.eventId, required this.tables, required this.guests, required this.assignments, required this.service});
+  const _AssignmentView({required this.eventId, required this.tables, required this.guests, required this.assignments, required this.service, this.canEdit = true});
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +628,7 @@ class _AssignmentView extends StatelessWidget {
                   ],
                 ),
               ),
-              if (unassignedGuests.isNotEmpty)
+              if (unassignedGuests.isNotEmpty && canEdit)
                 ElevatedButton.icon(
                   onPressed: () => _autoAssign(context),
                   icon: const Icon(Icons.auto_awesome_rounded, size: 16),
@@ -736,37 +749,38 @@ class _AssignmentView extends StatelessWidget {
                                         fontSize: 12,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    InkWell(
-                                      onTap: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Eliminar Asignación'),
-                                            content: Text('¿Deseas quitar a ${guest.displayName} de esta mesa?'),
-                                            actions: [
-                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context, true), 
-                                                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                                                child: const Text('Eliminar'),
-                                              ),
-                                            ],
+                                     const SizedBox(width: 8),
+                                    if (canEdit)
+                                      InkWell(
+                                        onTap: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Eliminar Asignación'),
+                                              content: Text('¿Deseas quitar a ${guest.displayName} de esta mesa?'),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true), 
+                                                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                                                  child: const Text('Eliminar'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            await service.deleteAssignment(eventId, a.id);
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent.withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
                                           ),
-                                        );
-                                        if (confirm == true) {
-                                          await service.deleteAssignment(eventId, a.id);
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.redAccent.withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
+                                          child: const Icon(Icons.close_rounded, size: 12, color: Colors.redAccent),
                                         ),
-                                        child: const Icon(Icons.close_rounded, size: 12, color: Colors.redAccent),
                                       ),
-                                    ),
                                   ],
                                 ),
                               );
@@ -774,19 +788,19 @@ class _AssignmentView extends StatelessWidget {
                           ),
                     ),
                     InkWell(
-                      onTap: isFull ? null : () => _showAssignDialog(context, table),
+                      onTap: (isFull || !canEdit) ? null : () => _showAssignDialog(context, table),
                       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                       child: Container(
                         width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: isFull ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.05), 
+                          color: (isFull || !canEdit) ? Colors.transparent : AppColors.brushedGold.withValues(alpha: 0.05), 
                           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                         ),
                         child: Center(
                           child: Text(
-                            isFull ? 'CAPACIDAD MÁXIMA' : 'ASIGNAR INVITADOS', 
+                            isFull ? 'CAPACIDAD MÁXIMA' : (!canEdit ? 'VER ASIGNACIONES' : 'ASIGNAR INVITADOS'), 
                             style: TextStyle(
-                              color: isFull ? Colors.redAccent.withValues(alpha: 0.3) : AppColors.brushedGold, 
+                              color: (isFull || !canEdit) ? (isDark ? Colors.white12 : Colors.black12) : AppColors.brushedGold, 
                               fontWeight: FontWeight.w900, 
                               fontSize: 10, 
                               letterSpacing: 2,
@@ -1276,7 +1290,8 @@ class _VenueElementItem extends StatelessWidget {
   final VenueElementModel element;
   final Function(Offset) onDragUpdate;
   final VoidCallback onDragEnd, onEdit;
-  const _VenueElementItem({required this.element, required this.onDragUpdate, required this.onDragEnd, required this.onEdit});
+  final bool canEdit;
+  const _VenueElementItem({required this.element, required this.onDragUpdate, required this.onDragEnd, required this.onEdit, this.canEdit = true});
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1284,9 +1299,9 @@ class _VenueElementItem extends StatelessWidget {
     final primaryColor = customColor ?? (element.type == VenueElementType.entrance ? Colors.blue : AppColors.brushedGold);
 
     return GestureDetector(
-      onPanUpdate: (details) => onDragUpdate(details.delta),
-      onPanEnd: (_) => onDragEnd(),
-      onDoubleTap: onEdit,
+      onPanUpdate: canEdit ? (details) => onDragUpdate(details.delta) : null,
+      onPanEnd: canEdit ? (_) => onDragEnd() : null,
+      onDoubleTap: canEdit ? onEdit : null,
       child: Container(
         width: element.width, height: element.height,
         decoration: BoxDecoration(
