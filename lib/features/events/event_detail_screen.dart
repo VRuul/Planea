@@ -11,6 +11,7 @@ import '../../core/extensions/l10n_extension.dart';
 import './events_screen.dart';
 import './widgets/event_utils.dart';
 import './collaborators_panel.dart';
+import '../shared/widgets/premium_picker.dart';
 
 
 class EventDetailScreen extends StatelessWidget {
@@ -474,6 +475,30 @@ class _RsvpPortalCardState extends State<_RsvpPortalCard> {
             ],
           ),
           const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => RsvpConfigDialog(event: widget.event),
+                );
+              },
+              icon: const Icon(Icons.palette_outlined, size: 18),
+              label: const Text("Personalizar Portal y Diseño"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brushedGold.withValues(alpha: 0.08),
+                foregroundColor: AppColors.brushedGold,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppColors.brushedGold, width: 1.2),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           Text(
             "Enlace del Portal de Invitados:",
             style: theme.textTheme.labelMedium?.copyWith(
@@ -575,6 +600,220 @@ class _RsvpPortalCardState extends State<_RsvpPortalCard> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class RsvpConfigDialog extends StatefulWidget {
+  final EventModel event;
+  const RsvpConfigDialog({super.key, required this.event});
+
+  @override
+  State<RsvpConfigDialog> createState() => _RsvpConfigDialogState();
+}
+
+class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
+  final _coverPhotoController = TextEditingController();
+  final _dressCodeController = TextEditingController();
+  final _customNotesController = TextEditingController();
+  final _registryUrlController = TextEditingController();
+
+  String _themeStyle = 'classic_gold';
+  bool _showCountdown = true;
+  bool _showMap = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final config = widget.event.rsvpConfig;
+    _coverPhotoController.text = config.coverPhotoUrl ?? '';
+    _dressCodeController.text = config.dressCode ?? '';
+    _customNotesController.text = config.customNotes ?? '';
+    _registryUrlController.text = config.registryUrl ?? '';
+    _themeStyle = config.themeStyle;
+    _showCountdown = config.showCountdown;
+    _showMap = config.showMap;
+  }
+
+  @override
+  void dispose() {
+    _coverPhotoController.dispose();
+    _dressCodeController.dispose();
+    _customNotesController.dispose();
+    _registryUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final updatedConfig = widget.event.rsvpConfig.copyWith(
+        themeStyle: _themeStyle,
+        coverPhotoUrl: _coverPhotoController.text.trim().isEmpty ? null : _coverPhotoController.text.trim(),
+        dressCode: _dressCodeController.text.trim().isEmpty ? null : _dressCodeController.text.trim(),
+        customNotes: _customNotesController.text.trim().isEmpty ? null : _customNotesController.text.trim(),
+        registryUrl: _registryUrlController.text.trim().isEmpty ? null : _registryUrlController.text.trim(),
+        showCountdown: _showCountdown,
+        showMap: _showMap,
+      );
+
+      final updatedEvent = widget.event.copyWith(rsvpConfig: updatedConfig);
+      await SupabaseService().updateEvent(updatedEvent);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Configuración de RSVP guardada con éxito'),
+            backgroundColor: AppColors.charcoal,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.white : Colors.black;
+
+    return AlertDialog(
+      backgroundColor: isDark ? AppColors.charcoal : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: const Row(
+        children: [
+          Icon(Icons.palette_outlined, color: AppColors.brushedGold),
+          SizedBox(width: 12),
+          Text(
+            "Personalizar RSVP",
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 480,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              
+              // Theme Picker
+              PremiumPicker<String>(
+                label: "Tema Visual",
+                icon: Icons.style_outlined,
+                value: _themeStyle,
+                items: const [
+                  PremiumPickerItem(value: 'classic_gold', label: 'Oro Clásico (Oscuro)', icon: Icons.brightness_5),
+                  PremiumPickerItem(value: 'romantic_rose', label: 'Rosa Romántico', icon: Icons.favorite),
+                  PremiumPickerItem(value: 'midnight_luxury', label: 'Lujo de Medianoche', icon: Icons.nights_stay),
+                  PremiumPickerItem(value: 'minimal_light', label: 'Luz Mínima (Claro)', icon: Icons.wb_sunny_outlined),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _themeStyle = val);
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Cover Photo URL
+              TextField(
+                controller: _coverPhotoController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("URL Foto de Portada (Opcional)", Icons.image_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Dress Code
+              TextField(
+                controller: _dressCodeController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Código de Vestimenta (ej: Formal)", Icons.checkroom_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Registry URL
+              TextField(
+                controller: _registryUrlController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Mesa de Regalos URL (Opcional)", Icons.card_giftcard_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Custom Notes
+              TextField(
+                controller: _customNotesController,
+                maxLines: 2,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Anotaciones Especiales para Invitados", Icons.note_alt_outlined, theme),
+              ),
+              const SizedBox(height: 20),
+
+              // Toggles
+              SwitchListTile(
+                title: Text("Mostrar Cuenta Regresiva", style: TextStyle(color: baseColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text("Muestra un contador hacia la fecha del evento", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                value: _showCountdown,
+                activeColor: AppColors.brushedGold,
+                onChanged: (val) => setState(() => _showCountdown = val),
+              ),
+              SwitchListTile(
+                title: Text("Mostrar Mapa del Salón", style: TextStyle(color: baseColor, fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text("Muestra un plano interactivo de la mesa asignada", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                value: _showMap,
+                activeColor: AppColors.brushedGold,
+                onChanged: (val) => setState(() => _showMap = val),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text("Cancelar", style: TextStyle(color: baseColor.withValues(alpha: 0.5))),
+        ),
+        ElevatedButton(
+          onPressed: _saving ? null : _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.brushedGold,
+            foregroundColor: AppColors.charcoal,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: _saving
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.charcoal))
+              : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark, baseColor = isDark ? Colors.white : Colors.black;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 13),
+      prefixIcon: Icon(icon, color: AppColors.brushedGold, size: 20),
+      filled: true,
+      fillColor: baseColor.withValues(alpha: 0.03),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: baseColor.withValues(alpha: 0.08))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.brushedGold, width: 1.5)),
     );
   }
 }

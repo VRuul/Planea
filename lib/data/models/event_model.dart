@@ -25,6 +25,7 @@ class EventModel extends Equatable {
   final String? emailTemplate;
   final String? emailSubject;
   final List<MenuModel> menus;
+  final RsvpConfig rsvpConfig;
 
   const EventModel({
     required this.id,
@@ -47,6 +48,7 @@ class EventModel extends Equatable {
     this.emailTemplate,
     this.emailSubject,
     this.menus = const [],
+    this.rsvpConfig = const RsvpConfig(),
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,7 @@ class EventModel extends Equatable {
               ?.map((m) => MenuModel.fromJson(m))
               .toList() ??
           const [],
+      rsvpConfig: RsvpConfig.fromJson(json['rsvp_config']),
     );
   }
 
@@ -101,6 +104,7 @@ class EventModel extends Equatable {
     'email_template': emailTemplate,
     'email_subject': emailSubject,
     'menus': menus.map((m) => m.toJson()).toList(),
+    'rsvp_config': rsvpConfig.toJson(),
   };
 
   EventModel copyWith({
@@ -124,6 +128,7 @@ class EventModel extends Equatable {
     String? emailTemplate,
     String? emailSubject,
     List<MenuModel>? menus,
+    RsvpConfig? rsvpConfig,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -146,6 +151,7 @@ class EventModel extends Equatable {
       emailTemplate: emailTemplate ?? this.emailTemplate,
       emailSubject: emailSubject ?? this.emailSubject,
       menus: menus ?? this.menus,
+      rsvpConfig: rsvpConfig ?? this.rsvpConfig,
     );
   }
 
@@ -156,7 +162,106 @@ class EventModel extends Equatable {
         id, name, type, date, primaryColor, secondaryColor, venue, organizerId,
         budget, budgetSpent, customType, customTypeIcon, guestGoal, celebrantNames,
         inviteCode, collaboratorIds, whatsappTemplate, emailTemplate, emailSubject,
-        menus
+        menus, rsvpConfig
+      ];
+}
+
+class RsvpConfig extends Equatable {
+  final String themeStyle;
+  final String? coverPhotoUrl;
+  final bool showCountdown;
+  final bool showMap;
+  final String? customNotes;
+  final String? dressCode;
+  final String? registryUrl;
+
+  const RsvpConfig({
+    this.themeStyle = 'classic_gold',
+    this.coverPhotoUrl,
+    this.showCountdown = true,
+    this.showMap = true,
+    this.customNotes,
+    this.dressCode,
+    this.registryUrl,
+  });
+
+  static String? normalizeImageUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return url;
+    final trimmed = url.trim();
+    
+    // Check if it's a Google Drive URL
+    if (trimmed.contains('drive.google.com') || trimmed.contains('docs.google.com')) {
+      // Pattern 1: /file/d/FILE_ID/view...
+      final regExp1 = RegExp(r'/file/d/([a-zA-Z0-9_-]+)');
+      final match1 = regExp1.firstMatch(trimmed);
+      if (match1 != null && match1.groupCount >= 1) {
+        final id = match1.group(1);
+        return 'https://drive.google.com/uc?export=download&id=$id';
+      }
+      
+      // Pattern 2: ?id=FILE_ID or &id=FILE_ID
+      final regExp2 = RegExp(r'[?&]id=([a-zA-Z0-9_-]+)');
+      final match2 = regExp2.firstMatch(trimmed);
+      if (match2 != null && match2.groupCount >= 1) {
+        final id = match2.group(1);
+        return 'https://drive.google.com/uc?export=download&id=$id';
+      }
+    }
+    return trimmed;
+  }
+
+  factory RsvpConfig.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const RsvpConfig();
+    return RsvpConfig(
+      themeStyle: json['theme_style'] ?? 'classic_gold',
+      coverPhotoUrl: normalizeImageUrl(json['cover_photo_url']),
+      showCountdown: json['show_countdown'] ?? true,
+      showMap: json['show_map'] ?? true,
+      customNotes: json['custom_notes'],
+      dressCode: json['dress_code'],
+      registryUrl: json['registry_url'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'theme_style': themeStyle,
+        'cover_photo_url': coverPhotoUrl,
+        'show_countdown': showCountdown,
+        'show_map': showMap,
+        'custom_notes': customNotes,
+        'dress_code': dressCode,
+        'registry_url': registryUrl,
+      };
+
+  RsvpConfig copyWith({
+    String? themeStyle,
+    String? coverPhotoUrl,
+    bool? showCountdown,
+    bool? showMap,
+    String? customNotes,
+    String? dressCode,
+    String? registryUrl,
+  }) {
+    return RsvpConfig(
+      themeStyle: themeStyle ?? this.themeStyle,
+      coverPhotoUrl: coverPhotoUrl != null ? normalizeImageUrl(coverPhotoUrl) : this.coverPhotoUrl,
+      showCountdown: showCountdown ?? this.showCountdown,
+      showMap: showMap ?? this.showMap,
+      customNotes: customNotes ?? this.customNotes,
+      dressCode: dressCode ?? this.dressCode,
+      registryUrl: registryUrl ?? this.registryUrl,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        themeStyle,
+        coverPhotoUrl,
+        showCountdown,
+        showMap,
+        customNotes,
+        dressCode,
+        registryUrl,
       ];
 }
 

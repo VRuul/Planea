@@ -8,7 +8,7 @@ class PremiumPickerItem<T> {
   final IconData icon;
   final bool isSpecial;
 
-  PremiumPickerItem({
+  const PremiumPickerItem({
     required this.value,
     required this.label,
     required this.icon,
