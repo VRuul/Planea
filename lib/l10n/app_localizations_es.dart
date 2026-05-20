@@ -27,6 +27,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navSettings => 'Ajustes';
 
   @override
+  String get navMenus => 'Menús';
+
+  @override
   String get premiumBadge => 'Premium';
 
   @override

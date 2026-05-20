@@ -191,10 +191,7 @@ class _EventDetailView extends StatelessWidget {
               const SizedBox(height: 16),
               _RsvpPortalCard(event: event),
               const SizedBox(height: 32),
-              _SectionTitle("Banquete y Menús"),
-              const SizedBox(height: 16),
-              _CateringMenuCard(event: event),
-              const SizedBox(height: 32),
+
               _SectionTitle(l.eventDetailsSection),
               const SizedBox(height: 16),
               Container(
@@ -582,72 +579,3 @@ class _RsvpPortalCardState extends State<_RsvpPortalCard> {
   }
 }
 
-class _CateringMenuCard extends StatelessWidget {
-  final EventModel event;
-
-  const _CateringMenuCard({required this.event});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final baseColor = isDark ? Colors.white : Colors.black;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: baseColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: baseColor.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.brushedGold.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.restaurant_menu_rounded, color: AppColors.brushedGold, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Menús de Catering",
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.white),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      event.menus.isEmpty
-                          ? "Sin menús personalizados (se usarán los predeterminados)"
-                          : "${event.menus.length} menú(s) personalizado(s) configurado(s)",
-                      style: TextStyle(color: baseColor.withValues(alpha: 0.5), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () => context.push('/events/${event.id}/menu'),
-            icon: const Icon(Icons.settings_outlined, color: Colors.black),
-            label: const Text("CONFIGURAR MENÚS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brushedGold,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
+  /// No description provided for @navMenus.
+  ///
+  /// In en, this message translates to:
+  /// **'Menus'**
+  String get navMenus;
+
   /// No description provided for @premiumBadge.
   ///
   /// In en, this message translates to:

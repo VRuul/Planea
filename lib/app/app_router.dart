@@ -72,6 +72,11 @@ class AppRouter {
                   EventMenuScreen(eventId: state.pathParameters['id']!),
             ),
             GoRoute(
+              path: '/menus',
+              builder: (context, state) =>
+                  const EventMenuScreen(),
+            ),
+            GoRoute(
               path: '/settings',
               builder: (context, state) => const SettingsScreen(),
             ),

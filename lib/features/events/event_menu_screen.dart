@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/event_model.dart';
 import '../../data/services/supabase_service.dart';
 import '../../core/constants/app_colors.dart';
+import '../../providers/event_provider.dart';
 
 class EventMenuScreen extends StatefulWidget {
-  final String eventId;
-  const EventMenuScreen({super.key, required this.eventId});
+  final String? eventId;
+  const EventMenuScreen({super.key, this.eventId});
 
   @override
   State<EventMenuScreen> createState() => _EventMenuScreenState();
@@ -16,23 +18,50 @@ class _EventMenuScreenState extends State<EventMenuScreen> {
   final _service = SupabaseService();
   List<MenuModel>? _localMenus;
   EventModel? _lastEvent;
-  bool _saving = false;
-
   void _addOrEditMenu({MenuModel? menuToEdit, int? editIndex}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => _MenuEditorDialog(
         menu: menuToEdit,
-        onSave: (savedMenu) {
-          setState(() {
-            if (editIndex != null && _localMenus != null) {
-              _localMenus![editIndex] = savedMenu;
-            } else {
-              _localMenus ??= [];
-              _localMenus!.add(savedMenu);
-            }
-          });
+        onSave: (savedMenu) async {
+          if (_lastEvent == null) return;
+          final updatedMenus = List<MenuModel>.from(_localMenus ?? _lastEvent!.menus);
+          if (editIndex != null) {
+            updatedMenus[editIndex] = savedMenu;
+          } else {
+            updatedMenus.add(savedMenu);
+          }
+
+          final messenger = ScaffoldMessenger.of(context);
+          try {
+            await _service.updateEvent(_lastEvent!.copyWith(menus: updatedMenus));
+            setState(() {
+              _localMenus = updatedMenus;
+            });
+            messenger.showSnackBar(
+              const SnackBar(
+                backgroundColor: AppColors.confirmed,
+                behavior: SnackBarBehavior.floating,
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: Colors.white),
+                    SizedBox(width: 12),
+                    Text("Menú guardado correctamente", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            );
+          } catch (e) {
+            messenger.showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.redAccent,
+                behavior: SnackBarBehavior.floating,
+                content: Text("Error al guardar: $e"),
+              ),
+            );
+            rethrow;
+          }
         },
       ),
     );
@@ -41,21 +70,51 @@ class _EventMenuScreenState extends State<EventMenuScreen> {
   void _deleteMenu(int index) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.charcoal,
         title: const Text("Eliminar Menú", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text("¿Estás seguro de que deseas eliminar este menú? Los invitados asignados a él quedarán sin selección.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text("CANCELAR", style: TextStyle(color: Colors.white38)),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _localMenus?.removeAt(index);
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              if (_lastEvent == null || _localMenus == null) return;
+              final updatedMenus = List<MenuModel>.from(_localMenus!);
+              updatedMenus.removeAt(index);
+
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(dialogContext);
+
+              try {
+                await _service.updateEvent(_lastEvent!.copyWith(menus: updatedMenus));
+                setState(() {
+                  _localMenus = updatedMenus;
+                });
+                messenger.showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppColors.confirmed,
+                    behavior: SnackBarBehavior.floating,
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text("Menú eliminado correctamente", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                );
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                    content: Text("Error al eliminar: $e"),
+                  ),
+                );
+              }
             },
             child: const Text("ELIMINAR", style: TextStyle(color: Colors.redAccent)),
           ),
@@ -64,47 +123,68 @@ class _EventMenuScreenState extends State<EventMenuScreen> {
     );
   }
 
-  Future<void> _saveToSupabase(EventModel event) async {
-    setState(() => _saving = true);
-    try {
-      await _service.updateEvent(event.copyWith(menus: _localMenus));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.confirmed,
-            behavior: SnackBarBehavior.floating,
-            content: Row(
-              children: const [
-                Icon(Icons.check_circle_rounded, color: Colors.white),
-                SizedBox(width: 12),
-                Text("Menús guardados correctamente", style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            content: Text("Error al guardar: $e"),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final baseColor = isDark ? Colors.white : Colors.black;
+
+    final eventProvider = context.watch<EventProvider>();
+    final effectiveEventId = widget.eventId ?? eventProvider.currentEventId;
+
+    if (effectiveEventId == null) {
+      return Scaffold(
+        backgroundColor: AppColors.charcoal,
+        appBar: AppBar(
+          title: const Text("Menús de Catering", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Navigator.canPop(context)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => context.pop(),
+                )
+              : null,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: baseColor.withValues(alpha: 0.03),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.brushedGold.withValues(alpha: 0.2)),
+                ),
+                child: const Icon(
+                  Icons.restaurant_menu_rounded,
+                  size: 48,
+                  color: AppColors.brushedGold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "Selecciona un evento primero",
+                style: TextStyle(
+                  color: AppColors.brushedGold,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Usa el selector en el panel lateral para elegir un evento activo.",
+                style: TextStyle(
+                  color: baseColor.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.charcoal,
@@ -112,13 +192,22 @@ class _EventMenuScreenState extends State<EventMenuScreen> {
         title: const Text("Menús de Catering", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              )
+            : null,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _addOrEditMenu(),
+        backgroundColor: AppColors.brushedGold,
+        foregroundColor: AppColors.charcoal,
+        icon: const Icon(Icons.restaurant_menu_rounded),
+        label: const Text("Agregar Menú", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: StreamBuilder<EventModel?>(
-        stream: _service.watchEvent(widget.eventId),
+        stream: _service.watchEvent(effectiveEventId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.brushedGold));
@@ -133,71 +222,22 @@ class _EventMenuScreenState extends State<EventMenuScreen> {
             _lastEvent = event;
           }
 
-          final hasChanges = event.menus != _localMenus;
+          if (_localMenus!.isEmpty) {
+            return _buildEmptyState(baseColor);
+          }
 
-          return Column(
-            children: [
-              Expanded(
-                child: _localMenus!.isEmpty
-                    ? _buildEmptyState(baseColor)
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: _localMenus!.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, i) {
-                          final menu = _localMenus![i];
-                          return _MenuCard(
-                            menu: menu,
-                            onEdit: () => _addOrEditMenu(menuToEdit: menu, editIndex: i),
-                            onDelete: () => _deleteMenu(i),
-                          );
-                        },
-                      ),
-              ),
-              SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.02),
-                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _addOrEditMenu(),
-                          icon: const Icon(Icons.add, color: AppColors.brushedGold),
-                          label: const Text("AÑADIR MENÚ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.brushedGold, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                        ),
-                      ),
-                      if (hasChanges) ...[
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _saving
-                              ? const Center(child: CircularProgressIndicator(color: AppColors.brushedGold))
-                              : ElevatedButton.icon(
-                                  onPressed: () => _saveToSupabase(event),
-                                  icon: const Icon(Icons.save_rounded, color: Colors.black),
-                                  label: const Text("GUARDAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.brushedGold,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  ),
-                                ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          return ListView.separated(
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+            itemCount: _localMenus!.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, i) {
+              final menu = _localMenus![i];
+              return _MenuCard(
+                menu: menu,
+                onEdit: () => _addOrEditMenu(menuToEdit: menu, editIndex: i),
+                onDelete: () => _deleteMenu(i),
+              );
+            },
           );
         },
       ),
@@ -382,7 +422,7 @@ class _MenuCard extends StatelessWidget {
 
 class _MenuEditorDialog extends StatefulWidget {
   final MenuModel? menu;
-  final Function(MenuModel) onSave;
+  final Future<void> Function(MenuModel) onSave;
 
   const _MenuEditorDialog({this.menu, required this.onSave});
 
@@ -400,6 +440,7 @@ class _MenuEditorDialogState extends State<_MenuEditorDialog> {
   final _descriptionController = TextEditingController();
 
   final List<String> _emojiOptions = ["🥩", "🐟", "🥗", "👶", "🍰", "🍷", "🍹", "🍲", "🌮", "🍕", "🍝", "🍩"];
+  bool _saving = false;
 
   @override
   void initState() {
@@ -444,7 +485,7 @@ class _MenuEditorDialogState extends State<_MenuEditorDialog> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -462,8 +503,15 @@ class _MenuEditorDialogState extends State<_MenuEditorDialog> {
       courses: List.from(_courses),
     );
 
-    widget.onSave(savedMenu);
-    Navigator.pop(context);
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(savedMenu);
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      // Error is handled by caller
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -720,7 +768,7 @@ class _MenuEditorDialogState extends State<_MenuEditorDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _saving ? null : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white24),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -732,14 +780,23 @@ class _MenuEditorDialogState extends State<_MenuEditorDialog> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _submit,
+                      onPressed: _saving ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.brushedGold,
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text("LISTO", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Text("LISTO", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],

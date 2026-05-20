@@ -15,7 +15,7 @@ class AppShell extends StatelessWidget {
 
   int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final paths = ['/dashboard', '/guests', '/tables', '/events', '/settings'];
+    final paths = ['/dashboard', '/guests', '/tables', '/menus', '/events', '/settings'];
     for (int i = 0; i < paths.length; i++) {
       if (location.startsWith(paths[i])) return i;
     }
@@ -29,6 +29,7 @@ class AppShell extends StatelessWidget {
       _NavItem(icon: Icons.dashboard_rounded, label: l.navDashboard, path: '/dashboard'),
       _NavItem(icon: Icons.people_rounded, label: l.navGuests, path: '/guests'),
       _NavItem(icon: Icons.table_restaurant_rounded, label: l.navTables, path: '/tables'),
+      _NavItem(icon: Icons.restaurant_menu_rounded, label: l.navMenus, path: '/menus'),
       _NavItem(icon: Icons.celebration_rounded, label: l.navEvents, path: '/events'),
       _NavItem(icon: Icons.settings_rounded, label: l.navSettings, path: '/settings'),
     ];
