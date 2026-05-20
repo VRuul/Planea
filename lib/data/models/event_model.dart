@@ -174,6 +174,10 @@ class RsvpConfig extends Equatable {
   final String? customNotes;
   final String? dressCode;
   final String? registryUrl;
+  final String? churchMapUrl;
+  final String? venueMapUrl;
+  final String? customMapUrl;
+  final String? customMapLabel;
 
   const RsvpConfig({
     this.themeStyle = 'classic_gold',
@@ -183,6 +187,10 @@ class RsvpConfig extends Equatable {
     this.customNotes,
     this.dressCode,
     this.registryUrl,
+    this.churchMapUrl,
+    this.venueMapUrl,
+    this.customMapUrl,
+    this.customMapLabel,
   });
 
   static String? normalizeImageUrl(String? url) {
@@ -220,6 +228,10 @@ class RsvpConfig extends Equatable {
       customNotes: json['custom_notes'],
       dressCode: json['dress_code'],
       registryUrl: json['registry_url'],
+      churchMapUrl: json['church_map_url'],
+      venueMapUrl: json['venue_map_url'],
+      customMapUrl: json['custom_map_url'],
+      customMapLabel: json['custom_map_label'],
     );
   }
 
@@ -231,6 +243,10 @@ class RsvpConfig extends Equatable {
         'custom_notes': customNotes,
         'dress_code': dressCode,
         'registry_url': registryUrl,
+        'church_map_url': churchMapUrl,
+        'venue_map_url': venueMapUrl,
+        'custom_map_url': customMapUrl,
+        'custom_map_label': customMapLabel,
       };
 
   RsvpConfig copyWith({
@@ -241,6 +257,10 @@ class RsvpConfig extends Equatable {
     String? customNotes,
     String? dressCode,
     String? registryUrl,
+    String? churchMapUrl,
+    String? venueMapUrl,
+    String? customMapUrl,
+    String? customMapLabel,
   }) {
     return RsvpConfig(
       themeStyle: themeStyle ?? this.themeStyle,
@@ -250,6 +270,10 @@ class RsvpConfig extends Equatable {
       customNotes: customNotes ?? this.customNotes,
       dressCode: dressCode ?? this.dressCode,
       registryUrl: registryUrl ?? this.registryUrl,
+      churchMapUrl: churchMapUrl ?? this.churchMapUrl,
+      venueMapUrl: venueMapUrl ?? this.venueMapUrl,
+      customMapUrl: customMapUrl ?? this.customMapUrl,
+      customMapLabel: customMapLabel ?? this.customMapLabel,
     );
   }
 
@@ -262,6 +286,10 @@ class RsvpConfig extends Equatable {
         customNotes,
         dressCode,
         registryUrl,
+        churchMapUrl,
+        venueMapUrl,
+        customMapUrl,
+        customMapLabel,
       ];
 }
 

@@ -577,119 +577,157 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
             const SizedBox(height: 24),
 
             if (_rsvpStatus == GuestStatus.confirmed) ...[
-              // Companions Counts
-              Text(
-                'Acompañantes en tu grupo familiar:',
-                style: TextStyle(color: rTheme.primaryTextColor.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.bold),
+              // Companions Counts (Read-Only Info Box)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: rTheme.primaryTextColor.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: rTheme.borderColor.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.people_outline, color: rTheme.accentColor, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'LUGARES RESERVADOS',
+                          style: TextStyle(
+                            color: rTheme.accentColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildReadOnlyCountRow('Adultos', _adultsCount, rTheme),
+                    if (_teenagersCount > 0) ...[
+                      const Divider(color: Colors.white10, height: 16),
+                      _buildReadOnlyCountRow('Adolescentes', _teenagersCount, rTheme),
+                    ],
+                    if (_childrenCount > 0) ...[
+                      const Divider(color: Colors.white10, height: 16),
+                      _buildReadOnlyCountRow('Niños', _childrenCount, rTheme),
+                    ],
+                    if (_disabledCount > 0) ...[
+                      const Divider(color: Colors.white10, height: 16),
+                      _buildReadOnlyCountRow('Accesos Especiales', _disabledCount, rTheme),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildCounterRow(label: l.countAdults, count: _adultsCount, onChanged: (v) => setState(() => _adultsCount = v), theme: rTheme),
-              _buildCounterRow(label: l.countTeenagers, count: _teenagersCount, onChanged: (v) => setState(() => _teenagersCount = v), theme: rTheme),
-              _buildCounterRow(label: l.countChildren, count: _childrenCount, onChanged: (v) => setState(() => _childrenCount = v), theme: rTheme),
-              _buildCounterRow(label: l.countDisabled, count: _disabledCount, onChanged: (v) => setState(() => _disabledCount = v), theme: rTheme),
               const SizedBox(height: 24),
 
-              // Menu Options Selection
-              Text(
-                l.rsvpSelectMenu,
-                style: TextStyle(color: rTheme.primaryTextColor.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Column(
-                children: menuOptions.map((opt) {
-                  final isSelected = _selectedMenu == opt['value'];
-                  MenuModel? matchedMenu;
-                  if (_currentEvent != null && _currentEvent!.menus.isNotEmpty) {
-                    final index = _currentEvent!.menus.indexWhere((m) => m.id == opt['value']);
-                    if (index != -1) matchedMenu = _currentEvent!.menus[index];
-                  }
+              // Menu Selection (Read-Only Info Box)
+              if (_selectedMenu != null && _selectedMenu!.isNotEmpty) ...[
+                Text(
+                  'PLATILLO ASIGNADO',
+                  style: TextStyle(
+                    color: rTheme.primaryTextColor.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Builder(
+                  builder: (context) {
+                    final selectedOpt = menuOptions.firstWhere(
+                      (opt) => opt['value'] == _selectedMenu,
+                      orElse: () => {'value': '', 'label': 'No especificado'},
+                    );
+                    
+                    MenuModel? matchedMenu;
+                    if (_currentEvent != null && _currentEvent!.menus.isNotEmpty) {
+                      final index = _currentEvent!.menus.indexWhere((m) => m.id == _selectedMenu);
+                      if (index != -1) matchedMenu = _currentEvent!.menus[index];
+                    }
 
-                  return Column(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected ? rTheme.accentColor.withValues(alpha: 0.08) : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected ? rTheme.accentColor : rTheme.borderColor,
-                            width: isSelected ? 1.5 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          title: Text(
-                            opt['label']!,
-                            style: TextStyle(
-                              color: isSelected ? rTheme.accentColor : rTheme.secondaryTextColor,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: rTheme.primaryTextColor.withValues(alpha: 0.02),
+                        border: Border.all(color: rTheme.borderColor),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ListTile(
+                            dense: true,
+                            leading: Icon(Icons.restaurant, color: rTheme.accentColor, size: 20),
+                            title: Text(
+                              selectedOpt['label']!,
+                              style: TextStyle(
+                                color: rTheme.accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                          trailing: isSelected 
-                              ? Icon(Icons.radio_button_checked, color: rTheme.accentColor, size: 18)
-                              : Icon(Icons.radio_button_off, color: rTheme.secondaryTextColor.withValues(alpha: 0.3), size: 18),
-                          onTap: () => setState(() => _selectedMenu = opt['value']),
-                        ),
-                      ),
-                      if (isSelected && matchedMenu != null && matchedMenu.courses.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(left: 12, right: 12, bottom: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: rTheme.primaryTextColor.withValues(alpha: 0.02),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: rTheme.borderColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: matchedMenu.courses.map((course) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: rTheme.accentColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        course.name,
-                                        style: TextStyle(color: rTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            course.dishName,
-                                            style: TextStyle(color: rTheme.primaryTextColor.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.bold),
+                          if (matchedMenu != null && matchedMenu.courses.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(left: 12, right: 12, bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: rTheme.backgroundColor.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: rTheme.borderColor.withValues(alpha: 0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: matchedMenu.courses.map((course) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: rTheme.accentColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(6),
                                           ),
-                                          if (course.description != null && course.description!.isNotEmpty)
-                                            Text(
-                                              course.description!,
-                                              style: TextStyle(color: rTheme.secondaryTextColor.withValues(alpha: 0.5), fontSize: 9),
-                                            ),
-                                        ],
-                                      ),
+                                          child: Text(
+                                            course.name,
+                                            style: TextStyle(color: rTheme.accentColor, fontSize: 8, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                course.dishName,
+                                                style: TextStyle(color: rTheme.primaryTextColor.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.bold),
+                                              ),
+                                              if (course.description != null && course.description!.isNotEmpty)
+                                                Text(
+                                                  course.description!,
+                                                  style: TextStyle(color: rTheme.secondaryTextColor.withValues(alpha: 0.5), fontSize: 9),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
 
-              // Dietary Restrictions Field
+              // Dietary Restrictions Field (Still editable, as food allergies are critical)
               TextFormField(
                 controller: _dietaryController,
                 style: TextStyle(color: rTheme.primaryTextColor, fontSize: 14),
@@ -961,46 +999,16 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildCounterRow({
-    required String label,
-    required int count,
-    required ValueChanged<int> onChanged,
-    required RsvpTheme theme,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.primaryTextColor.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: theme.secondaryTextColor, fontSize: 13)),
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.remove_circle_outline, color: theme.accentColor, size: 22),
-                onPressed: count > 0 ? () => onChanged(count - 1) : null,
-              ),
-              Container(
-                constraints: const BoxConstraints(minWidth: 24),
-                child: Text(
-                  '$count',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: theme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.add_circle_outline, color: theme.accentColor, size: 22),
-                onPressed: () => onChanged(count + 1),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildReadOnlyCountRow(String label, int count, RsvpTheme theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: theme.secondaryTextColor, fontSize: 13)),
+        Text(
+          '$count',
+          style: TextStyle(color: theme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      ],
     );
   }
 
@@ -1249,26 +1257,103 @@ class _RsvpsScreenState extends State<RsvpsScreen> with SingleTickerProviderStat
             theme: rTheme,
           ),
 
-          // Venue details
-          if (_currentEvent!.venue != null && _currentEvent!.venue!.isNotEmpty) ...[
-            const Divider(color: Colors.white12, height: 24),
-            _buildDetailRow(
-              icon: Icons.location_on_outlined,
-              title: "Lugar",
-              subtitle: _currentEvent!.venue!,
-              theme: rTheme,
-              trailing: IconButton(
-                icon: Icon(Icons.map_outlined, color: rTheme.accentColor),
-                onPressed: () async {
-                  final query = Uri.encodeComponent(_currentEvent!.venue!);
-                  final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query");
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  }
-                },
-              ),
-            ),
-          ],
+          // Venue details (Map locations)
+          Builder(
+            builder: (context) {
+              final config = _currentEvent!.rsvpConfig;
+              final hasChurch = config.churchMapUrl != null && config.churchMapUrl!.isNotEmpty;
+              final hasVenue = config.venueMapUrl != null && config.venueMapUrl!.isNotEmpty;
+              final hasCustom = config.customMapUrl != null && config.customMapUrl!.isNotEmpty;
+              
+              if (hasChurch || hasVenue || hasCustom) {
+                return Column(
+                  children: [
+                    if (hasChurch) ...[
+                      const Divider(color: Colors.white12, height: 24),
+                      _buildDetailRow(
+                        icon: Icons.church_outlined,
+                        title: "Ceremonia / Iglesia",
+                        subtitle: _currentEvent!.venue ?? "Ver ubicación en el mapa",
+                        theme: rTheme,
+                        trailing: IconButton(
+                          icon: Icon(Icons.map_outlined, color: rTheme.accentColor),
+                          onPressed: () async {
+                            final url = Uri.parse(config.churchMapUrl!);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                    if (hasVenue) ...[
+                      const Divider(color: Colors.white12, height: 24),
+                      _buildDetailRow(
+                        icon: Icons.business_outlined,
+                        title: "Recepción / Salón",
+                        subtitle: _currentEvent!.venue ?? "Ver ubicación en el mapa",
+                        theme: rTheme,
+                        trailing: IconButton(
+                          icon: Icon(Icons.map_outlined, color: rTheme.accentColor),
+                          onPressed: () async {
+                            final url = Uri.parse(config.venueMapUrl!);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                    if (hasCustom) ...[
+                      const Divider(color: Colors.white12, height: 24),
+                      _buildDetailRow(
+                        icon: Icons.map_outlined,
+                        title: config.customMapLabel ?? "Ubicación Especial",
+                        subtitle: "Ver ubicación en el mapa",
+                        theme: rTheme,
+                        trailing: IconButton(
+                          icon: Icon(Icons.map_outlined, color: rTheme.accentColor),
+                          onPressed: () async {
+                            final url = Uri.parse(config.customMapUrl!);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              }
+              
+              // Fallback to default search query
+              if (_currentEvent!.venue != null && _currentEvent!.venue!.isNotEmpty) {
+                return Column(
+                  children: [
+                    const Divider(color: Colors.white12, height: 24),
+                    _buildDetailRow(
+                      icon: Icons.location_on_outlined,
+                      title: "Lugar",
+                      subtitle: _currentEvent!.venue!,
+                      theme: rTheme,
+                      trailing: IconButton(
+                        icon: Icon(Icons.map_outlined, color: rTheme.accentColor),
+                        onPressed: () async {
+                          final query = Uri.encodeComponent(_currentEvent!.venue!);
+                          final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query");
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              }
+              
+              return const SizedBox.shrink();
+            },
+          ),
 
           // Dress code
           if (_currentEvent!.rsvpConfig.dressCode != null && _currentEvent!.rsvpConfig.dressCode!.isNotEmpty) ...[

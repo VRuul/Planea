@@ -617,6 +617,10 @@ class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
   final _dressCodeController = TextEditingController();
   final _customNotesController = TextEditingController();
   final _registryUrlController = TextEditingController();
+  final _churchMapController = TextEditingController();
+  final _venueMapController = TextEditingController();
+  final _customMapController = TextEditingController();
+  final _customMapLabelController = TextEditingController();
 
   String _themeStyle = 'classic_gold';
   bool _showCountdown = true;
@@ -631,6 +635,10 @@ class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
     _dressCodeController.text = config.dressCode ?? '';
     _customNotesController.text = config.customNotes ?? '';
     _registryUrlController.text = config.registryUrl ?? '';
+    _churchMapController.text = config.churchMapUrl ?? '';
+    _venueMapController.text = config.venueMapUrl ?? '';
+    _customMapController.text = config.customMapUrl ?? '';
+    _customMapLabelController.text = config.customMapLabel ?? '';
     _themeStyle = config.themeStyle;
     _showCountdown = config.showCountdown;
     _showMap = config.showMap;
@@ -642,6 +650,10 @@ class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
     _dressCodeController.dispose();
     _customNotesController.dispose();
     _registryUrlController.dispose();
+    _churchMapController.dispose();
+    _venueMapController.dispose();
+    _customMapController.dispose();
+    _customMapLabelController.dispose();
     super.dispose();
   }
 
@@ -654,6 +666,10 @@ class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
         dressCode: _dressCodeController.text.trim().isEmpty ? null : _dressCodeController.text.trim(),
         customNotes: _customNotesController.text.trim().isEmpty ? null : _customNotesController.text.trim(),
         registryUrl: _registryUrlController.text.trim().isEmpty ? null : _registryUrlController.text.trim(),
+        churchMapUrl: _churchMapController.text.trim().isEmpty ? null : _churchMapController.text.trim(),
+        venueMapUrl: _venueMapController.text.trim().isEmpty ? null : _venueMapController.text.trim(),
+        customMapUrl: _customMapController.text.trim().isEmpty ? null : _customMapController.text.trim(),
+        customMapLabel: _customMapLabelController.text.trim().isEmpty ? null : _customMapLabelController.text.trim(),
         showCountdown: _showCountdown,
         showMap: _showMap,
       );
@@ -750,6 +766,45 @@ class _RsvpConfigDialogState extends State<RsvpConfigDialog> {
                 controller: _registryUrlController,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: _inputDecoration("Mesa de Regalos URL (Opcional)", Icons.card_giftcard_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Church Map URL
+              TextField(
+                controller: _churchMapController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Google Maps Ceremonia/Iglesia URL (Opcional)", Icons.church_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Venue Map URL
+              TextField(
+                controller: _venueMapController,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: _inputDecoration("Google Maps Recepción/Salón URL (Opcional)", Icons.business_outlined, theme),
+              ),
+              const SizedBox(height: 16),
+
+              // Custom Map URL & Label (Row)
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _customMapController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration("Otra Ubicación URL", Icons.map_outlined, theme),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _customMapLabelController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: _inputDecoration("Etiqueta (ej: Tornaboda)", Icons.label_outline, theme),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
